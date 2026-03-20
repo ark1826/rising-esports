@@ -53,7 +53,6 @@ function TodaySlots() {
     <div className="slots-page fade-in">
       <div className="page-header">
         <h1>Rising <span>Esports</span></h1>
-        <div className="season-badge" style={{ marginTop: '0.75rem' }}>Season 4 Active</div>
       </div>
 
       {/* Register CTA */}
@@ -118,8 +117,8 @@ function TodaySlots() {
         <div className="maps-grid">
           <div className="map-tag">Erangel</div>
           <div className="map-tag">Miramar</div>
-          <div className="map-tag">Sanhok</div>
-          <div className="map-tag">Vikendi</div>
+          <div className="map-tag">Rondo</div>
+        
         </div>
       </div>
     </div>
