@@ -18,7 +18,7 @@ function Rankings() {
       <div className="page-header">
         <p className="subtitle">Official Standings</p>
         <h1>Team <span>Rankings</span></h1>
-        <p>Season 4 — Updated manually for accuracy</p>
+        
       </div>
 
       {loading ? (

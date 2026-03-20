@@ -10,7 +10,7 @@ function Home() {
         <p style={{ maxWidth: '800px', margin: '1.5rem auto 2.5rem', color: 'var(--text-secondary)', lineHeight: '1.8', fontSize: '1rem' }}>
           Welcome to Rising Esports, a competitive gaming platform built for passionate BGMI players and teams. Our mission is to create a fair, competitive, and transparent scrims environment where every team gets the opportunity to showcase their skills and grow in the esports scene. We regularly host organized scrims, maintain clear point systems, and ensure professional management so players can focus on performance. At Rising Esports, we believe in dedication, discipline, and the spirit of competition, bringing together talented teams from across the community to compete, improve, and rise to the next level.
         </p>
-        <div className="season-badge">Season 4 Active</div>
+        
         <div style={{ marginTop: '1rem', display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
           <Link to="/slots" className="home-cta">
             Today Slots
@@ -118,6 +118,47 @@ function Home() {
               </svg>
             </div>
             <p>8. TOP 10 TEAMS GET MANAGERS AND COACHES</p>
+          </div>
+        </div>
+      </section>
+
+      {/* Tier Section */}
+      <section id="tier" style={{ padding: '4rem 0', borderBottom: '1px solid var(--border-color)' }}>
+        <div className="tier-page fade-in" style={{ padding: 0 }}>
+          <div className="platform-tiers-header">
+            <h1><em>PLATFORM</em> <span className="text-purple"><em>TIERS</em></span></h1>
+          </div>
+
+          <div className="platform-tiers-grid">
+            {/* Tier A */}
+            <div className="platform-tier-card">
+              <h2 className="tier-title text-green"><em>TIER A</em></h2>
+              <p className="tier-subtitle">ADVANCED</p>
+              <ul className="tier-list list-green">
+                <li>BGIS ROUND 4 OR ABOVE</li>
+                <li>#1 TO #10 TEAMS GET A-TIER TAG</li>
+              </ul>
+            </div>
+
+            {/* Tier B */}
+            <div className="platform-tier-card">
+              <h2 className="tier-title text-blue"><em>TIER B</em></h2>
+              <p className="tier-subtitle">INTERMEDIATE</p>
+              <ul className="tier-list list-gray">
+                <li>BGIS ROUND 2 OR ABOVE</li>
+                <li>#11 TO #30 TEAMS GET B-TIER TAG</li>
+              </ul>
+            </div>
+
+            {/* Tier C */}
+            <div className="platform-tier-card">
+              <h2 className="tier-title text-silver"><em>TIER C</em></h2>
+              <p className="tier-subtitle">OPEN</p>
+              <ul className="tier-list list-gray">
+                <li>AT LEAST PLAYED BGIS</li>
+                <li>#31 TO #50 TEAMS GET C-TIER TAG</li>
+              </ul>
+            </div>
           </div>
         </div>
       </section>

@@ -4,7 +4,6 @@ import Footer from './components/Footer'
 import Home from './pages/Home'
 import TodaySlots from './pages/TodaySlots'
 import Rankings from './pages/Rankings'
-import Tier from './pages/Tier'
 import Tournaments from './pages/Tournaments'
 
 function App() {
@@ -17,7 +16,6 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/slots" element={<TodaySlots />} />
             <Route path="/rankings" element={<Rankings />} />
-            <Route path="/tier" element={<Tier />} />
             <Route path="/tournaments" element={<Tournaments />} />
           </Routes>
         </main>

@@ -3,54 +3,45 @@ import { useState, useEffect } from 'react'
 const API_BASE = import.meta.env.VITE_API_URL || ''
 
 const defaultSlots = [
+  
   {
     _id: '1',
-    entryFee: 40,
+    entryFee: 50,
     prizePool: [
-      { position: 1, amount: 250 },
+      { position: 1, amount: 300 },
       { position: 2, amount: 120 },
-      { position: 3, amount: 80 },
-      { position: 4, amount: 40 }
+      { position: 3, amount: 90 },
+      { position: 4, amount: 60 }
     ]
   },
   {
     _id: '2',
-    entryFee: 50,
+    entryFee: 60,
     prizePool: [
       { position: 1, amount: 400 },
-      { position: 2, amount: 130 },
+      { position: 2, amount: 150 },
       { position: 3, amount: 100 },
       { position: 4, amount: 70 }
     ]
   },
   {
     _id: '3',
-    entryFee: 60,
+    entryFee: 120,
     prizePool: [
-      { position: 1, amount: 450 },
-      { position: 2, amount: 160 },
-      { position: 3, amount: 110 },
-      { position: 4, amount: 80 }
+      { position: 1, amount: 900 },
+      { position: 2, amount: 400 },
+      { position: 3, amount: 250 },
+      { position: 4, amount: 150 }
     ]
   },
   {
     _id: '4',
-    entryFee: 100,
+    entryFee: 150,
     prizePool: [
-      { position: 1, amount: 800 },
-      { position: 2, amount: 400 },
-      { position: 3, amount: 250 },
-      { position: 4, amount: 100 }
-    ]
-  },
-  {
-    _id: '5',
-    entryFee: 120,
-    prizePool: [
-      { position: 1, amount: 1000 },
-      { position: 2, amount: 450 },
-      { position: 3, amount: 250 },
-      { position: 4, amount: 150 }
+      { position: 1, amount: 1250 },
+      { position: 2, amount: 500 },
+      { position: 3, amount: 300 },
+      { position: 4, amount: 200 }
     ]
   }
 ]
