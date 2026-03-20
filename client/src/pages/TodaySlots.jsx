@@ -8,7 +8,7 @@ const defaultSlots = [
     _id: '1',
     entryFee: 50,
     prizePool: [
-      { position: 1, amount: 300 },
+      { position: 1, amount: 350 },
       { position: 2, amount: 120 },
       { position: 3, amount: 90 },
       { position: 4, amount: 60 }
@@ -18,7 +18,7 @@ const defaultSlots = [
     _id: '2',
     entryFee: 60,
     prizePool: [
-      { position: 1, amount: 400 },
+      { position: 1, amount: 450 },
       { position: 2, amount: 150 },
       { position: 3, amount: 100 },
       { position: 4, amount: 70 }
