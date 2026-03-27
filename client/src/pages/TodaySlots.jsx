@@ -1,53 +1,24 @@
 import { useState, useEffect } from 'react'
-
-const API_BASE = import.meta.env.VITE_API_URL || ''
-
-const defaultSlots = [
-  
-  {
-    _id: '1',
-    entryFee: 50,
-    prizePool: [
-      { position: 1, amount: 350 },
-      { position: 2, amount: 120 },
-      { position: 3, amount: 90 },
-      { position: 4, amount: 60 }
-    ]
-  },
-  {
-    _id: '2',
-    entryFee: 60,
-    prizePool: [
-      { position: 1, amount: 450 },
-      { position: 2, amount: 150 },
-      { position: 3, amount: 100 },
-      { position: 4, amount: 70 }
-    ]
-  },
-  {
-    _id: '3',
-    entryFee: 120,
-    prizePool: [
-      { position: 1, amount: 900 },
-      { position: 2, amount: 400 },
-      { position: 3, amount: 250 },
-      { position: 4, amount: 150 }
-    ]
-  },
-  {
-    _id: '4',
-    entryFee: 150,
-    prizePool: [
-      { position: 1, amount: 1250 },
-      { position: 2, amount: 500 },
-      { position: 3, amount: 300 },
-      { position: 4, amount: 200 }
-    ]
-  }
-]
+import axios from 'axios'
 
 function TodaySlots() {
-  const [slots] = useState(defaultSlots)
+  const [slots, setSlots] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchSlots = async () => {
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+        const { data } = await axios.get(`${apiUrl}/api/slots`)
+        setSlots(data)
+      } catch (err) {
+        console.error('Error fetching slots', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchSlots()
+  }, [])
 
   return (
     <div className="slots-page fade-in">
@@ -69,25 +40,39 @@ function TodaySlots() {
         </a>
       </div>
 
-      {/* Slot Cards */}
-      <div className="slots-grid">
-        {slots.map(slot => (
-          <div key={slot._id} className="slot-card">
-            <div className="slot-header">
-              <div className="entry-fee">Entry Fee Rs. {slot.entryFee}</div>
-              <h3>Prizepool</h3>
+      {loading ? (
+        <div className="loading" style={{textAlign: 'center', padding: '3rem'}}>
+          <div className="spinner"></div>
+          <p>Loading Slots...</p>
+        </div>
+      ) : slots.length === 0 ? (
+        <div className="empty-state" style={{textAlign: 'center', padding: '3rem'}}>
+           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{fill: 'none', stroke: '#6b6b80', width: '64px', height: '64px', margin: '0 auto 1rem'}}>
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+          </svg>
+          <h3>No Slots Available</h3>
+          <p>Check back later for upcoming tournament slots.</p>
+        </div>
+      ) : (
+        <div className="slots-grid">
+          {slots.map(slot => (
+            <div key={slot._id} className="slot-card">
+              <div className="slot-header">
+                <div className="entry-fee">Entry Fee Rs. {slot.entryFee}</div>
+                <h3>Prizepool</h3>
+              </div>
+              <div className="slot-prizes">
+                {slot.prizePool.map((prize, idx) => (
+                  <div key={idx} className="prize-row">
+                    <span className="prize-position">#{prize.position}</span>
+                    <span className="prize-amount">RS. {prize.amount}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="slot-prizes">
-              {slot.prizePool.map((prize, idx) => (
-                <div key={idx} className="prize-row">
-                  <span className="prize-position">#{prize.position}</span>
-                  <span className="prize-amount">RS. {prize.amount}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* Bonus Banners */}
       <div className="bonus-banner">
@@ -118,7 +103,6 @@ function TodaySlots() {
           <div className="map-tag">Erangel</div>
           <div className="map-tag">Miramar</div>
           <div className="map-tag">Rondo</div>
-        
         </div>
       </div>
     </div>

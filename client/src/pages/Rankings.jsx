@@ -1,24 +1,30 @@
-import { useState } from 'react'
-
-// Hardcode rankings data here
-const defaultRankings = [
-  { _id: '1', rank: 1, teamName: 'GodLike Esports', teamTag: 'GodL', totalMatches: 250, finishes: 134, wwcd: 12, totalPoints: 245 },
-  { _id: '2', rank: 2, teamName: 'Team Soul', teamTag: 'SOUL', totalMatches: 245, finishes: 112, wwcd: 9, totalPoints: 210 },
-  { _id: '3', rank: 3, teamName: 'Blind Esports', teamTag: 'BLND', totalMatches: 240, finishes: 105, wwcd: 8, totalPoints: 195 },
-  { _id: '4', rank: 4, teamName: 'Gladiators Esports', teamTag: 'GLXT', totalMatches: 235, finishes: 98, wwcd: 7, totalPoints: 180 },
-  { _id: '5', rank: 5, teamName: 'Global Esports', teamTag: 'GE', totalMatches: 230, finishes: 89, wwcd: 6, totalPoints: 165 },
-]
+import { useState, useEffect } from 'react'
+import axios from 'axios'
 
 function Rankings() {
-  const [rankings] = useState(defaultRankings)
-  const [loading] = useState(false)
+  const [rankings, setRankings] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchRankings = async () => {
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+        const { data } = await axios.get(`${apiUrl}/api/rankings`)
+        setRankings(data)
+      } catch (err) {
+        console.error('Error fetching rankings', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchRankings()
+  }, [])
 
   return (
     <div className="rankings-page fade-in">
       <div className="page-header">
         <p className="subtitle">Official Standings</p>
         <h1>Team <span>Rankings</span></h1>
-        
       </div>
 
       {loading ? (
@@ -28,7 +34,7 @@ function Rankings() {
         </div>
       ) : rankings.length === 0 ? (
         <div className="empty-state">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{fill: 'none', stroke: '#6b6b80'}}>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{fill: 'none', stroke: '#6b6b80', width: '64px', height: '64px', margin: '0 auto 1rem'}}>
             <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
           </svg>
           <h3>No Rankings Yet</h3>

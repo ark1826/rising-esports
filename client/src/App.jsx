@@ -7,6 +7,9 @@ import TodaySlots from './pages/TodaySlots'
 import Rankings from './pages/Rankings'
 import Tier from './pages/Tier'
 import Tournaments from './pages/Tournaments'
+import AdminLogin from './pages/AdminLogin'
+import AdminDashboard from './pages/AdminDashboard'
+import ProtectedRoute from './components/ProtectedRoute'
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -18,23 +21,42 @@ function ScrollToTop() {
   return null
 }
 
+function MainLayout({ children }) {
+  const location = useLocation();
+  const isAdminRoute = location.pathname.startsWith('/admin');
+
+  return (
+    <div className="app">
+      {!isAdminRoute && <Navbar />}
+      <main className={isAdminRoute ? "admin-main" : "main-content"}>
+        {children}
+      </main>
+      {!isAdminRoute && <Footer />}
+    </div>
+  );
+}
+
 function App() {
   return (
     <Router>
       <ScrollToTop />
-      <div className="app">
-        <Navbar />
-        <main className="main-content">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/slots" element={<TodaySlots />} />
-            <Route path="/rankings" element={<Rankings />} />
-            <Route path="/tier" element={<Tier />} />
-            <Route path="/tournaments" element={<Tournaments />} />
-          </Routes>
-        </main>
-        <Footer />
-      </div>
+      <MainLayout>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/slots" element={<TodaySlots />} />
+          <Route path="/rankings" element={<Rankings />} />
+          <Route path="/tier" element={<Tier />} />
+          <Route path="/tournaments" element={<Tournaments />} />
+          
+          {/* Admin Routes */}
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin/dashboard" element={
+            <ProtectedRoute>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+        </Routes>
+      </MainLayout>
     </Router>
   )
 }

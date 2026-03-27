@@ -20,6 +20,18 @@ function Navbar() {
         <NavLink to="/tier" onClick={closeMenu} className={({ isActive }) => isActive ? 'active' : ''}>Tier</NavLink>
         <NavLink to="/slots" onClick={closeMenu} className={({ isActive }) => isActive ? 'active' : ''}>Today Slots</NavLink>
         <NavLink to="/rankings" onClick={closeMenu} className={({ isActive }) => isActive ? 'active' : ''}>Rankings</NavLink>
+        <NavLink 
+          to={localStorage.getItem('adminInfo') ? "/admin/dashboard" : "/admin/login"} 
+          onClick={closeMenu} 
+          className={({ isActive }) => `admin-nav-link ${isActive ? 'active' : ''}`}
+          style={{
+            border: '1px solid var(--purple-primary)',
+            borderRadius: '20px',
+            color: 'var(--purple-light)'
+          }}
+        >
+          {localStorage.getItem('adminInfo') ? "Dashboard" : "Admin"}
+        </NavLink>
       </div>
 
       <div className={`navbar-hamburger ${isOpen ? 'open' : ''}`} onClick={toggleMenu}>
