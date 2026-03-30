@@ -15,7 +15,7 @@ const app = express();
 
 app.use(
   cors({
-    origin: "https://rising-esports-5339tfpdq-ark1826s-projects.vercel.app",
+    origin: "https://www.risingesports.online",
     credentials: true,
   })
 );
