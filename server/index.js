@@ -16,10 +16,15 @@ const app = express();
 app.use(
   cors({
     origin: [
-      "https://rising-esports-c124a6vc1-ark1826s-projects.vercel.app",
-      "https://www.risingesports.online",
+      "https://rising-esports-wvay.vercel.app", // Your backend URL (sometimes needed if testing directly)
+      "https://www.risingesports.online",       // Your main frontend
+      "https://rising-esports-c124a6vc1-ark1826s-projects.vercel.app",        
+      "https://risingesports.online",
+      "http://localhost:3000"             // The non-www version
     ],
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"]
   })
 );
 app.use(express.json());
