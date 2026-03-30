@@ -15,12 +15,14 @@ const app = express();
 
 app.use(
   cors({
-    origin: "https://www.risingesports.online",
+    origin: [
+      "https://rising-esports-c124a6vc1-ark1826s-projects.vercel.app",
+      "https://www.risingesports.online",
+    ],
     credentials: true,
   })
 );
 app.use(express.json());
-app.options("*", cors());
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -93,3 +95,4 @@ const startServer = async () => {
 };
 
 startServer();
+
