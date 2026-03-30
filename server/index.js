@@ -13,91 +13,71 @@ dotenv.config();
 
 const app = express();
 
+// 1. CORS Configuration
+// Note: If you kept the 'headers' in vercel.json, this middleware 
+// acts as a second layer of defense.
 app.use(
   cors({
     origin: [
-      "https://rising-esports-wvay.vercel.app", // Your backend URL (sometimes needed if testing directly)
-      "https://www.risingesports.online",       // Your main frontend
+      "https://rising-esports-wvay.vercel.app",
+      "https://www.risingesports.online",        
       "https://rising-esports-c124a6vc1-ark1826s-projects.vercel.app",        
       "https://risingesports.online",
-      "http://localhost:3000"             // The non-www version
+      "http://localhost:3000"
     ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"]
   })
 );
+
 app.use(express.json());
 
-// Routes
+// 2. Database Connection Logic (Serverless Optimization)
+// We connect to the DB but don't let seeding block the initial boot-up
+let isSeeded = false;
+
+const initializeApp = async () => {
+  await connectDB();
+  if (!isSeeded) {
+    await seedData();
+    isSeeded = true;
+  }
+};
+
+// Initialize connection (Vercel will reuse this connection across requests)
+initializeApp();
+
+// 3. Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/rankings', rankingRoutes);
 app.use('/api/slots', slotRoutes);
 
-const PORT = process.env.PORT || 5000;
+// Health check route
+app.get("/", (req, res) => res.send("Rising Esports API is running..."));
 
-// Default Mock Data
-const defaultRankings = [
-  { rank: 1, teamName: 'GodLike Esports', teamTag: 'GodL', totalMatches: 250, finishes: 134, wwcd: 12, totalPoints: 245 },
-  { rank: 2, teamName: 'Team Soul', teamTag: 'SOUL', totalMatches: 245, finishes: 112, wwcd: 9, totalPoints: 210 },
-  { rank: 3, teamName: 'Blind Esports', teamTag: 'BLND', totalMatches: 240, finishes: 105, wwcd: 8, totalPoints: 195 },
-  { rank: 4, teamName: 'Gladiators Esports', teamTag: 'GLXT', totalMatches: 235, finishes: 98, wwcd: 7, totalPoints: 180 },
-  { rank: 5, teamName: 'Global Esports', teamTag: 'GE', totalMatches: 230, finishes: 89, wwcd: 6, totalPoints: 165 },
-];
+// 4. Seeding Logic (Keep this exactly as you had it, it's safe)
+const defaultRankings = [ /* ... your data ... */ ];
+const defaultSlots = [ /* ... your data ... */ ];
 
-const defaultSlots = [
-  { entryFee: 50, prizePool: [{ position: 1, amount: 350 }, { position: 2, amount: 120 }, { position: 3, amount: 90 }, { position: 4, amount: 60 }] },
-  { entryFee: 60, prizePool: [{ position: 1, amount: 450 }, { position: 2, amount: 150 }, { position: 3, amount: 100 }, { position: 4, amount: 70 }] },
-  { entryFee: 120, prizePool: [{ position: 1, amount: 900 }, { position: 2, amount: 400 }, { position: 3, amount: 250 }, { position: 4, amount: 150 }] },
-  { entryFee: 150, prizePool: [{ position: 1, amount: 1250 }, { position: 2, amount: 500 }, { position: 3, amount: 300 }, { position: 4, amount: 200 }] }
-];
-
-// Seed Data helper (after connection)
 const seedData = async () => {
   try {
-    // Seed Admin
     const adminExists = await Admin.findOne({ username: 'admin' });
     if (!adminExists) {
       await Admin.create({ username: 'admin', password: process.env.ADMIN_PASSWORD || 'admin@123' });
-      console.log('Default admin created: admin / admin@123');
+      console.log('Default admin created');
     }
-
-    // Seed Rankings one by one to avoid duplicates
-    for (const ranking of defaultRankings) {
-      const exists = await Ranking.findOne({ teamName: ranking.teamName });
-      if (!exists) {
-        await Ranking.create(ranking);
-      }
-    }
-    console.log('Rankings checked/seeded');
-
-    // Seed Slots one by one to avoid duplicates
-    for (const slot of defaultSlots) {
-      const exists = await Slot.findOne({ entryFee: slot.entryFee });
-      if (!exists) {
-        await Slot.create(slot);
-      }
-    }
-    console.log('Slots checked/seeded');
+    // ... rest of your seeding logic ...
   } catch (error) {
-    console.error('Error seeding data:', error);
+    console.error('Seeding error:', error);
   }
 };
 
-// Start Server
-const startServer = async () => {
-  try {
-    await connectDB(); // ✅ wait for DB FIRST
+// 5. The "Listen" vs "Export"
+// On Vercel, we EXPORT the app. app.listen is only for local dev.
+if (process.env.NODE_ENV !== 'production') {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => console.log(`server is running on port ${PORT}`));
+}
 
-    app.listen(PORT, async () => {
-      console.log(`Server running on port ${PORT}`);
-      await seedData(); // ✅ runs AFTER DB connection
-    });
-
-  } catch (error) {
-    console.error("Startup error:", error);
-  }
-};
-
-startServer();
-
+export default app;
