@@ -11,9 +11,6 @@ import { Slot } from './models/Slot.js';
 
 dotenv.config();
 
-// Connect to Database
-connectDB();
-
 const app = express();
 
 app.use(cors());
@@ -75,7 +72,18 @@ const seedData = async () => {
 };
 
 // Start Server
-app.listen(PORT, async () => {
-    console.log(`Server running on port ${PORT}`);
-    await seedData();
-});
+const startServer = async () => {
+  try {
+    await connectDB(); // ✅ wait for DB FIRST
+
+    app.listen(PORT, async () => {
+      console.log(`Server running on port ${PORT}`);
+      await seedData(); // ✅ runs AFTER DB connection
+    });
+
+  } catch (error) {
+    console.error("Startup error:", error);
+  }
+};
+
+startServer();
