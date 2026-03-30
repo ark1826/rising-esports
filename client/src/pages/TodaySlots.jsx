@@ -10,7 +10,7 @@ function TodaySlots() {
       try {
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
         const { data } = await axios.get(`${apiUrl}/api/slots`)
-        setSlots(data)
+        setSlots(data || [])
       } catch (err) {
         console.error('Error fetching slots', err)
       } finally {

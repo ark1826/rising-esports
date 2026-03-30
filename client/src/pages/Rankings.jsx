@@ -10,7 +10,7 @@ function Rankings() {
       try {
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
         const { data } = await axios.get(`${apiUrl}/api/rankings`)
-        setRankings(data)
+        setRankings(data || [])
       } catch (err) {
         console.error('Error fetching rankings', err)
       } finally {
