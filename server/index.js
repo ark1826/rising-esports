@@ -13,8 +13,14 @@ dotenv.config();
 
 const app = express();
 
-app.use(cors());
+app.use(
+  cors({
+    origin: "https://rising-esports-5339tfpdq-ark1826s-projects.vercel.app",
+    credentials: true,
+  })
+);
 app.use(express.json());
+app.options("*", cors());
 
 // Routes
 app.use('/api/auth', authRoutes);
