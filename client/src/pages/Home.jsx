@@ -1,12 +1,35 @@
 import { Link } from 'react-router-dom'
 import Rankings from './Rankings'
+import { motion } from 'framer-motion'
 
 function Home() {
   return (
     <div className="fade-in">
       {/* Hero Section */}
       <section className="home-hero">
-        <h1>Rising Esports</h1>
+        <motion.h1
+          initial="hidden"
+          animate="visible"
+          variants={{
+            hidden: { opacity: 1 },
+            visible: {
+              opacity: 1,
+              transition: { staggerChildren: 0.08 }
+            }
+          }}
+        >
+          {"RISING ESPORTS".split("").map((char, index) => (
+            <motion.span
+              key={index}
+              variants={{
+                hidden: { opacity: 0 },
+                visible: { opacity: 1 }
+              }}
+            >
+              {char}
+            </motion.span>
+          ))}
+        </motion.h1>
         <p style={{ maxWidth: '800px', margin: '1.5rem auto 2.5rem', color: 'var(--text-secondary)', lineHeight: '1.8', fontSize: '1rem' }}>
           Welcome to Rising Esports, a competitive gaming platform built for passionate BGMI players and teams. Our mission is to create a fair, competitive, and transparent scrims environment where every team gets the opportunity to showcase their skills and grow in the esports scene. We regularly host organized scrims, maintain clear point systems, and ensure professional management so players can focus on performance. At Rising Esports, we believe in dedication, discipline, and the spirit of competition, bringing together talented teams from across the community to compete, improve, and rise to the next level.
         </p>

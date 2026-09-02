@@ -10,7 +10,8 @@ import Tournaments from './pages/Tournaments'
 import AdminLogin from './pages/AdminLogin'
 import AdminDashboard from './pages/AdminDashboard'
 import ProtectedRoute from './components/ProtectedRoute'
-
+import UserLogin from './pages/UserLogin'
+import PaymentStatus from './pages/PaymentStatus'
 function ScrollToTop() {
   const { pathname } = useLocation()
 
@@ -47,6 +48,9 @@ function App() {
           <Route path="/rankings" element={<Rankings />} />
           <Route path="/tier" element={<Tier />} />
           <Route path="/tournaments" element={<Tournaments />} />
+          <Route path="/payment-status" element={<PaymentStatus />} />
+
+          <Route path="/user/login" element={<UserLogin />} />
           
           {/* Admin Routes */}
           <Route path="/admin/login" element={<AdminLogin />} />
