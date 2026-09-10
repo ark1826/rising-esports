@@ -61,7 +61,6 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
 
 // 2. URL Normalization Middleware (ensures Vercel serverless requests route properly)
 app.use((req, res, next) => {
