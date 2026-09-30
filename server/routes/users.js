@@ -75,6 +75,85 @@ router.post('/login', async (req, res) => {
   }
 });
 
+// POST /api/users/reset-password — Self-service password reset with account verification
+router.post('/reset-password', async (req, res) => {
+  const { phone, verificationAnswer, newPassword } = req.body;
+
+  if (!phone || !verificationAnswer || !newPassword) {
+    return res.status(400).json({ message: 'Phone number, verification detail, and new password are required' });
+  }
+
+  if (newPassword.length < 6) {
+    return res.status(400).json({ message: 'New password must be at least 6 characters' });
+  }
+
+  try {
+    const user = await User.findOne({ phone: phone.trim() });
+    if (!user) {
+      return res.status(404).json({ message: 'No registered account found with this phone number' });
+    }
+
+    const trimmedInput = verificationAnswer.trim().toLowerCase();
+    const userTeamName = (user.teamName || '').trim().toLowerCase();
+    const userRegNum = user.registrationNumber ? String(user.registrationNumber).trim().toLowerCase() : '';
+    const userWhatsapp = (user.whatsappNumber || '').trim().replace(/\D/g, '');
+    const inputCleanedPhone = trimmedInput.replace(/\D/g, '');
+
+    // Check if input matches registered Team Name, Registration Number (e.g. 1024 or #1024), or WhatsApp
+    const matchesTeamName = userTeamName && userTeamName === trimmedInput;
+    const matchesRegNum = userRegNum && (userRegNum === trimmedInput || userRegNum === trimmedInput.replace('#', ''));
+    const matchesWhatsapp = userWhatsapp && inputCleanedPhone && userWhatsapp === inputCleanedPhone;
+
+    if (!matchesTeamName && !matchesRegNum && !matchesWhatsapp) {
+      return res.status(400).json({
+        message: 'Verification failed. The Team Name or Registration ID does not match our records for this account.'
+      });
+    }
+
+    user.password = newPassword;
+    await user.save();
+
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+
+    res.json({
+      success: true,
+      message: 'Password reset successfully! Logging you in...',
+      user: {
+        _id: user._id,
+        phone: user.phone,
+        teamName: user.teamName,
+        registrationNumber: user.registrationNumber,
+        token,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// POST /api/users/admin/reset-password — Admin reset
+router.post('/admin/reset-password', async (req, res) => {
+  const { userId, newPassword } = req.body;
+  if (!userId || !newPassword) {
+    return res.status(400).json({ message: 'User ID and new password are required' });
+  }
+  if (newPassword.length < 6) {
+    return res.status(400).json({ message: 'Password must be at least 6 characters' });
+  }
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    user.password = newPassword;
+    await user.save();
+    res.json({ message: `Password successfully updated for ${user.teamName || user.phone}` });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+
 // GET /api/users/me & /api/users/profile
 router.get('/profile', userProtect, async (req, res) => {
   try {
