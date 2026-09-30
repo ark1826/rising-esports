@@ -1,17 +1,17 @@
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom'
 import { useEffect } from 'react'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import Home from './pages/Home'
 import TodaySlots from './pages/TodaySlots'
 import Rankings from './pages/Rankings'
-import Tier from './pages/Tier'
 import Tournaments from './pages/Tournaments'
 import AdminLogin from './pages/AdminLogin'
 import AdminDashboard from './pages/AdminDashboard'
 import ProtectedRoute from './components/ProtectedRoute'
 import UserLogin from './pages/UserLogin'
 import PaymentStatus from './pages/PaymentStatus'
+import Profile from './pages/Profile'
 function ScrollToTop() {
   const { pathname } = useLocation()
 
@@ -46,9 +46,10 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/slots" element={<TodaySlots />} />
           <Route path="/rankings" element={<Rankings />} />
-          <Route path="/tier" element={<Tier />} />
+          <Route path="/tier" element={<Navigate to="/" replace />} />
           <Route path="/tournaments" element={<Tournaments />} />
           <Route path="/payment-status" element={<PaymentStatus />} />
+          <Route path="/profile" element={<Profile />} />
 
           <Route path="/user/login" element={<UserLogin />} />
           

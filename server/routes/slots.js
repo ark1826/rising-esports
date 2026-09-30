@@ -45,14 +45,35 @@ router.get('/admin', protect, async(req, res) => {
     try {
         const slots = await Slot.find().sort({ slotTime: 1, createdAt: -1 });
 
-        // Attach booking counts
+        // Attach booking counts and registered teams preview
         const slotIds = slots.map(s => s._id);
-        const bookingCounts = await Booking.aggregate([
-            { $match: { slotId: { $in: slotIds }, paymentStatus: { $in: ['pending', 'paid'] } } },
-            { $group: { _id: '$slotId', count: { $sum: 1 } } },
+        const [bookingCounts, bookings] = await Promise.all([
+            Booking.aggregate([
+                { $match: { slotId: { $in: slotIds }, paymentStatus: { $in: ['pending', 'paid', 'pending_verification'] } } },
+                { $group: { _id: '$slotId', count: { $sum: 1 } } },
+            ]),
+            Booking.find({
+                slotId: { $in: slotIds },
+                paymentStatus: { $in: ['pending', 'paid', 'pending_verification'] }
+            }).populate('userId', 'teamName teamTag registrationNumber').lean(),
         ]);
+
         const countMap = {};
         bookingCounts.forEach(b => { countMap[b._id.toString()] = b.count; });
+
+        const teamsMap = {};
+        bookings.forEach(b => {
+            const sId = b.slotId?.toString();
+            if (!sId) return;
+            if (!teamsMap[sId]) teamsMap[sId] = [];
+            const u = b.userId;
+            teamsMap[sId].push({
+                teamName: u?.teamName || 'Unknown Team',
+                teamTag: u?.teamTag || '',
+                registrationNumber: u?.registrationNumber || '',
+                paymentStatus: b.paymentStatus,
+            });
+        });
 
         const result = slots.map(slot => {
             const obj = slot.toObject();
@@ -60,10 +81,16 @@ router.get('/admin', protect, async(req, res) => {
             if (obj.heroImage && obj.heroImage.startsWith('http')) {
                 obj.heroImageUrl = obj.heroImage;
             }
-            delete obj.heroImage;
+            const bookedTeams = teamsMap[slot._id.toString()] || [];
+            const booked = countMap[slot._id.toString()] || bookedTeams.length || 0;
+            const maxTeams = slot.maxTeams || 20;
+            const remaining = Math.max(0, maxTeams - booked);
             return {
                 ...obj,
-                bookedCount: countMap[slot._id.toString()] || 0,
+                bookedCount: booked,
+                remainingSlots: remaining,
+                isSoldOut: remaining <= 0,
+                bookedTeams,
             };
         });
 
@@ -80,16 +107,37 @@ router.get('/', async(req, res) => {
     try {
         const slots = await Slot.find()
             .select('-roomId -roomPassword -whatsappLink')
-            .sort({ slotTime: 1 });
+            .sort({ slotTime: 1, createdAt: -1 });
 
-        // Attach booking counts
+        // Attach booking counts and registered teams preview
         const slotIds = slots.map(s => s._id);
-        const bookingCounts = await Booking.aggregate([
-            { $match: { slotId: { $in: slotIds }, paymentStatus: { $in: ['pending', 'paid'] } } },
-            { $group: { _id: '$slotId', count: { $sum: 1 } } },
+        const [bookingCounts, bookings] = await Promise.all([
+            Booking.aggregate([
+                { $match: { slotId: { $in: slotIds }, paymentStatus: { $in: ['pending', 'paid', 'pending_verification'] } } },
+                { $group: { _id: '$slotId', count: { $sum: 1 } } },
+            ]),
+            Booking.find({
+                slotId: { $in: slotIds },
+                paymentStatus: { $in: ['pending', 'paid', 'pending_verification'] }
+            }).populate('userId', 'teamName teamTag registrationNumber').lean(),
         ]);
+
         const countMap = {};
         bookingCounts.forEach(b => { countMap[b._id.toString()] = b.count; });
+
+        const teamsMap = {};
+        bookings.forEach(b => {
+            const sId = b.slotId?.toString();
+            if (!sId) return;
+            if (!teamsMap[sId]) teamsMap[sId] = [];
+            const u = b.userId;
+            teamsMap[sId].push({
+                teamName: u?.teamName || 'Unknown Team',
+                teamTag: u?.teamTag || '',
+                registrationNumber: u?.registrationNumber || '',
+                paymentStatus: b.paymentStatus,
+            });
+        });
 
         const result = slots.map(slot => {
             const obj = slot.toObject();
@@ -97,10 +145,16 @@ router.get('/', async(req, res) => {
             if (obj.heroImage && obj.heroImage.startsWith('http')) {
                 obj.heroImageUrl = obj.heroImage;
             }
-            delete obj.heroImage;
+            const bookedTeams = teamsMap[slot._id.toString()] || [];
+            const booked = countMap[slot._id.toString()] || bookedTeams.length || 0;
+            const maxTeams = slot.maxTeams || 20;
+            const remaining = Math.max(0, maxTeams - booked);
             return {
                 ...obj,
-                bookedCount: countMap[slot._id.toString()] || 0,
+                bookedCount: booked,
+                remainingSlots: remaining,
+                isSoldOut: remaining <= 0,
+                bookedTeams,
             };
         });
 
@@ -232,15 +286,26 @@ router.post('/', protect, async(req, res) => {
             return res.status(400).json({ message: 'Maximum limit of 50 slots reached.' });
         }
 
-        if (req.body.matchName && req.body.date && req.body.timing) {
-            const duplicate = await Slot.findOne({
+        if (typeof req.body.maps === 'string') {
+            req.body.maps = req.body.maps.split(',').map(m => m.trim().toUpperCase()).filter(Boolean);
+        }
+        if (req.body.entryFee !== undefined && (req.body.price === undefined || req.body.price === null)) {
+            req.body.price = Number(req.body.entryFee);
+        } else if (req.body.price !== undefined && (req.body.entryFee === undefined || req.body.entryFee === null)) {
+            req.body.entryFee = Number(req.body.price);
+        }
+
+        if (req.body.matchName && req.body.date) {
+            const query = {
                 matchName: req.body.matchName.trim(),
                 date: req.body.date.trim(),
-                timing: req.body.timing.trim(),
-            }).select('_id');
+            };
+            if (req.body.lobby) query.lobby = req.body.lobby.trim();
+            if (req.body.timing) query.timing = req.body.timing.trim();
 
+            const duplicate = await Slot.findOne(query).select('_id');
             if (duplicate) {
-                return res.status(409).json({ message: 'A slot with this match name, date, and timing already exists.' });
+                return res.status(409).json({ message: 'A slot with this match name, date, and lobby/timing already exists.' });
             }
         }
 
@@ -255,6 +320,15 @@ router.post('/', protect, async(req, res) => {
 // Update slot (all fields except image)
 router.put('/:id', protect, async(req, res) => {
     try {
+        if (typeof req.body.maps === 'string') {
+            req.body.maps = req.body.maps.split(',').map(m => m.trim().toUpperCase()).filter(Boolean);
+        }
+        if (req.body.entryFee !== undefined && (req.body.price === undefined || req.body.price === null)) {
+            req.body.price = Number(req.body.entryFee);
+        } else if (req.body.price !== undefined && (req.body.entryFee === undefined || req.body.entryFee === null)) {
+            req.body.entryFee = Number(req.body.price);
+        }
+
         parseSlotTime(req.body);
         const slot = await Slot.findByIdAndUpdate(req.params.id, req.body, { new: true });
         res.json(slot);

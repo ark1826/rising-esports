@@ -32,6 +32,25 @@ const slotSchema = new mongoose.Schema({
   maps: { type: [String], default: [] },       // e.g. ["Erangel", "Miramar"]
   note: { type: String, default: '' },         // ID / password note text
   registerText: { type: String, default: 'Register Now' },
+  category: {
+    type: String,
+    default: 'SCRIMS',
+    trim: true,
+  },
+  lobby: {
+    type: String,
+    default: 'LOBBY 1',
+    trim: true,
+  },
+  scheduleMatches: [{
+    matchNumber: { type: Number },
+    label: { type: String, default: '' },
+    time: { type: String, default: '' },
+  }],
+  prizeDistribution: [{
+    rank: { type: String, default: '' },
+    prize: { type: String, default: '' },
+  }],
   whatsappLink: { type: String, default: '' }, // WhatsApp group invite link — only returned to paid users
 }, { timestamps: true });
 

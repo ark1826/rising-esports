@@ -7,8 +7,13 @@ import rankingRoutes from './routes/rankings.js';
 import slotRoutes from './routes/slots.js';
 import userRoutes from './routes/users.js';
 import bookingRoutes from './routes/bookings.js';
-import cashfreeWebhookRoutes from './routes/cashfreeWebhook.js';
+
 import tournamentRoutes from './routes/tournaments.js';
+import announcementRoutes from './routes/announcements.js';
+import walletRoutes from './routes/wallet.js';
+import matchRoutes from './routes/matches.js';
+import resultRoutes from './routes/results.js';
+import configRoutes from './routes/config.js';
 import { Admin } from './models/Admin.js';
 import { Ranking } from './models/Ranking.js';
 import { Slot } from './models/Slot.js';
@@ -125,11 +130,25 @@ app.use('/users', userRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/bookings', bookingRoutes);
 
-app.use('/api/webhooks/cashfree', cashfreeWebhookRoutes);
-app.use('/webhooks/cashfree', cashfreeWebhookRoutes);
+
 
 app.use('/api/tournaments', tournamentRoutes);
 app.use('/tournaments', tournamentRoutes);
+
+app.use('/api/announcements', announcementRoutes);
+app.use('/announcements', announcementRoutes);
+
+app.use('/api/wallet', walletRoutes);
+app.use('/wallet', walletRoutes);
+
+app.use('/api/matches', matchRoutes);
+app.use('/matches', matchRoutes);
+
+app.use('/api/results', resultRoutes);
+app.use('/results', resultRoutes);
+
+app.use('/api/config', configRoutes);
+app.use('/config', configRoutes);
 
 // Health check routes
 app.get("/", (req, res) => res.send("Rising Esports API is running..."));

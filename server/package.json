@@ -14,7 +14,6 @@
   "type": "module",
   "dependencies": {
     "bcryptjs": "^3.0.3",
-    "cashfree-pg": "^6.0.5",
     "cloudinary": "^2.10.1",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",

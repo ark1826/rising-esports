@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import axios from 'axios'
 
 function UserLogin() {
@@ -10,6 +10,10 @@ function UserLogin() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
+  const location = useLocation()
+
+  const redirectMessage = location.state?.message
+  const redirectTo = location.state?.from || '/'
 
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
@@ -26,7 +30,7 @@ function UserLogin() {
 
       const { data } = await axios.post(`${apiUrl}${endpoint}`, payload)
       localStorage.setItem('userInfo', JSON.stringify(data))
-      navigate('/')
+      navigate(redirectTo, { replace: true })
     } catch (err) {
       setError(err.response?.data?.message || 'Something went wrong. Please try again.')
     } finally {
@@ -47,6 +51,25 @@ function UserLogin() {
           <h1>{isRegister ? 'Create Account' : 'Welcome Back'}</h1>
           <p>{isRegister ? 'Register to book slots & view room credentials' : 'Login to access your dashboard'}</p>
         </div>
+
+        {redirectMessage && !error && (
+          <div style={{
+            background: 'rgba(124, 58, 237, 0.15)',
+            border: '1px solid rgba(139, 92, 246, 0.4)',
+            borderRadius: '10px',
+            padding: '0.8rem 1rem',
+            marginBottom: '1.25rem',
+            color: '#c084fc',
+            fontSize: '0.85rem',
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.6rem'
+          }}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            <span>{redirectMessage}</span>
+          </div>
+        )}
 
         {error && (
           <div className="login-error">

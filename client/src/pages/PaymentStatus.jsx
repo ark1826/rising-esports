@@ -26,7 +26,7 @@ function PaymentStatus() {
   const verifyPayment = async (isBackgroundPoll = false) => {
     if (!orderId) {
       if (urlError === 'no_order_id' || urlError === 'no_transaction_id') {
-        setError('No order reference was returned by Cashfree.');
+        setError('No order reference was returned by the payment system.');
       } else {
         setError('No order ID found in the URL. Please check your registered slots or bookings.');
       }
@@ -54,7 +54,7 @@ function PaymentStatus() {
       console.error('Error verifying payment status:', err);
       setError(
         err.response?.data?.message ||
-        'Unable to verify payment status with Cashfree. Please check your bookings or retry.'
+        'Unable to verify payment status. Please check your bookings or retry.'
       );
     } finally {
       setLoading(false);
@@ -139,7 +139,7 @@ function PaymentStatus() {
               VERIFYING PAYMENT
             </h2>
             <p style={{ color: '#94a3b8', fontSize: '0.95rem' }}>
-              Checking real-time transaction confirmation with Cashfree...
+              Checking real-time transaction confirmation...
             </p>
           </div>
         ) : error ? (
@@ -236,7 +236,7 @@ function PaymentStatus() {
               border: '1px solid rgba(34, 197, 94, 0.3)'
             }}>
               <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#4ade80' }} />
-              Cashfree Payment Verified
+              Payment Verified
             </span>
 
             <h2 style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '1.55rem', marginBottom: '0.4rem', color: '#f8fafc', letterSpacing: '0.5px' }}>
@@ -305,19 +305,39 @@ function PaymentStatus() {
 
               {booking?.paymentId && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                  <span style={{ color: '#94a3b8' }}>Cashfree Ref:</span>
+                  <span style={{ color: '#94a3b8' }}>Payment Ref:</span>
                   <span style={{ fontFamily: 'monospace', color: '#cbd5e1', fontSize: '0.82rem' }}>
                     {booking.paymentId}
                   </span>
                 </div>
               )}
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.5rem', borderTop: '1px dashed rgba(255,255,255,0.1)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.5rem', borderTop: '1px dashed rgba(255,255,255,0.1)', marginBottom: '0.6rem' }}>
                 <span style={{ color: '#94a3b8' }}>Registered Team:</span>
                 <span style={{ fontWeight: '700', color: '#a78bfa' }}>
                   {booking?.userId?.teamName || booking?.userId?.username || 'Your Team'}
                 </span>
               </div>
+              {(() => {
+                const storedUser = JSON.parse(localStorage.getItem('userInfo') || '{}');
+                return storedUser.registrationNumber ? (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: '#94a3b8' }}>Rising ID:</span>
+                    <span style={{
+                      fontWeight: '800',
+                      color: '#c4b5fd',
+                      background: 'rgba(139, 92, 246, 0.15)',
+                      border: '1px solid rgba(139, 92, 246, 0.35)',
+                      borderRadius: '999px',
+                      padding: '2px 12px',
+                      fontSize: '0.88rem',
+                      letterSpacing: '0.5px',
+                    }}>
+                      #{storedUser.registrationNumber}
+                    </span>
+                  </div>
+                ) : null;
+              })()}
             </div>
 
             {/* Direct Action Buttons */}
@@ -391,7 +411,7 @@ function PaymentStatus() {
               PAYMENT PROCESSING
             </h2>
             <p style={{ color: '#cbd5e1', fontSize: '0.95rem', marginBottom: '1.75rem', lineHeight: '1.6' }}>
-              Your transaction is currently awaiting confirmation from Cashfree. If you completed payment, click below to check status.
+              Your transaction is currently awaiting confirmation. If you completed payment, click below to check status.
             </p>
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
               <button

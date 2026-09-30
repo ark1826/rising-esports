@@ -6,16 +6,34 @@ const bookingSchema = new mongoose.Schema({
   tournamentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Tournament' },
   type: { type: String, enum: ['slot', 'tournament'], default: 'slot' },
   amount: { type: Number },
+
   paymentStatus: {
     type: String,
-    enum: ['pending', 'paid', 'failed'],
+    enum: ['pending', 'pending_verification', 'paid', 'failed'],
     default: 'pending',
   },
-  merchantTransactionId: { type: String, index: true }, // Cashfree order_id (e.g., order_xxx) or legacy transaction ID
-  cfOrderId: { type: String }, // Cashfree system reference ID
-  paymentSessionId: { type: String }, // Cashfree payment session ID
-  razorpayOrderId: { type: String }, // Kept for backwards compatibility with existing records
-  paymentId: { type: String }, // Cashfree reference ID / transaction ID
+
+  // Payment method used
+  paymentMethod: {
+    type: String,
+    enum: ['wallet', 'upi', 'other'],
+    default: 'other',
+  },
+
+  // UPI transaction reference (UTR number) submitted by user
+  utrNumber: { type: String, trim: true },
+
+  // Admin notes when verifying/rejecting a UPI payment
+  verificationNote: { type: String },
+  verifiedAt: { type: Date },
+  verifiedBy: { type: String }, // admin username
+
+  // Legacy / compat fields
+  merchantTransactionId: { type: String, index: true },
+  cfOrderId: { type: String },
+  paymentSessionId: { type: String },
+  razorpayOrderId: { type: String },
+  paymentId: { type: String },
   paidAt: { type: Date },
 }, { timestamps: true });
 
@@ -30,4 +48,3 @@ bookingSchema.index(
 );
 
 export const Booking = mongoose.model('Booking', bookingSchema);
-

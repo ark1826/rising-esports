@@ -75,13 +75,85 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// GET /api/users/me
+// GET /api/users/me & /api/users/profile
+router.get('/profile', userProtect, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select('-password');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 router.get('/me', userProtect, async (req, res) => {
   res.json({
     _id: req.user._id,
     phone: req.user.phone,
     teamName: req.user.teamName,
+    teamLogo: req.user.teamLogo || '',
+    walletBalance: req.user.walletBalance || 0,
+    registrationNumber: req.user.registrationNumber || null,
   });
+});
+
+// PUT /api/users/profile — Update team details and drops
+router.put('/profile', userProtect, async (req, res) => {
+  const { teamName, teamLogo, whatsappNumber, erangelDrop, rondoDrop, miramarDrop } = req.body;
+
+  try {
+    const updateData = {};
+
+    if (teamName !== undefined) {
+      if (!teamName.trim()) {
+        return res.status(400).json({ message: 'Team name cannot be empty' });
+      }
+      updateData.teamName = teamName.trim();
+    }
+
+    if (teamLogo !== undefined) {
+      updateData.teamLogo = teamLogo.trim();
+    }
+
+    if (whatsappNumber !== undefined) {
+      const cleanedPhone = whatsappNumber.replace(/\D/g, '');
+      if (cleanedPhone && (cleanedPhone.length < 10 || cleanedPhone.length > 13)) {
+        return res.status(400).json({ message: 'Please enter a valid WhatsApp phone number' });
+      }
+      updateData.whatsappNumber = whatsappNumber.trim();
+    }
+
+    if (erangelDrop !== undefined) updateData.erangelDrop = erangelDrop.trim();
+    if (rondoDrop !== undefined) updateData.rondoDrop = rondoDrop.trim();
+    if (miramarDrop !== undefined) updateData.miramarDrop = miramarDrop.trim();
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user._id,
+      { $set: updateData },
+      { new: true }
+    ).select('-password');
+
+    res.json({
+      message: 'Profile details saved successfully!',
+      user: updatedUser,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// GET /api/users/admin/all — Admin: Get list of registered players with balances
+router.get('/admin/all', async (req, res) => {
+  try {
+    const users = await User.find()
+      .select('-password')
+      .sort({ registrationNumber: 1, createdAt: -1 });
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 });
 
 export default router;

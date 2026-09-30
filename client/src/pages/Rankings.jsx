@@ -84,11 +84,21 @@ function Rankings() {
   return (
     <div className="rankings-page fade-in">
       <div className="page-header">
-        <div className="rankings-heading-row">
-          <div>
-            <p className="subtitle">Official Standings</p>
-            <h1>Team <span>Rankings</span></h1>
-          </div>
+        <p className="subtitle">Official Standings</p>
+        <h1>Team <span>Rankings</span></h1>
+        <div className="rankings-meta">
+          <span className="rankings-live-status"><span className="rankings-live-dot" /> Live standings</span>
+          {lastUpdated && (
+            <span className="last-updated">
+              Last updated at {formatTime(lastUpdated)}
+            </span>
+          )}
+          {isUpdating && (
+            <span className="update-indicator">
+              <span className="update-dot"></span>
+              Updating...
+            </span>
+          )}
           <button
             type="button"
             className="rankings-refresh-btn"
@@ -97,24 +107,10 @@ function Rankings() {
             aria-label="Refresh rankings"
             title="Refresh rankings"
           >
-            <RefreshCw size={16} className={isUpdating ? 'is-spinning' : ''} />
+            <RefreshCw size={14} className={isUpdating ? 'is-spinning' : ''} />
             <span>Refresh</span>
           </button>
         </div>
-        {lastUpdated && (
-          <div className="rankings-meta">
-            <span className="rankings-live-status"><span className="rankings-live-dot" /> Live standings</span>
-            <span className="last-updated">
-              Last updated at {formatTime(lastUpdated)}
-            </span>
-            {isUpdating && (
-              <span className="update-indicator">
-                <span className="update-dot"></span>
-                Updating...
-              </span>
-            )}
-          </div>
-        )}
       </div>
 
       {loading ? (

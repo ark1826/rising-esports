@@ -6,6 +6,12 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true, minlength: 6 },
   teamName: { type: String, trim: true },
   registrationNumber: { type: Number, unique: true, sparse: true },
+  walletBalance: { type: Number, default: 0, min: 0 },
+  teamLogo: { type: String, default: '' },
+  whatsappNumber: { type: String, default: '', trim: true },
+  erangelDrop: { type: String, default: '', trim: true },
+  rondoDrop: { type: String, default: '', trim: true },
+  miramarDrop: { type: String, default: '', trim: true },
 }, { timestamps: true });
 
 userSchema.pre('save', async function () {

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { load } from '@cashfreepayments/cashfree-js';
+import PaymentModal from '../components/PaymentModal';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -9,11 +9,19 @@ function Tournaments() {
   const [tournaments, setTournaments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [myRegistrations, setMyRegistrations] = useState({});
-  const [processingTournamentId, setProcessingTournamentId] = useState(null);
   const [notification, setNotification] = useState(null);
+  const [paymentModal, setPaymentModal] = useState(null);
+  const [walletBalance, setWalletBalance] = useState(0);
 
   const navigate = useNavigate();
-  const userInfo = JSON.parse(localStorage.getItem('userInfo') || 'null');
+  const getUserInfo = useCallback(() => {
+    try {
+      return JSON.parse(localStorage.getItem('userInfo') || 'null');
+    } catch {
+      return null;
+    }
+  }, []);
+  const userInfo = getUserInfo();
 
   // ── Fetch all tournaments ──
   const fetchTournaments = useCallback(async () => {
@@ -29,21 +37,35 @@ function Tournaments() {
 
   // ── Fetch current user's tournament registrations ──
   const fetchMyRegistrations = useCallback(async () => {
-    if (!userInfo || !userInfo.token) return;
+    const currentUsr = getUserInfo();
+    if (!currentUsr || !currentUsr.token) return;
     try {
       const { data } = await axios.get(`${API_BASE}/api/tournaments/my-registrations`, {
-        headers: { Authorization: `Bearer ${userInfo.token}` },
+        headers: { Authorization: `Bearer ${currentUsr.token}` },
       });
       setMyRegistrations(data || {});
     } catch (err) {
       console.error('Error fetching user registrations', err);
     }
-  }, [userInfo?.token]);
+  }, [getUserInfo]);
+
+  // ── Fetch wallet balance ──
+  const fetchWalletBalance = useCallback(async () => {
+    const currentUsr = getUserInfo();
+    if (!currentUsr || !currentUsr.token) return;
+    try {
+      const { data } = await axios.get(`${API_BASE}/api/wallet/balance`, {
+        headers: { Authorization: `Bearer ${currentUsr.token}` },
+      });
+      setWalletBalance(data.balance || 0);
+    } catch {}
+  }, [getUserInfo]);
 
   useEffect(() => {
     fetchTournaments();
     fetchMyRegistrations();
-  }, [fetchTournaments, fetchMyRegistrations]);
+    fetchWalletBalance();
+  }, [fetchTournaments, fetchMyRegistrations, fetchWalletBalance]);
 
   // Auto-dismiss notifications after 6 seconds
   useEffect(() => {
@@ -53,75 +75,59 @@ function Tournaments() {
     }
   }, [notification]);
 
-  // ── Initiate Cashfree Payment for Tournament ──
-  const handleRegisterTournament = async (tournament) => {
-    if (!userInfo || !userInfo.token) {
-      setNotification({
-        type: 'error',
-        message: 'Please login or create an account to register for this tournament.',
+  // ── Tournament Registration via PaymentModal ──
+  const handleRegisterTournament = (tournament) => {
+    const currentUsr = getUserInfo();
+    if (!currentUsr || !currentUsr.token) {
+      navigate('/user/login', {
+        state: {
+          from: '/tournaments',
+          message: 'Please login or register to participate in tournaments.',
+        },
       });
-      navigate('/user/login');
       return;
     }
-
     if (!tournament.registrationOpen) {
       setNotification({ type: 'error', message: 'Registration is currently closed for this tournament.' });
       return;
     }
 
-    setProcessingTournamentId(tournament._id);
-    setNotification(null);
-
-    try {
-      // Create pending booking and generate Cashfree payment session on server
-      const { data } = await axios.post(
-        `${API_BASE}/api/bookings/create`,
-        { tournamentId: tournament._id },
-        { headers: { Authorization: `Bearer ${userInfo.token}` } }
-      );
-
-      if (data && data.paymentSessionId) {
-        setNotification({
-          type: 'success',
-          message: 'Opening Cashfree secure payment gateway...',
-        });
-
-        const cashfreeMode = (data.environment || import.meta.env.VITE_CASHFREE_MODE || 'production').toLowerCase();
-        try {
-          const cashfree = await load({
-            mode: cashfreeMode === 'sandbox' ? 'sandbox' : 'production',
-          });
-
-          await cashfree.checkout({
-            paymentSessionId: data.paymentSessionId,
-            redirectTarget: '_self',
-          });
-        } catch (checkoutErr) {
-          console.warn('Cashfree JS checkout failed, using direct hosted checkout URL:', checkoutErr);
-          const checkoutDomain = cashfreeMode === 'sandbox' ? 'sandbox.cashfree.com' : 'payments.cashfree.com';
-          window.location.href = `https://${checkoutDomain}/order/#${data.paymentSessionId}`;
-        }
-      } else {
-        throw new Error(data?.message || 'Failed to initialize Cashfree payment session');
-      }
-    } catch (err) {
-      console.error('Tournament Registration/Cashfree error:', err);
-      setNotification({
-        type: 'error',
-        message: err.response?.data?.message || err.message || 'Failed to initiate Cashfree payment. Please try again.',
-      });
-      setProcessingTournamentId(null);
+    const userReg = myRegistrations[tournament._id];
+    if (userReg?.paymentStatus === 'paid') {
+      setNotification({ type: 'info', message: 'You have already registered for this tournament!' });
+      return;
     }
+    if (userReg?.paymentStatus === 'pending' || userReg?.paymentStatus === 'pending_verification') {
+      setNotification({ type: 'info', message: 'Your registration payment is already submitted and awaiting verification.' });
+      return;
+    }
+
+    setPaymentModal(tournament);
+  };
+
+  // ── Handle payment success ──
+  const handlePaymentSuccess = ({ method }) => {
+    setPaymentModal(null);
+    if (method === 'wallet') {
+      setNotification({ type: 'success', message: '✅ Tournament registered successfully using wallet balance!' });
+    } else {
+      setNotification({ type: 'success', message: '⏳ UPI payment submitted! Awaiting admin verification.' });
+    }
+    fetchTournaments();
+    fetchMyRegistrations();
+    fetchWalletBalance();
   };
 
   return (
     <div className="tournaments-page fade-in">
       {/* Toast Notification */}
       {notification && (
-        <div className={`slot-toast-alert ${notification.type === 'success' ? 'toast-success' : 'toast-error'}`}>
+        <div className={`slot-toast-alert ${notification.type === 'success' ? 'toast-success' : notification.type === 'info' ? 'toast-info' : 'toast-error'}`}>
           <div className="toast-icon">
             {notification.type === 'success' ? (
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            ) : notification.type === 'info' ? (
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
             ) : (
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
             )}
@@ -143,8 +149,9 @@ function Tournaments() {
       ) : (
         <div className="tournaments-grid">
           {tournaments.map(t => {
-            const isRegistered = myRegistrations[t._id]?.paymentStatus === 'paid';
-            const isProcessing = processingTournamentId === t._id;
+            const userReg = myRegistrations[t._id];
+            const isRegistered = userReg?.paymentStatus === 'paid';
+            const isPendingVerification = userReg?.paymentStatus === 'pending_verification' || userReg?.paymentStatus === 'pending';
 
             return (
               <div key={t._id} className={`tournament-card ${isRegistered ? 'tournament-card-paid' : ''}`}>
@@ -156,6 +163,10 @@ function Tournaments() {
                   {isRegistered ? (
                     <span className="tournament-coming-soon" style={{ background: '#10b981', color: '#fff', border: '1px solid #10b981' }}>
                       ✓ Registered
+                    </span>
+                  ) : isPendingVerification ? (
+                    <span className="tournament-coming-soon" style={{ background: '#eab308', color: '#000', fontWeight: '800', border: '1px solid #eab308' }}>
+                      ⏳ Pending Verification
                     </span>
                   ) : (
                     <span className="tournament-coming-soon">Upcoming</span>
@@ -199,7 +210,9 @@ function Tournaments() {
                     </div>
                     <div className="tournament-price-row">
                       <span className="tournament-price-label">Entry Fee</span>
-                      <span className="tournament-price-value">₹{t.entryFee || 0}</span>
+                      <span className="tournament-price-value">
+                        {Number(t.entryFee || 0) === 0 ? 'FREE' : `₹${t.entryFee || 0}`}
+                      </span>
                     </div>
 
                     {isRegistered ? (
@@ -207,42 +220,52 @@ function Tournaments() {
                         type="button"
                         disabled
                         className="tournament-reg-btn registered-btn"
-                        style={{
-                          background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                          color: '#fff',
-                          borderColor: '#10b981',
-                          fontWeight: '700',
-                          cursor: 'default',
-                          opacity: 1
-                        }}
+                        title="You are registered for this tournament"
                       >
-                        ✓ ALREADY REGISTERED
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                        REGISTERED ✓
+                      </button>
+                    ) : isPendingVerification ? (
+                      <button
+                        type="button"
+                        onClick={() => setNotification({
+                          type: 'info',
+                          message: '⏳ Payment is pending verification. Admin will confirm your registration shortly!',
+                        })}
+                        className="tournament-reg-btn verifying-btn"
+                        title="Click to check verification status"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="10"/>
+                          <polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                        VERIFICATION PENDING ⏳
+                      </button>
+                    ) : !t.registrationOpen ? (
+                      <button
+                        type="button"
+                        disabled
+                        className="tournament-reg-btn closed-btn"
+                        title="Registration is currently closed"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+                          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                        </svg>
+                        REGISTRATION CLOSED
                       </button>
                     ) : (
                       <button
                         type="button"
                         onClick={() => handleRegisterTournament(t)}
-                        disabled={!t.registrationOpen || isProcessing}
-                        className={`tournament-reg-btn ${!t.registrationOpen ? 'closed' : ''} ${isProcessing ? 'btn-loading' : ''}`}
-                        style={t.registrationOpen ? {
-                          background: 'var(--purple-primary)',
-                          color: '#fff',
-                          borderColor: 'var(--purple-primary)',
-                          cursor: 'pointer',
-                          fontWeight: '700',
-                          boxShadow: '0 4px 15px rgba(124, 58, 237, 0.3)'
-                        } : {}}
+                        className="tournament-reg-btn open-btn"
                       >
-                        {isProcessing ? (
-                          <>
-                            <span className="btn-spinner"></span>
-                            PROCESSING PAYMENT...
-                          </>
-                        ) : t.registrationOpen ? (
-                          `REGISTER NOW • ₹${t.entryFee || 0}`
-                        ) : (
-                          'REGISTRATION CLOSED'
-                        )}
+                        {Number(t.entryFee || 0) === 0 ? 'REGISTER NOW • FREE' : `REGISTER NOW • ₹${t.entryFee || 0}`}
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="9 18 15 12 9 6"/>
+                        </svg>
                       </button>
                     )}
                   </div>
@@ -251,6 +274,16 @@ function Tournaments() {
             );
           })}
         </div>
+      )}
+
+      {paymentModal && (
+        <PaymentModal
+          tournament={paymentModal}
+          userInfo={getUserInfo()}
+          walletBalance={walletBalance}
+          onClose={() => setPaymentModal(null)}
+          onSuccess={handlePaymentSuccess}
+        />
       )}
     </div>
   );
