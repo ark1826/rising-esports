@@ -1,0 +1,1546 @@
+/* ==========================================================================
+   RISING ESPORTS - MOBILE-FIRST RESPONSIVE CSS3 DESIGN SYSTEM
+   Universal Mobile Optimization for All Pages & Viewports
+   ========================================================================== */
+
+/* ── 1. CSS3 Mobile Custom Properties & Safe Areas ───────────────────────── */
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+
+  --mobile-nav-height: 62px;
+  --mobile-bottom-nav-height: 60px;
+  --touch-target: 44px;
+
+  --mobile-bg-deep: #080611;
+  --mobile-card-bg: rgba(16, 12, 32, 0.94);
+  --mobile-card-border: rgba(139, 92, 246, 0.28);
+  --mobile-glow-purple: 0 0 20px rgba(124, 58, 237, 0.22);
+}
+
+/* ── 2. Mobile Global Reset & Smooth Native Scrolling ─────────────────────── */
+html {
+  width: 100%;
+  min-height: 100%;
+  overflow-x: hidden;
+  overflow-y: scroll;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100%;
+  overflow-x: hidden;
+  overflow-y: visible;
+  background-color: var(--mobile-bg-deep);
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+}
+
+#root,
+.app {
+  width: 100%;
+  min-height: 100vh;
+  position: relative;
+  overflow: visible;
+}
+
+/* Ensure no input causes automatic zoom on iOS */
+input, select, textarea {
+  font-size: 16px !important;
+}
+
+/* Main container: root window handles scrolling cleanly */
+.main-content {
+  width: 100%;
+  min-height: 100vh;
+  overflow: visible;
+  padding-top: var(--mobile-nav-height);
+  padding-bottom: calc(var(--mobile-bottom-nav-height) + var(--safe-bottom) + 36px);
+  box-sizing: border-box;
+}
+
+/* Hide desktop scrollbars on mobile touch tracks */
+.no-scrollbar::-webkit-scrollbar,
+.ts-tabs-row::-webkit-scrollbar,
+.category-tabs::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+.no-scrollbar,
+.ts-tabs-row,
+.category-tabs {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ── 3. Mobile Header & Sliding Navigation Drawer ────────────────────────── */
+.navbar-header-wrap {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  height: var(--mobile-nav-height);
+  background: rgba(9, 7, 18, 0.95);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+  padding-top: var(--safe-top);
+}
+
+.navbar {
+  height: 100%;
+  padding: 0 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.navbar-logo {
+  display: flex;
+  align-items: center;
+}
+
+.navbar-actions-right {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.header-icon-btn {
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  color: #c084fc;
+}
+
+.navbar-avatar-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7c3aed 0%, #9333ea 100%);
+  border: 1.5px solid rgba(192, 132, 252, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-family: 'Orbitron', 'Inter', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 800;
+  box-shadow: 0 0 10px rgba(124, 58, 237, 0.4);
+}
+
+.navbar-hamburger {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.navbar-hamburger span {
+  display: block;
+  width: 20px;
+  height: 2px;
+  background: #ffffff;
+  border-radius: 2px;
+  transition: all 0.25s ease;
+}
+
+/* ── 3. Mobile Navigation Drawer & Backdrop ────────────────────────── */
+.navbar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 3, 12, 0.78);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 2000;
+  cursor: pointer;
+  animation: backdropFade 0.22s ease;
+}
+
+@keyframes backdropFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.mobile-nav-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 82%;
+  max-width: 310px;
+  height: 100vh;
+  height: 100dvh;
+  background: linear-gradient(180deg, #130f28 0%, #090714 100%);
+  border-left: 1px solid rgba(168, 85, 247, 0.35);
+  box-shadow: -15px 0 40px rgba(0, 0, 0, 0.92);
+  display: flex;
+  flex-direction: column;
+  padding: calc(var(--safe-top) + 0.95rem) 1.15rem calc(var(--safe-bottom) + 1.25rem);
+  gap: 0.65rem;
+  z-index: 2001; /* GUARANTEED ABOVE BACKDROP (2000) */
+  transform: translateX(105%);
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mobile-nav-drawer.open {
+  transform: translateX(0);
+}
+
+.mobile-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+.mobile-drawer-close {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(139, 92, 246, 0.25);
+  color: #c084fc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.mobile-drawer-close:hover {
+  background: rgba(139, 92, 246, 0.15);
+  color: #ffffff;
+}
+
+/* User Card inside Drawer */
+.mobile-drawer-user-card,
+.mobile-drawer-guest-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.16) 0%, rgba(147, 51, 234, 0.08) 100%);
+  border: 1px solid rgba(168, 85, 247, 0.35);
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.mobile-drawer-user-card:hover,
+.mobile-drawer-guest-card:hover {
+  border-color: rgba(192, 132, 252, 0.6);
+}
+
+.mobile-drawer-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7c3aed 0%, #9333ea 100%);
+  border: 1.5px solid rgba(192, 132, 252, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 800;
+  box-shadow: 0 0 10px rgba(124, 58, 237, 0.4);
+  flex-shrink: 0;
+}
+
+.guest-icon-box {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #c084fc;
+  flex-shrink: 0;
+}
+
+.mobile-drawer-user-info,
+.guest-card-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.mobile-drawer-user-info strong,
+.guest-card-text strong {
+  font-size: 0.84rem;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mobile-drawer-user-info span,
+.guest-card-text span {
+  font-size: 0.68rem;
+  color: #a78bfa;
+}
+
+/* Drawer Nav Links */
+.mobile-drawer-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.drawer-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 10px;
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #cbd5e1;
+  text-decoration: none;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.drawer-item-icon {
+  color: #a78bfa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.drawer-nav-item:hover,
+.drawer-nav-item.active {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.25), rgba(168, 85, 247, 0.15));
+  border-color: rgba(168, 85, 247, 0.45);
+  color: #ffffff;
+}
+
+.drawer-nav-item.active .drawer-item-icon {
+  color: #e879f9;
+  filter: drop-shadow(0 0 6px rgba(232, 121, 249, 0.6));
+}
+
+.drawer-nav-item.auth-btn {
+  background: rgba(124, 58, 237, 0.15);
+  border-color: rgba(139, 92, 246, 0.35);
+  color: #c084fc;
+}
+
+.drawer-nav-item.admin-link {
+  color: #94a3b8;
+}
+
+.drawer-divider {
+  height: 1px;
+  background: rgba(139, 92, 246, 0.16);
+  margin: 0.35rem 0;
+}
+
+.drawer-logout-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.65rem;
+  border-radius: 10px;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #f87171;
+  font-weight: 700;
+  font-size: 0.82rem;
+  cursor: pointer;
+  margin-top: 0.35rem;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.drawer-logout-btn:hover {
+  background: rgba(239, 68, 68, 0.22);
+  border-color: #ef4444;
+}
+
+/* Hide mobile drawer on desktop >= 1024px */
+@media (min-width: 1024px) {
+  .mobile-nav-drawer,
+  .navbar-backdrop,
+  .navbar-hamburger {
+    display: none !important;
+  }
+}
+
+/* Hide desktop navbar links on mobile < 1024px */
+@media (max-width: 1023px) {
+  .navbar-links.desktop-only {
+    display: none !important;
+  }
+  .navbar-hamburger {
+    display: flex !important;
+  }
+}
+
+/* ── 4. Mobile Bottom Navigation Dock ────────────────────────────────────── */
+.bottom-nav-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 999;
+  background: rgba(10, 8, 20, 0.96);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(139, 92, 246, 0.25);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+  padding: 0.3rem 0.5rem calc(0.4rem + var(--safe-bottom));
+}
+
+.bottom-nav-container {
+  max-width: 520px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.bottom-nav-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem 0.25rem 0.2rem;
+  color: #71718a;
+  text-decoration: none;
+  flex: 1;
+  min-height: 48px;
+}
+
+.bottom-nav-indicator {
+  position: absolute;
+  top: -4px;
+  width: 36px;
+  height: 3px;
+  border-radius: 3px;
+  background: #a855f7;
+  box-shadow: 0 0 10px #a855f7, 0 0 18px #a855f7;
+}
+
+.bottom-nav-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.68rem;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.bottom-nav-item.active {
+  color: #c084fc;
+}
+
+.bottom-nav-item.active .bottom-nav-icon-wrap {
+  filter: drop-shadow(0 0 8px rgba(192, 132, 252, 0.65));
+}
+
+/* Hide bottom nav on large desktop viewports */
+@media (min-width: 1024px) {
+  .bottom-nav-bar {
+    display: none;
+  }
+  .main-content {
+    padding-bottom: 2rem;
+  }
+}
+
+/* ── 5. Mobile TODAY SLOTS Experience (`/slots`) ─────────────────────────── */
+.ts-page-wrapper {
+  padding: 0.5rem 0.75rem 4.5rem;
+  max-width: 540px;
+  margin: 0 auto;
+}
+
+/* Compact Mobile Hero Banner */
+.ts-hero-banner {
+  border-radius: 14px;
+  margin-bottom: 0.65rem;
+  padding: 0.75rem 0.85rem;
+  min-height: auto;
+  background: linear-gradient(135deg, rgba(23, 14, 46, 0.95), rgba(10, 8, 20, 0.95));
+  border: 1px solid rgba(139, 92, 246, 0.35);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+.ts-hero-content {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+}
+
+.ts-hero-left {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.ts-calendar-icon-box {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.ts-hero-titles h4 {
+  font-size: 0.66rem;
+  letter-spacing: 1px;
+}
+
+.ts-hero-titles h1 {
+  font-size: 1.15rem;
+  line-height: 1.1;
+  margin: 1px 0 0;
+}
+
+.ts-hero-titles p {
+  display: none; /* Keep clean on small mobile */
+}
+
+.ts-hero-badge {
+  display: none;
+}
+
+/* Date Navigator Bar for Touch */
+.ts-date-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(14, 11, 28, 0.9);
+  border: 1px solid rgba(139, 92, 246, 0.25);
+  border-radius: 10px;
+  padding: 0.25rem 0.45rem;
+  margin-bottom: 0.65rem;
+}
+
+.ts-date-arrow-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  color: #c084fc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.ts-date-info {
+  text-align: center;
+  cursor: pointer;
+}
+
+.ts-date-sub {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: #a78bfa;
+  letter-spacing: 0.8px;
+}
+
+.ts-date-main {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.84rem;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+/* Category Filter Tabs (Swipeable Horizontal Rail) */
+.ts-tabs-row {
+  display: flex;
+  gap: 0.4rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 0.35rem;
+  margin-bottom: 0.75rem;
+}
+
+.ts-tab-pill {
+  scroll-snap-align: start;
+  flex-shrink: 0;
+  padding: 0.38rem 0.75rem;
+  border-radius: 999px;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(139, 92, 246, 0.25);
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ts-tab-pill.active {
+  background: linear-gradient(135deg, #7c3aed, #9333ea);
+  border-color: #c084fc;
+  color: #ffffff;
+  box-shadow: 0 2px 10px rgba(124, 58, 237, 0.4);
+}
+
+/* Section Header */
+.ts-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.65rem;
+}
+
+.ts-section-title h2 {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.ts-count-badge {
+  font-size: 0.66rem;
+  font-weight: 800;
+  color: #c084fc;
+  background: rgba(139, 92, 246, 0.15);
+  border: 1px solid rgba(168, 85, 247, 0.35);
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+}
+
+/* Compact Mobile Slot Cards */
+.ts-slots-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.ts-slot-card {
+  background: linear-gradient(180deg, #0e0b1d 0%, #080612 100%) !important;
+  border: 1px solid rgba(139, 92, 246, 0.3) !important;
+  border-radius: 14px !important;
+  padding: 0.75rem 0.85rem !important;
+  margin-bottom: 0.65rem !important;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.45rem !important;
+}
+
+/* Slot Card Header */
+.ts-card-top {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  margin-bottom: 0.35rem !important;
+  gap: 0.5rem !important;
+}
+
+.ts-card-title {
+  font-family: 'Orbitron', sans-serif !important;
+  font-size: 0.92rem !important;
+  font-weight: 800 !important;
+  color: #ffffff !important;
+  margin: 0 !important;
+  line-height: 1.2 !important;
+}
+
+.ts-lobby-badge {
+  font-size: 0.68rem !important;
+  font-weight: 800 !important;
+  color: #c084fc !important;
+  background: rgba(121, 40, 202, 0.18) !important;
+  border: 1px solid #7928ca !important;
+  padding: 0.2rem 0.55rem !important;
+  border-radius: 6px !important;
+  flex-shrink: 0 !important;
+}
+
+/* Inner Panels (Prize & Schedule) */
+.ts-inner-panel {
+  background: rgba(15, 12, 30, 0.6) !important;
+  border: 1px solid rgba(139, 92, 246, 0.2) !important;
+  border-radius: 10px !important;
+  padding: 0.45rem 0.65rem !important;
+  margin-bottom: 0.35rem !important;
+}
+
+.ts-panel-head {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  margin-bottom: 0.3rem !important;
+}
+
+.ts-panel-label {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.35rem !important;
+  font-size: 0.64rem !important;
+  font-weight: 800 !important;
+  color: #a78bfa !important;
+  letter-spacing: 0.8px !important;
+}
+
+.ts-panel-label svg {
+  width: 13px !important;
+  height: 13px !important;
+}
+
+.ts-slots-fraction {
+  font-size: 0.66rem !important;
+  font-weight: 800 !important;
+  color: #38bdf8 !important;
+}
+
+/* Prize Grid */
+.ts-prize-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(54px, 1fr)) !important;
+  gap: 0.35rem !important;
+}
+
+.ts-prize-card {
+  background: rgba(22, 17, 46, 0.75) !important;
+  border: 1px solid rgba(139, 92, 246, 0.18) !important;
+  border-radius: 6px !important;
+  padding: 0.35rem 0.25rem !important;
+  text-align: center !important;
+}
+
+.ts-prize-rank {
+  font-size: 0.6rem !important;
+  color: #94a3b8 !important;
+  font-weight: 800 !important;
+  margin-bottom: 0.1rem !important;
+}
+
+.ts-prize-val {
+  font-size: 0.82rem !important;
+  font-weight: 800 !important;
+  color: #ffffff !important;
+}
+
+/* Schedule Grid */
+.ts-schedule-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(75px, 1fr)) !important;
+  gap: 0.35rem !important;
+}
+
+.ts-match-card {
+  background: rgba(22, 17, 46, 0.75) !important;
+  border: 1px solid rgba(139, 92, 246, 0.18) !important;
+  border-radius: 6px !important;
+  padding: 0.35rem 0.35rem !important;
+  text-align: center !important;
+}
+
+.ts-match-name {
+  font-size: 0.58rem !important;
+  font-weight: 800 !important;
+  color: #94a3b8 !important;
+  margin-bottom: 0.1rem !important;
+}
+
+.ts-match-clock {
+  font-size: 0.78rem !important;
+  font-weight: 800 !important;
+  color: #ffffff !important;
+}
+
+/* Teams Bar */
+.ts-teams-row {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  background: rgba(18, 14, 38, 0.75) !important;
+  border: 1px solid rgba(139, 92, 246, 0.22) !important;
+  border-radius: 8px !important;
+  padding: 0.45rem 0.65rem !important;
+  margin-bottom: 0.35rem !important;
+  cursor: pointer !important;
+}
+
+.ts-teams-left {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.55rem !important;
+}
+
+.ts-avatars-cluster {
+  display: flex !important;
+  align-items: center !important;
+}
+
+.ts-avatar-dot {
+  width: 22px !important;
+  height: 22px !important;
+  border-radius: 50% !important;
+  font-size: 0.6rem !important;
+  margin-right: -6px !important;
+  border: 1.5px solid #0d0b1a !important;
+}
+
+.ts-teams-text {
+  font-size: 0.74rem !important;
+  font-weight: 700 !important;
+  color: #f1f5f9 !important;
+}
+
+/* Map Rotation */
+.ts-maps-block {
+  margin-bottom: 0.45rem !important;
+}
+
+.ts-maps-title {
+  font-size: 0.62rem !important;
+  font-weight: 800 !important;
+  color: #a78bfa !important;
+  margin-bottom: 0.25rem !important;
+}
+
+.ts-maps-pills {
+  display: flex !important;
+  gap: 0.35rem !important;
+  flex-wrap: wrap !important;
+}
+
+.ts-map-badge {
+  padding: 0.22rem 0.6rem !important;
+  border-radius: 6px !important;
+  font-size: 0.68rem !important;
+  font-weight: 800 !important;
+}
+
+/* Card Bottom Footer */
+.ts-card-bottom {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding-top: 0.45rem !important;
+  border-top: 1px solid rgba(139, 92, 246, 0.2) !important;
+  gap: 0.65rem !important;
+}
+
+.ts-fee-col {
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.ts-fee-label {
+  font-size: 0.6rem !important;
+  font-weight: 800 !important;
+  color: #94a3b8 !important;
+  margin-bottom: 0 !important;
+}
+
+.ts-fee-value {
+  font-family: 'Orbitron', sans-serif !important;
+  font-size: 1.15rem !important;
+  font-weight: 900 !important;
+  color: #4ade80 !important;
+}
+
+.ts-book-btn {
+  padding: 0.48rem 0.95rem !important;
+  font-size: 0.76rem !important;
+  font-weight: 800 !important;
+  border-radius: 8px !important;
+  min-height: 36px !important;
+  box-shadow: 0 3px 12px rgba(124, 58, 237, 0.4) !important;
+}
+
+/* ── 6. Mobile RANKINGS Experience (`/rankings`) ─────────────────────────── */
+.rankings-page {
+  padding: 0.5rem 0.75rem 4.5rem !important;
+  max-width: 540px !important;
+  margin: 0 auto !important;
+}
+
+.rankings-page .page-header {
+  text-align: center !important;
+  margin-bottom: 0.75rem !important;
+}
+
+.rankings-page .page-header .subtitle {
+  font-size: 0.66rem !important;
+  color: #a78bfa !important;
+  letter-spacing: 1.5px !important;
+  text-transform: uppercase !important;
+  font-weight: 700 !important;
+}
+
+.rankings-page .page-header h1 {
+  font-family: 'Orbitron', sans-serif !important;
+  font-size: 1.25rem !important;
+  font-weight: 800 !important;
+  color: #ffffff !important;
+  margin: 0.15rem 0 0.35rem !important;
+}
+
+.rankings-page .page-header h1 span {
+  color: #c084fc !important;
+}
+
+.rankings-meta {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.45rem !important;
+  flex-wrap: wrap !important;
+  font-size: 0.7rem !important;
+  color: #94a3b8 !important;
+}
+
+.rankings-live-status {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.3rem !important;
+  color: #4ade80 !important;
+  font-weight: 700 !important;
+}
+
+.rankings-live-dot {
+  width: 5px !important;
+  height: 5px !important;
+  border-radius: 50% !important;
+  background: #4ade80 !important;
+  box-shadow: 0 0 6px #4ade80 !important;
+}
+
+.rankings-refresh-btn {
+  background: rgba(139, 92, 246, 0.15) !important;
+  border: 1px solid rgba(139, 92, 246, 0.35) !important;
+  color: #c084fc !important;
+  padding: 0.25rem 0.6rem !important;
+  border-radius: 6px !important;
+  font-size: 0.7rem !important;
+  font-weight: 700 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.3rem !important;
+  cursor: pointer !important;
+}
+
+/* Mobile Leaderboard Rows (Clean Vertical Card Rows) */
+.leaderboard-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.4rem !important;
+}
+
+.leaderboard-columns {
+  display: none !important; /* Hide confusing table header on mobile */
+}
+
+.leaderboard-row {
+  background: linear-gradient(135deg, rgba(20, 15, 40, 0.92) 0%, rgba(12, 9, 26, 0.92) 100%) !important;
+  border: 1px solid rgba(139, 92, 246, 0.25) !important;
+  border-radius: 10px !important;
+  padding: 0.45rem 0.65rem !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 0.5rem !important;
+  transition: transform 0.2s, border-color 0.2s !important;
+}
+
+.leaderboard-row:hover {
+  border-color: rgba(168, 85, 247, 0.6) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Top 3 Ranks Distinction */
+.leaderboard-row.rank-1 {
+  background: linear-gradient(135deg, rgba(234, 179, 8, 0.12) 0%, rgba(20, 15, 40, 0.95) 100%) !important;
+  border-color: rgba(234, 179, 8, 0.5) !important;
+}
+
+.leaderboard-row.rank-2 {
+  background: linear-gradient(135deg, rgba(148, 163, 184, 0.12) 0%, rgba(20, 15, 40, 0.95) 100%) !important;
+  border-color: rgba(148, 163, 184, 0.45) !important;
+}
+
+.leaderboard-row.rank-3 {
+  background: linear-gradient(135deg, rgba(217, 119, 6, 0.12) 0%, rgba(20, 15, 40, 0.95) 100%) !important;
+  border-color: rgba(217, 119, 6, 0.45) !important;
+}
+
+/* Rank Circle Badge */
+.leaderboard-rank {
+  width: 24px !important;
+  height: 24px !important;
+  border-radius: 50% !important;
+  background: rgba(124, 58, 237, 0.2) !important;
+  border: 1.5px solid rgba(168, 85, 247, 0.5) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-family: 'Orbitron', sans-serif !important;
+  font-size: 0.72rem !important;
+  font-weight: 800 !important;
+  color: #c084fc !important;
+  flex-shrink: 0 !important;
+}
+
+.leaderboard-row.rank-1 .leaderboard-rank {
+  background: #eab308 !important;
+  border-color: #fef08a !important;
+  color: #000 !important;
+}
+
+.leaderboard-row.rank-2 .leaderboard-rank {
+  background: #cbd5e1 !important;
+  border-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+.leaderboard-row.rank-3 .leaderboard-rank {
+  background: #b45309 !important;
+  border-color: #fde68a !important;
+  color: #fff !important;
+}
+
+/* Team Info */
+.leaderboard-team {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.55rem !important;
+  flex: 1 !important;
+  min-width: 0 !important;
+}
+
+.team-mark {
+  width: 26px !important;
+  height: 26px !important;
+  border-radius: 7px !important;
+  background: rgba(139, 92, 246, 0.18) !important;
+  border: 1px solid rgba(168, 85, 247, 0.4) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-family: 'Orbitron', sans-serif !important;
+  font-size: 0.64rem !important;
+  font-weight: 800 !important;
+  color: #ffffff !important;
+  flex-shrink: 0 !important;
+}
+
+.leaderboard-team-copy {
+  display: flex !important;
+  flex-direction: column !important;
+  min-width: 0 !important;
+}
+
+.leaderboard-team-copy strong {
+  font-size: 0.78rem !important;
+  color: #ffffff !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.leaderboard-team-copy span {
+  font-size: 0.62rem !important;
+  color: #94a3b8 !important;
+}
+
+/* Secondary Stats */
+.leaderboard-stat {
+  font-size: 0.72rem !important;
+  color: #cbd5e1 !important;
+  text-align: center !important;
+}
+
+.leaderboard-stat span {
+  display: block !important;
+  font-size: 0.56rem !important;
+  color: #64748b !important;
+  text-transform: uppercase !important;
+}
+
+@media (max-width: 480px) {
+  .leaderboard-stat[data-label="Place"],
+  .leaderboard-stat[data-label="Finish"] {
+    display: none !important;
+  }
+}
+
+.leaderboard-total {
+  background: rgba(139, 92, 246, 0.22) !important;
+  border: 1px solid rgba(168, 85, 247, 0.45) !important;
+  border-radius: 7px !important;
+  padding: 0.22rem 0.5rem !important;
+  font-family: 'Orbitron', sans-serif !important;
+  font-size: 0.82rem !important;
+  font-weight: 800 !important;
+  color: #e879f9 !important;
+  text-align: center !important;
+  flex-shrink: 0 !important;
+}
+
+.leaderboard-total span {
+  display: block !important;
+  font-size: 0.55rem !important;
+  color: #a78bfa !important;
+  text-transform: uppercase !important;
+}
+
+/* ── 7. Mobile TOURNAMENTS Experience (`/tournaments`) ───────────────────── */
+.tournaments-page {
+  padding: 0.5rem 0.75rem 4.5rem !important;
+  max-width: 540px !important;
+  margin: 0 auto !important;
+}
+
+.tournaments-page .page-header {
+  text-align: center !important;
+  margin-bottom: 0.75rem !important;
+}
+
+.tournaments-page .page-header h1 {
+  font-family: 'Orbitron', sans-serif !important;
+  font-size: 1.25rem !important;
+  margin-bottom: 0.25rem !important;
+}
+
+.tournaments-page .page-header p {
+  font-size: 0.72rem !important;
+  color: #94a3b8 !important;
+  line-height: 1.35 !important;
+}
+
+.tournaments-grid {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.75rem !important;
+}
+
+.tournament-card {
+  background: linear-gradient(135deg, #110d26 0%, #0c081e 100%) !important;
+  border: 1px solid rgba(139, 92, 246, 0.28) !important;
+  border-radius: 14px !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0 !important;
+}
+
+.tournament-image {
+  aspect-ratio: 16 / 8 !important;
+  max-height: 150px !important;
+}
+
+.tournament-poster-copy {
+  padding: 0.2rem 0.5rem !important;
+  gap: 0.2rem !important;
+}
+
+.poster-kicker {
+  font-size: 0.85rem !important;
+}
+
+.poster-title {
+  font-size: 0.74rem !important;
+}
+
+.tournament-content {
+  padding: 0.65rem 0.75rem !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.35rem !important;
+}
+
+.tournament-game {
+  font-size: 0.64rem !important;
+  font-weight: 800 !important;
+  color: #38bdf8 !important;
+}
+
+.tournament-title {
+  font-family: 'Orbitron', sans-serif !important;
+  font-size: 0.88rem !important;
+  font-weight: 800 !important;
+  color: #ffffff !important;
+  line-height: 1.25 !important;
+}
+
+.tournament-description {
+  font-size: 0.7rem !important;
+  color: #94a3b8 !important;
+  line-height: 1.32 !important;
+}
+
+.tournament-info {
+  display: flex !important;
+  gap: 0.5rem !important;
+  margin: 0.2rem 0 !important;
+}
+
+.tournament-info-item {
+  font-size: 0.68rem !important;
+  color: #cbd5e1 !important;
+}
+
+.tournament-info-item svg {
+  width: 13px !important;
+  height: 13px !important;
+}
+
+.tournament-footer {
+  padding-top: 0.45rem !important;
+  margin-top: 0.2rem !important;
+  border-top: 1px solid rgba(139, 92, 246, 0.18) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  flex-wrap: wrap !important;
+  gap: 0.45rem !important;
+}
+
+.tournament-price-row {
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.tournament-price-label {
+  font-size: 0.58rem !important;
+  color: #94a3b8 !important;
+  text-transform: uppercase !important;
+}
+
+.tournament-price-value {
+  font-family: 'Orbitron', sans-serif !important;
+  font-size: 0.85rem !important;
+  font-weight: 800 !important;
+  color: #4ade80 !important;
+}
+
+.tournament-reg-btn {
+  padding: 0.45rem 0.85rem !important;
+  font-size: 0.75rem !important;
+  font-weight: 800 !important;
+  border-radius: 8px !important;
+  min-height: 36px !important;
+}
+
+/* ── 8. Mobile PROFILE & WALLET Experience (`/profile`) ──────────────────── */
+.profile-page-wrapper {
+  padding: 0.5rem 0.75rem 4.5rem !important;
+  max-width: 540px !important;
+  margin: 0 auto !important;
+}
+
+/* Mobile Tabs Navigation */
+.profile-tabs-header {
+  display: flex !important;
+  gap: 0.35rem !important;
+  background: rgba(14, 11, 28, 0.9) !important;
+  border: 1px solid rgba(139, 92, 246, 0.25) !important;
+  border-radius: 10px !important;
+  padding: 0.25rem !important;
+  margin-bottom: 0.75rem !important;
+}
+
+.profile-tab-pill {
+  flex: 1 !important;
+  min-height: 36px !important;
+  border-radius: 8px !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 0.74rem !important;
+  font-weight: 800 !important;
+  background: transparent !important;
+  border: none !important;
+  color: #94a3b8 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.3rem !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.profile-tab-pill.active {
+  background: linear-gradient(135deg, #7c3aed, #9333ea) !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 10px rgba(124, 58, 237, 0.4) !important;
+}
+
+/* Profile Form Sections */
+.profile-form-section {
+  background: linear-gradient(135deg, #110d26 0%, #0c081e 100%) !important;
+  border: 1px solid rgba(139, 92, 246, 0.25) !important;
+  border-radius: 14px !important;
+  padding: 0.75rem 0.85rem !important;
+  margin-bottom: 0.65rem !important;
+}
+
+.profile-section-title h3 {
+  font-size: 0.86rem !important;
+  margin-bottom: 0.45rem !important;
+}
+
+.profile-fields-grid {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.55rem !important;
+}
+
+.profile-input-group label {
+  display: block !important;
+  font-size: 0.68rem !important;
+  font-weight: 700 !important;
+  color: #a0a0c4 !important;
+  margin-bottom: 0.18rem !important;
+}
+
+.profile-input-group input {
+  width: 100% !important;
+  padding: 0.52rem 0.75rem !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(139, 92, 246, 0.3) !important;
+  border-radius: 8px !important;
+  color: #ffffff !important;
+  outline: none !important;
+  box-sizing: border-box !important;
+  font-size: 0.85rem !important;
+}
+
+.profile-input-group input:focus {
+  border-color: #c084fc !important;
+  box-shadow: 0 0 10px rgba(192, 132, 252, 0.3) !important;
+}
+
+/* Map Drop Locations Stack */
+.drops-fields-grid {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.45rem !important;
+  margin-top: 0.4rem !important;
+}
+
+.drop-field-item {
+  display: flex !important;
+  align-items: center !important;
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 1px solid rgba(139, 92, 246, 0.2) !important;
+  border-radius: 8px !important;
+  padding: 0.18rem 0.4rem !important;
+}
+
+.drop-map-badge {
+  padding: 0.22rem 0.5rem !important;
+  border-radius: 5px !important;
+  font-size: 0.64rem !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  flex-shrink: 0 !important;
+  margin-right: 0.4rem !important;
+}
+
+.drop-map-badge.map-erangel { background: rgba(34, 197, 94, 0.2); color: #4ade80; }
+.drop-map-badge.map-miramar { background: rgba(234, 179, 8, 0.2); color: #facc15; }
+.drop-map-badge.map-rondo   { background: rgba(56, 189, 248, 0.2); color: #38bdf8; }
+
+.drop-field-item input {
+  border: none !important;
+  background: transparent !important;
+  padding: 0.4rem 0.25rem !important;
+  font-size: 0.82rem !important;
+  color: #ffffff !important;
+}
+
+/* Mobile Transaction Cards (Responsive list instead of table) */
+@media (max-width: 640px) {
+  .profile-txns-table {
+    display: none !important;
+  }
+
+  .mobile-txns-list {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.45rem !important;
+  }
+
+  .mobile-txn-card {
+    background: rgba(255, 255, 255, 0.03) !important;
+    border: 1px solid rgba(139, 92, 246, 0.2) !important;
+    border-radius: 10px !important;
+    padding: 0.5rem 0.7rem !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+  }
+
+  .mobile-txn-left {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  .mobile-txn-type {
+    font-size: 0.75rem !important;
+    font-weight: 700 !important;
+    color: #ffffff !important;
+  }
+
+  .mobile-txn-date {
+    font-size: 0.64rem !important;
+    color: #64748b !important;
+  }
+
+  .mobile-txn-right {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-end !important;
+  }
+
+  .mobile-txn-amount {
+    font-family: 'Orbitron', sans-serif !important;
+    font-size: 0.82rem !important;
+    font-weight: 800 !important;
+    color: #4ade80 !important;
+  }
+
+  .mobile-txn-status {
+    font-size: 0.62rem !important;
+    font-weight: 700 !important;
+    padding: 0.1rem 0.4rem !important;
+    border-radius: 4px !important;
+    margin-top: 2px !important;
+  }
+}
+
+/* ── 9. Mobile LOGIN / REGISTER Experience (`/user/login`) ──────────────── */
+.login-container,
+.auth-page-wrapper {
+  padding: 1rem 0.75rem calc(var(--mobile-bottom-nav-height) + 2rem) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: calc(100vh - 120px) !important;
+}
+
+.login-box,
+.auth-card-mobile {
+  width: 100% !important;
+  max-width: 380px !important;
+  background: linear-gradient(135deg, #130d29 0%, #0c081e 100%) !important;
+  border: 1px solid rgba(168, 85, 247, 0.4) !important;
+  border-radius: 16px !important;
+  padding: 1.25rem 1.1rem !important;
+  box-shadow: 0 0 25px rgba(124, 58, 237, 0.22) !important;
+  margin: 0 auto !important;
+}
+
+.auth-tabs-toggle {
+  display: flex !important;
+  gap: 0.35rem !important;
+  background: rgba(7, 5, 17, 0.7) !important;
+  border: 1px solid rgba(139, 92, 246, 0.2) !important;
+  border-radius: 10px !important;
+  padding: 0.25rem !important;
+  margin-bottom: 1rem !important;
+}
+
+.auth-tab-btn {
+  flex: 1 !important;
+  min-height: 36px !important;
+  border-radius: 7px !important;
+  font-size: 0.78rem !important;
+  font-weight: 800 !important;
+  background: transparent !important;
+  border: none !important;
+  color: #94a3b8 !important;
+  cursor: pointer !important;
+}
+
+.auth-tab-btn.active {
+  background: linear-gradient(135deg, #7c3aed, #9333ea) !important;
+  color: #ffffff !important;
+}
+
+/* ── 10. Universal Mobile Modals & Bottom Sheets ─────────────────────────── */
+@media (max-width: 640px) {
+  .modal-overlay,
+  .rules-modal-overlay,
+  .payment-modal-backdrop {
+    padding: 0 !important;
+    align-items: flex-end !important; /* Bottom-sheet sheet on mobile */
+  }
+
+  .modal-content,
+  .rules-modal-box,
+  .payment-modal-card {
+    width: 100% !important;
+    max-width: 100vw !important;
+    border-radius: 22px 22px 0 0 !important;
+    max-height: 90vh !important;
+    padding-bottom: calc(var(--safe-bottom) + 1rem) !important;
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.8) !important;
+    animation: sheetSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+
+  @keyframes sheetSlideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  /* Sticky Modal Close Target */
+  .modal-close-btn,
+  .payment-modal-close-btn {
+    width: 38px !important;
+    height: 38px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+}
+
+/* ── 11. Mobile Footer Spacing ───────────────────────────────────────────── */
+.footer {
+  padding-bottom: calc(var(--mobile-bottom-nav-height) + var(--safe-bottom) + 1.5rem) !important;
+}
+
+@media (min-width: 641px) {
+  .mobile-txns-list {
+    display: none !important;
+  }
+}

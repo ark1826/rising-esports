@@ -584,7 +584,8 @@ function Profile() {
                 <p>You haven&apos;t made any wallet deposits, slot payments, or withdrawals yet.</p>
               </div>
             ) : (
-              <div className="profile-table-wrapper">
+              <>
+                <div className="profile-table-wrapper">
                 <table className="profile-txns-table">
                   <thead>
                     <tr>
@@ -643,7 +644,54 @@ function Profile() {
                   </tbody>
                 </table>
               </div>
-            )}
+
+              {/* Mobile View Transaction Cards (Zero horizontal overflow) */}
+              <div className="mobile-txns-list">
+                {transactions.map((txn) => {
+                  const typeInfo = getTypeLabel(txn.type);
+                  const formattedDate = new Date(txn.createdAt).toLocaleDateString('en-IN', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  });
+
+                  return (
+                    <div key={txn._id} className="mobile-txn-card">
+                      <div className="mobile-txn-left">
+                        <span className="mobile-txn-type" style={{ color: typeInfo.color }}>
+                          {typeInfo.label}
+                        </span>
+                        <span className="mobile-txn-date">{formattedDate}</span>
+                        <code style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: '2px' }}>
+                          {txn.transactionId}
+                        </code>
+                        {txn.utrNumber && (
+                          <span style={{ fontSize: '0.68rem', color: '#fbbf24', marginTop: '2px' }}>
+                            UTR: {txn.utrNumber}
+                          </span>
+                        )}
+                        {txn.rejectionReason && (
+                          <span style={{ fontSize: '0.68rem', color: '#f87171', marginTop: '2px' }}>
+                            Reason: {txn.rejectionReason}
+                          </span>
+                        )}
+                      </div>
+                      <div className="mobile-txn-right">
+                        <span className="mobile-txn-amount" style={{ color: typeInfo.color }}>
+                          {typeInfo.sign}₹{txn.amount}
+                        </span>
+                        <div style={{ marginTop: '4px' }}>
+                          {getStatusBadge(txn.status)}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
           </div>
         </div>
       )}

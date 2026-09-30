@@ -1,0 +1,1050 @@
+/* ==========================================================================
+   RISING ESPORTS - HOME & APP SHELL REDESIGN
+   Cyberpunk Purple / Dark Esports Aesthetics
+   ========================================================================== */
+
+/* ── Home Page Layout ────────────────────────────────────────── */
+.home-page-wrapper {
+  min-height: calc(100vh - 70px);
+  background: radial-gradient(circle at 50% 0%, rgba(124, 58, 237, 0.15) 0%, rgba(10, 8, 20, 0) 65%),
+              linear-gradient(180deg, #090713 0%, #06040e 100%);
+  color: #ffffff;
+  padding: 0.5rem 0.75rem 4rem;
+}
+
+.home-container {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+@media (min-width: 768px) {
+  .home-container {
+    max-width: 600px;
+    gap: 0.75rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .home-container {
+    max-width: 680px;
+  }
+}
+
+/* ── 1. WALLET BALANCE CARD (Compact Mobile Fit) ─────────────── */
+.home-wallet-card {
+  position: relative;
+  background: linear-gradient(135deg, rgba(23, 14, 46, 0.95) 0%, rgba(13, 9, 28, 0.96) 60%, rgba(8, 5, 18, 0.98) 100%);
+  border: 1px solid rgba(168, 85, 247, 0.45);
+  border-radius: 14px;
+  padding: 0.7rem 0.85rem 0.65rem;
+  box-shadow: 0 0 20px rgba(124, 58, 237, 0.18),
+              inset 0 0 12px rgba(139, 92, 246, 0.08);
+  overflow: hidden;
+  backdrop-filter: blur(12px);
+}
+
+/* Cyber ambient accent lines */
+.home-wallet-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #c084fc, #9333ea, transparent);
+}
+
+/* Top Section: Balance Info (Left) & Soldier Art (Right) */
+.wallet-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  position: relative;
+  min-height: 72px;
+}
+
+.wallet-balance-col {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+}
+
+.wallet-icon-box {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(139, 92, 246, 0.16);
+  border: 1.5px solid rgba(168, 85, 247, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #c084fc;
+  box-shadow: 0 0 10px rgba(168, 85, 247, 0.35);
+  flex-shrink: 0;
+}
+
+.wallet-amount-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.wallet-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: #a0a0c4;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 0.1rem;
+}
+
+.wallet-amount-row {
+  display: flex;
+  align-items: baseline;
+  color: #ffffff;
+}
+
+.wallet-currency {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 1.25rem;
+  font-weight: 800;
+  margin-right: 2px;
+  color: #ffffff;
+}
+
+.wallet-digits-main {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.5px;
+}
+
+.wallet-digits-cents {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #a78bfa;
+}
+
+/* Right Soldier Art & Neon Graffiti */
+.wallet-soldier-art-wrap {
+  position: absolute;
+  right: -10px;
+  top: -12px;
+  bottom: -8px;
+  width: 50%;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.wallet-soldier-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  opacity: 0.85;
+  filter: contrast(1.15) brightness(1.05);
+  mask-image: linear-gradient(to left, rgba(0, 0, 0, 1) 45%, rgba(0, 0, 0, 0) 100%);
+  -webkit-mask-image: linear-gradient(to left, rgba(0, 0, 0, 1) 45%, rgba(0, 0, 0, 0) 100%);
+}
+
+.wallet-graffiti-text {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  z-index: 2;
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  line-height: 0.95;
+  transform: rotate(-10deg);
+}
+
+.wallet-graffiti-text span {
+  font-family: 'Orbitron', 'Rajdhani', sans-serif;
+  font-weight: 900;
+  font-style: italic;
+  font-size: 0.88rem;
+  letter-spacing: 0.8px;
+  color: #e879f9;
+  text-shadow: 0 0 8px rgba(232, 121, 249, 0.85),
+               0 0 16px rgba(168, 85, 247, 0.6);
+}
+
+/* Wallet Card Buttons (Side-by-Side) */
+.wallet-actions-row {
+  display: flex;
+  gap: 0.45rem;
+  margin-top: 0.55rem;
+  position: relative;
+  z-index: 3;
+}
+
+.wallet-btn-add {
+  flex: 1;
+  background: linear-gradient(135deg, #7c3aed 0%, #9333ea 50%, #a855f7 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.48rem 0.4rem;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  cursor: pointer;
+  box-shadow: 0 3px 12px rgba(124, 58, 237, 0.35);
+  transition: transform 0.2s, box-shadow 0.2s;
+  text-transform: uppercase;
+}
+
+.wallet-btn-add:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 16px rgba(147, 51, 234, 0.5);
+}
+
+.wallet-btn-withdraw {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1.5px solid rgba(168, 85, 247, 0.45);
+  color: #ffffff;
+  border-radius: 8px;
+  padding: 0.48rem 0.4rem;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  transition: background 0.2s, border-color 0.2s, transform 0.2s;
+  text-transform: uppercase;
+}
+
+.wallet-btn-withdraw:hover {
+  background: rgba(168, 85, 247, 0.12);
+  border-color: #c084fc;
+  transform: translateY(-1px);
+}
+
+/* ── 2. ANNOUNCEMENT CARD (Compact Mobile Fit) ───────────────── */
+.home-announcement-card {
+  background: rgba(14, 12, 26, 0.85);
+  border: 1px solid rgba(139, 92, 246, 0.28);
+  border-radius: 14px;
+  padding: 0.65rem 0.75rem 0.6rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(10px);
+}
+
+.announcement-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.45rem;
+}
+
+.announcement-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.announcement-icon-bubble {
+  color: #c084fc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 0 6px rgba(168, 85, 247, 0.5));
+}
+
+.announcement-heading {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: #ffffff;
+}
+
+.announcement-view-all {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #c084fc;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  transition: color 0.2s, transform 0.2s;
+}
+
+.announcement-view-all:hover {
+  color: #e879f9;
+  transform: translateX(2px);
+}
+
+.announcement-inner-box {
+  background: rgba(7, 5, 17, 0.65);
+  border: 1px solid rgba(139, 92, 246, 0.16);
+  border-radius: 10px;
+  padding: 0.45rem 0.65rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.38rem;
+}
+
+.announcement-rule-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+}
+
+.announcement-num-badge {
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: #6d28d9;
+  color: #ffffff;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.62rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 0 6px rgba(109, 40, 217, 0.6);
+  margin-top: 1px;
+}
+
+.announcement-rule-text {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.7rem;
+  color: #d1d5db;
+  line-height: 1.32;
+}
+
+/* ── 3. MATCH RESULTS & POINTS BANNER (Compact Mobile Fit) ───── */
+.home-results-banner {
+  background: linear-gradient(90deg, rgba(20, 14, 40, 0.92) 0%, rgba(13, 9, 28, 0.92) 100%);
+  border: 1px solid rgba(139, 92, 246, 0.32);
+  border-radius: 12px;
+  padding: 0.5rem 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.55rem;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  transition: border-color 0.25s, box-shadow 0.25s, transform 0.25s;
+}
+
+.home-results-banner:hover {
+  border-color: rgba(168, 85, 247, 0.65);
+  box-shadow: 0 0 18px rgba(124, 58, 237, 0.25);
+  transform: translateY(-1px);
+}
+
+.results-left-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.results-icon-box {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(124, 58, 237, 0.2);
+  border: 1px solid rgba(168, 85, 247, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #c084fc;
+  box-shadow: 0 0 8px rgba(124, 58, 237, 0.3);
+  flex-shrink: 0;
+}
+
+.results-text-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.results-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: #ffffff;
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.results-title .highlight {
+  color: #c084fc;
+  text-shadow: 0 0 8px rgba(192, 132, 252, 0.4);
+}
+
+.results-subtitle {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.64rem;
+  color: #94a3b8;
+  margin-top: 1px;
+}
+
+.results-view-btn {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 7px;
+  padding: 0.35rem 0.7rem;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.35);
+  flex-shrink: 0;
+  transition: transform 0.2s, box-shadow 0.2s;
+  text-transform: uppercase;
+}
+
+.results-view-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 12px rgba(139, 92, 246, 0.5);
+}
+
+/* ── 4. FEATURED SCRIMS SECTION (Compact Mobile Fit) ─────────── */
+.home-scrims-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.scrims-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0.15rem;
+}
+
+.scrims-heading-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.scrims-lightning-icon {
+  color: #a855f7;
+  filter: drop-shadow(0 0 6px rgba(168, 85, 247, 0.6));
+}
+
+.scrims-section-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.7px;
+  color: #ffffff;
+}
+
+.scrims-section-title .purple {
+  color: #c084fc;
+}
+
+.scrims-view-all {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #a78bfa;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  transition: color 0.2s, transform 0.2s;
+}
+
+.scrims-view-all:hover {
+  color: #e879f9;
+  transform: translateX(2px);
+}
+
+/* Featured Scrim Card */
+.featured-scrim-card {
+  position: relative;
+  border-radius: 14px;
+  border: 1px solid rgba(79, 70, 229, 0.45);
+  box-shadow: 0 0 16px rgba(79, 70, 229, 0.18);
+  background: linear-gradient(135deg, #0e0924 0%, #080516 100%);
+  padding: 0.7rem 0.8rem;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s;
+}
+
+.featured-scrim-card:hover {
+  transform: translateY(-1px);
+  border-color: rgba(139, 92, 246, 0.7);
+  box-shadow: 0 0 24px rgba(139, 92, 246, 0.35);
+}
+
+.scrim-card-bg-wrap {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 50%;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.scrim-card-bg-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: right center;
+  opacity: 0.75;
+  mask-image: linear-gradient(to left, rgba(0, 0, 0, 1) 40%, rgba(0, 0, 0, 0) 100%);
+  -webkit-mask-image: linear-gradient(to left, rgba(0, 0, 0, 1) 40%, rgba(0, 0, 0, 0) 100%);
+}
+
+.scrim-watermark-r {
+  position: absolute;
+  right: 65px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: 'Orbitron', sans-serif;
+  font-size: 4.5rem;
+  font-weight: 900;
+  font-style: italic;
+  color: rgba(168, 85, 247, 0.16);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.scrim-card-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.scrim-top-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.scrim-brand-tag {
+  font-family: 'Orbitron', 'Inter', sans-serif;
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: #38bdf8;
+  text-transform: uppercase;
+  border-left: 2px solid #38bdf8;
+  padding-left: 5px;
+}
+
+.scrim-live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: rgba(109, 40, 217, 0.45);
+  border: 1px solid #8b5cf6;
+  border-radius: 999px;
+  padding: 0.18rem 0.55rem;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.66rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: 0.5px;
+}
+
+.scrim-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #f43f5e;
+  box-shadow: 0 0 6px #f43f5e;
+  animation: livePulse 1.6s infinite ease-in-out;
+}
+
+.scrim-card-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: 0.6px;
+  margin: 0.15rem 0;
+}
+
+.scrim-meta-badges {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.2rem;
+}
+
+.scrim-badge-squad {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: #d1d5db;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+}
+
+.scrim-badge-divider {
+  color: rgba(148, 163, 184, 0.4);
+  font-size: 0.75rem;
+}
+
+.scrim-badge-lobby {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: rgba(139, 92, 246, 0.2);
+  border: 1px solid rgba(168, 85, 247, 0.45);
+  border-radius: 7px;
+  padding: 0.18rem 0.45rem;
+  color: #c084fc;
+  font-family: 'Orbitron', 'Inter', sans-serif;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+}
+
+/* ── 5. QUICK COMMUNITY CTA BANNER (Compact Mobile Fit) ───────── */
+.home-community-cta {
+  background: linear-gradient(135deg, rgba(37, 211, 102, 0.12) 0%, rgba(16, 185, 129, 0.05) 100%);
+  border: 1px solid rgba(37, 211, 102, 0.3);
+  border-radius: 14px;
+  padding: 0.65rem 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+}
+
+.community-cta-text h4 {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #4ade80;
+  margin-bottom: 1px;
+}
+
+.community-cta-text p {
+  font-size: 0.68rem;
+  color: #94a3b8;
+}
+
+.community-cta-btn {
+  background: #22c55e;
+  color: #062b11;
+  padding: 0.42rem 0.75rem;
+  border-radius: 8px;
+  font-weight: 800;
+  font-size: 0.72rem;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  text-decoration: none;
+  box-shadow: 0 0 10px rgba(34, 197, 94, 0.35);
+  flex-shrink: 0;
+  transition: transform 0.2s;
+}
+
+.community-cta-btn:hover {
+  transform: translateY(-2px);
+}
+
+/* ── 6. BOTTOM NAVIGATION BAR ────────────────────────────────── */
+.bottom-nav-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 999;
+  background: rgba(10, 8, 20, 0.94);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(139, 92, 246, 0.25);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.45);
+  padding: 0.25rem 0.5rem 0.5rem;
+}
+
+.bottom-nav-container {
+  max-width: 520px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.bottom-nav-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem 0.35rem 0.2rem;
+  color: #71718a;
+  text-decoration: none;
+  transition: color 0.2s;
+  flex: 1;
+}
+
+.bottom-nav-indicator {
+  position: absolute;
+  top: -4px;
+  width: 34px;
+  height: 3px;
+  border-radius: 3px;
+  background: #a855f7;
+  box-shadow: 0 0 10px #a855f7, 0 0 18px #a855f7;
+}
+
+.bottom-nav-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 2px;
+}
+
+.bottom-nav-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+.bottom-nav-item.active {
+  color: #c084fc;
+}
+
+.bottom-nav-item.active .bottom-nav-icon-wrap {
+  filter: drop-shadow(0 0 8px rgba(192, 132, 252, 0.6));
+}
+
+.bottom-nav-item:hover {
+  color: #c4b5fd;
+}
+
+/* ── 7. HEADER & NAVBAR UPGRADE ──────────────────────────────── */
+.navbar-header-wrap {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: rgba(10, 8, 20, 0.94);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(139, 92, 246, 0.18);
+}
+
+.navbar-actions-right {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.header-icon-btn {
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  padding: 4px;
+  border-radius: 8px;
+  transition: color 0.2s, background 0.2s;
+}
+
+.header-icon-btn:hover {
+  color: #c084fc;
+}
+
+.notif-pulse-dot {
+  position: absolute;
+  top: 3px;
+  right: 4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #f43f5e;
+  border: 1.5px solid #0a0814;
+  box-shadow: 0 0 8px #f43f5e;
+}
+
+.navbar-avatar-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7c3aed 0%, #9333ea 100%);
+  border: 1.5px solid rgba(192, 132, 252, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-family: 'Orbitron', 'Inter', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 0 12px rgba(124, 58, 237, 0.35);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.navbar-avatar-circle:hover {
+  transform: scale(1.06);
+  box-shadow: 0 0 16px rgba(168, 85, 247, 0.55);
+}
+
+/* Mobile drawer close button */
+.mobile-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 1rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+.mobile-drawer-close {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+}
+
+/* Notification Popover Dropdown */
+.notif-dropdown-menu {
+  position: absolute;
+  right: -50px;
+  top: calc(100% + 12px);
+  width: 310px;
+  background: #110e24;
+  border: 1px solid rgba(168, 85, 247, 0.35);
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7),
+              0 0 20px rgba(124, 58, 237, 0.25);
+  z-index: 1100;
+  overflow: hidden;
+}
+
+.notif-header {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid rgba(139, 92, 246, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.notif-header h4 {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.notif-badge-count {
+  background: rgba(168, 85, 247, 0.2);
+  color: #c084fc;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid rgba(168, 85, 247, 0.4);
+}
+
+.notif-items-list {
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.notif-item {
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.notif-item.unread {
+  background: rgba(139, 92, 246, 0.08);
+}
+
+.notif-item-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #a855f7;
+  margin-top: 5px;
+  flex-shrink: 0;
+}
+
+.notif-item-dot.inactive {
+  background: #64748b;
+}
+
+.notif-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 2px;
+}
+
+.notif-desc {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  line-height: 1.35;
+}
+
+.notif-time {
+  font-size: 0.66rem;
+  color: #64748b;
+  margin-top: 4px;
+  display: block;
+}
+
+.notif-footer {
+  padding: 0.5rem 1rem;
+  background: rgba(0, 0, 0, 0.25);
+  text-align: center;
+}
+
+.notif-close-action {
+  background: none;
+  border: none;
+  color: #a78bfa;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* ── 8. ALL RULES & BENEFITS MODAL ───────────────────────────── */
+.rules-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 3, 12, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.rules-modal-box {
+  background: linear-gradient(135deg, #130e29 0%, #0c081e 100%);
+  border: 1px solid rgba(168, 85, 247, 0.4);
+  border-radius: 20px;
+  width: 100%;
+  max-width: 580px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 0 35px rgba(124, 58, 237, 0.35);
+  overflow: hidden;
+}
+
+.rules-modal-header {
+  padding: 1.15rem 1.25rem;
+  border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.rules-modal-title {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.rules-modal-title h3 {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.rules-modal-body {
+  padding: 1.25rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.rules-full-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(139, 92, 246, 0.15);
+  border-radius: 12px;
+  padding: 0.85rem 0.95rem;
+}
+
+.rules-full-num {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #7c3aed;
+  color: #ffffff;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.rules-full-content h5 {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #c084fc;
+  margin-bottom: 2px;
+}
+
+.rules-full-content p {
+  font-size: 0.8rem;
+  color: #d1d5db;
+  line-height: 1.4;
+}
+
+/* Ensure padding-bottom for mobile bottom navigation */
+.main-content.has-bottom-nav {
+  padding-bottom: 70px;
+}

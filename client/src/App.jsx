@@ -12,6 +12,8 @@ import ProtectedRoute from './components/ProtectedRoute'
 import UserLogin from './pages/UserLogin'
 import PaymentStatus from './pages/PaymentStatus'
 import Profile from './pages/Profile'
+import BottomNav from './components/BottomNav'
+
 function ScrollToTop() {
   const { pathname } = useLocation()
 
@@ -29,10 +31,11 @@ function MainLayout({ children }) {
   return (
     <div className="app">
       {!isAdminRoute && <Navbar />}
-      <main className={isAdminRoute ? "admin-main" : "main-content"}>
+      <main className={isAdminRoute ? "admin-main" : "main-content has-bottom-nav"}>
         {children}
       </main>
       {!isAdminRoute && <Footer />}
+      {!isAdminRoute && <BottomNav />}
     </div>
   );
 }
@@ -46,20 +49,35 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/slots" element={<TodaySlots />} />
           <Route path="/rankings" element={<Rankings />} />
+          <Route path="/leaderboard" element={<Navigate to="/rankings" replace />} />
           <Route path="/tier" element={<Navigate to="/" replace />} />
           <Route path="/tournaments" element={<Tournaments />} />
           <Route path="/payment-status" element={<PaymentStatus />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/wallet" element={<Navigate to="/profile" replace />} />
 
+          {/* User Auth Routes & Aliases */}
           <Route path="/user/login" element={<UserLogin />} />
-          
+          <Route path="/login" element={<Navigate to="/user/login" replace />} />
+          <Route path="/register" element={<Navigate to="/user/login" replace />} />
+          <Route path="/signup" element={<Navigate to="/user/login" replace />} />
+          <Route path="/signin" element={<Navigate to="/user/login" replace />} />
+
+          {/* Matches & Slots Aliases */}
+          <Route path="/my-matches" element={<Navigate to="/slots?tab=my" replace />} />
+          <Route path="/matches" element={<Navigate to="/slots" replace />} />
+
           {/* Admin Routes */}
           <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
           <Route path="/admin/dashboard" element={
             <ProtectedRoute>
               <AdminDashboard />
             </ProtectedRoute>
           } />
+
+          {/* Fallback Catch-All Route */}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </MainLayout>
     </Router>

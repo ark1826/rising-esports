@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import PaymentModal from '../components/PaymentModal';
 import bannerImg from '../assets/slots_banner.jpg';
@@ -25,6 +25,8 @@ function TodaySlots() {
   const [selectedCategory, setSelectedCategory] = useState('SCRIMS');
 
   const navigate = useNavigate();
+  const location = useLocation();
+  const isMyMatchesTab = new URLSearchParams(location.search).get('tab') === 'my';
   const getUserInfo = useCallback(() => {
     try {
       return JSON.parse(localStorage.getItem('userInfo') || 'null');
@@ -118,6 +120,11 @@ function TodaySlots() {
 
   // ── Filtered Slots ──
   const filteredSlots = useMemo(() => {
+    // If user is on "my" matches tab
+    if (isMyMatchesTab) {
+      return slots.filter((slot) => Boolean(myBookings[slot._id]));
+    }
+
     const year = selectedDate.getFullYear();
     const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
     const day = String(selectedDate.getDate()).padStart(2, '0');
@@ -153,7 +160,7 @@ function TodaySlots() {
 
       return true;
     });
-  }, [slots, selectedCategory, selectedDate, isTodaySelected]);
+  }, [slots, selectedCategory, selectedDate, isTodaySelected, isMyMatchesTab, myBookings]);
 
   // ── Open payment modal ──
   const openPaymentModal = (slot) => {
@@ -390,58 +397,129 @@ function TodaySlots() {
         </div>
       </div>
 
-      {/* ── Date Navigator Bar ── */}
-      <div className="ts-date-bar">
+      {/* ── Main Tab Switcher (Available Slots vs My Registered Matches) ── */}
+      <div style={{
+        display: 'flex',
+        gap: '0.5rem',
+        margin: '1.25rem 0 1rem',
+        background: 'rgba(255, 255, 255, 0.04)',
+        padding: '5px',
+        borderRadius: '14px',
+        border: '1px solid rgba(139, 92, 246, 0.25)'
+      }}>
         <button
           type="button"
-          className="ts-date-arrow-btn"
-          onClick={() => changeDate(-1)}
-          aria-label="Previous day"
+          onClick={() => navigate('/slots')}
+          style={{
+            flex: 1,
+            padding: '0.65rem 0.75rem',
+            borderRadius: '10px',
+            border: 'none',
+            background: !isMyMatchesTab ? 'linear-gradient(135deg, #7c3aed, #6d28d9)' : 'transparent',
+            color: '#fff',
+            fontWeight: 800,
+            fontSize: '0.85rem',
+            letterSpacing: '0.5px',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            boxShadow: !isMyMatchesTab ? '0 4px 14px rgba(124, 58, 237, 0.35)' : 'none'
+          }}
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
+          AVAILABLE SLOTS
         </button>
-
-        <div className="ts-date-info" onClick={resetToToday} title="Click to reset to today">
-          <div className="ts-date-sub">{isTodaySelected ? 'TODAY' : 'SELECTED DATE'}</div>
-          <div className="ts-date-main">{formatDateDisplay(selectedDate)}</div>
-        </div>
-
         <button
           type="button"
-          className="ts-date-arrow-btn"
-          onClick={() => changeDate(1)}
-          aria-label="Next day"
+          onClick={() => navigate('/slots?tab=my')}
+          style={{
+            flex: 1,
+            padding: '0.65rem 0.75rem',
+            borderRadius: '10px',
+            border: 'none',
+            background: isMyMatchesTab ? 'linear-gradient(135deg, #7c3aed, #6d28d9)' : 'transparent',
+            color: '#fff',
+            fontWeight: 800,
+            fontSize: '0.85rem',
+            letterSpacing: '0.5px',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.4rem',
+            boxShadow: isMyMatchesTab ? '0 4px 14px rgba(124, 58, 237, 0.35)' : 'none'
+          }}
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
+          <span>MY MATCHES</span>
+          {Object.keys(myBookings).length > 0 && (
+            <span style={{
+              background: isMyMatchesTab ? 'rgba(255,255,255,0.25)' : '#7c3aed',
+              padding: '1px 7px',
+              borderRadius: '999px',
+              fontSize: '0.72rem',
+              fontWeight: 800
+            }}>
+              {Object.keys(myBookings).length}
+            </span>
+          )}
         </button>
       </div>
 
-      {/* ── Category Filter Tabs ── */}
-      <div className="ts-tabs-row">
-        {CATEGORIES.map((cat) => (
-          <button
-            key={cat}
-            type="button"
-            className={`ts-tab-pill ${selectedCategory === cat ? 'active' : ''}`}
-            onClick={() => setSelectedCategory(cat)}
-          >
-            {cat}
-          </button>
-        ))}
-      </div>
+      {!isMyMatchesTab && (
+        <>
+          {/* ── Date Navigator Bar ── */}
+          <div className="ts-date-bar">
+            <button
+              type="button"
+              className="ts-date-arrow-btn"
+              onClick={() => changeDate(-1)}
+              aria-label="Previous day"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+            </button>
+
+            <div className="ts-date-info" onClick={resetToToday} title="Click to reset to today">
+              <div className="ts-date-sub">{isTodaySelected ? 'TODAY' : 'SELECTED DATE'}</div>
+              <div className="ts-date-main">{formatDateDisplay(selectedDate)}</div>
+            </div>
+
+            <button
+              type="button"
+              className="ts-date-arrow-btn"
+              onClick={() => changeDate(1)}
+              aria-label="Next day"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </button>
+          </div>
+
+          {/* ── Category Filter Tabs ── */}
+          <div className="ts-tabs-row">
+            {CATEGORIES.map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                className={`ts-tab-pill ${selectedCategory === cat ? 'active' : ''}`}
+                onClick={() => setSelectedCategory(cat)}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
 
       {/* ── Available Slots Header ── */}
       <div className="ts-section-header">
         <div className="ts-section-title">
           <div className="ts-indicator-bar" />
-          <h2>Available Slots</h2>
+          <h2>{isMyMatchesTab ? 'My Registered Matches' : 'Available Slots'}</h2>
         </div>
         <div className="ts-count-badge">
-          {filteredSlots.length} AVAILABLE
+          {filteredSlots.length} {isMyMatchesTab ? 'BOOKED' : 'AVAILABLE'}
         </div>
       </div>
 
@@ -466,46 +544,96 @@ function TodaySlots() {
             <line x1="8" y1="2" x2="8" y2="6"/>
             <line x1="3" y1="10" x2="21" y2="10"/>
           </svg>
-          <h3 style={{ color: '#fff', fontSize: '1.25rem', marginBottom: '0.4rem' }}>No Slots Available</h3>
-          <p style={{ fontSize: '0.9rem', maxWidth: '360px', margin: '0 auto 1.25rem' }}>
-            There are no slots scheduled under <strong>{selectedCategory}</strong> for {formatDateDisplay(selectedDate)}.
-          </p>
-          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-            {selectedCategory !== 'ALL' && (
-              <button
-                type="button"
-                onClick={() => setSelectedCategory('ALL')}
-                style={{
-                  background: 'rgba(121, 40, 202, 0.25)',
-                  border: '1px solid #7928ca',
-                  color: '#c084fc',
-                  padding: '0.5rem 1.25rem',
-                  borderRadius: '8px',
-                  fontWeight: 800,
-                  cursor: 'pointer'
-                }}
-              >
-                VIEW ALL CATEGORIES
-              </button>
-            )}
-            {!isTodaySelected && (
-              <button
-                type="button"
-                onClick={resetToToday}
-                style={{
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  color: '#ffffff',
-                  padding: '0.5rem 1.25rem',
-                  borderRadius: '8px',
-                  fontWeight: 800,
-                  cursor: 'pointer'
-                }}
-              >
-                GO TO TODAY
-              </button>
-            )}
-          </div>
+          {isMyMatchesTab ? (
+            <>
+              <h3 style={{ color: '#fff', fontSize: '1.25rem', marginBottom: '0.4rem' }}>
+                {!userInfo ? 'Please Log In' : 'No Bookings Found'}
+              </h3>
+              <p style={{ fontSize: '0.9rem', maxWidth: '380px', margin: '0 auto 1.25rem' }}>
+                {!userInfo
+                  ? 'Sign in to your account to view your registered matches, slot room IDs, and passwords.'
+                  : 'You have not registered for any upcoming tournament or scrim slots yet.'}
+              </p>
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                {!userInfo ? (
+                  <button
+                    type="button"
+                    onClick={() => navigate('/user/login', { state: { from: '/slots?tab=my' } })}
+                    style={{
+                      background: 'linear-gradient(135deg, #7c3aed, #a855f7)',
+                      border: 'none',
+                      color: '#ffffff',
+                      padding: '0.6rem 1.5rem',
+                      borderRadius: '8px',
+                      fontWeight: 800,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    SIGN IN NOW
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => navigate('/slots')}
+                    style={{
+                      background: 'linear-gradient(135deg, #7c3aed, #a855f7)',
+                      border: 'none',
+                      color: '#ffffff',
+                      padding: '0.6rem 1.5rem',
+                      borderRadius: '8px',
+                      fontWeight: 800,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    EXPLORE SLOTS
+                  </button>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              <h3 style={{ color: '#fff', fontSize: '1.25rem', marginBottom: '0.4rem' }}>No Slots Available</h3>
+              <p style={{ fontSize: '0.9rem', maxWidth: '360px', margin: '0 auto 1.25rem' }}>
+                There are no slots scheduled under <strong>{selectedCategory}</strong> for {formatDateDisplay(selectedDate)}.
+              </p>
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                {selectedCategory !== 'ALL' && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCategory('ALL')}
+                    style={{
+                      background: 'rgba(121, 40, 202, 0.25)',
+                      border: '1px solid #7928ca',
+                      color: '#c084fc',
+                      padding: '0.5rem 1.25rem',
+                      borderRadius: '8px',
+                      fontWeight: 800,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    VIEW ALL CATEGORIES
+                  </button>
+                )}
+                {!isTodaySelected && (
+                  <button
+                    type="button"
+                    onClick={resetToToday}
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.1)',
+                      border: '1px solid rgba(255, 255, 255, 0.2)',
+                      color: '#ffffff',
+                      padding: '0.5rem 1.25rem',
+                      borderRadius: '8px',
+                      fontWeight: 800,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    GO TO TODAY
+                  </button>
+                )}
+              </div>
+            </>
+          )}
         </div>
       ) : (
         filteredSlots.map((slot) => {

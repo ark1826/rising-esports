@@ -26,6 +26,17 @@ router.get('/latest', async (req, res) => {
   }
 });
 
+// GET /api/announcements/active — Public: Get all active announcements
+router.get('/active', async (req, res) => {
+  try {
+    const announcements = await Announcement.find({ isActive: true })
+      .sort({ priority: -1, updatedAt: -1, createdAt: -1 });
+    res.json(announcements);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // GET /api/announcements — Admin: Get all announcements
 router.get('/', protect, async (req, res) => {
   try {
