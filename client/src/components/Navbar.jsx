@@ -23,17 +23,21 @@ function Navbar() {
     navigate('/')
   }
 
-  // Calculate user initials
+  // Calculate user initials from real logged in user data
   const getInitials = () => {
-    if (userInfo?.teamName) {
-      const parts = userInfo.teamName.trim().split(/\s+/)
+    const name = userInfo?.teamName || userInfo?.name || userInfo?.username || '';
+    if (name) {
+      const parts = name.trim().split(/\s+/);
       if (parts.length >= 2) {
-        return (parts[0][0] + parts[1][0]).toUpperCase()
+        return (parts[0][0] + parts[1][0]).toUpperCase();
       }
-      return userInfo.teamName.slice(0, 2).toUpperCase()
+      return name.slice(0, 2).toUpperCase();
     }
-    return 'AK'
-  }
+    if (userInfo?.phone) {
+      return userInfo.phone.slice(-2);
+    }
+    return '';
+  };
 
   return (
     <>
@@ -270,31 +274,15 @@ function Navbar() {
                 <div className="notif-dropdown-menu fade-in">
                   <div className="notif-header">
                     <h4>Notifications</h4>
-                    <span className="notif-badge-count">3 New</span>
+                    <span className="notif-badge-count">Live</span>
                   </div>
                   <div className="notif-items-list">
-                    <div className="notif-item unread">
-                      <div className="notif-item-dot" />
-                      <div className="notif-item-body">
-                        <p className="notif-title">Points Table Updated</p>
-                        <p className="notif-desc">Daily results &amp; standings of live scrims are now published.</p>
-                        <span className="notif-time">10 mins ago</span>
-                      </div>
-                    </div>
-                    <div className="notif-item unread">
-                      <div className="notif-item-dot" />
-                      <div className="notif-item-body">
-                        <p className="notif-title">Evening Grind Scrims Live</p>
-                        <p className="notif-desc">Join your respective slots now. Room ID &amp; Pass updated.</p>
-                        <span className="notif-time">30 mins ago</span>
-                      </div>
-                    </div>
                     <div className="notif-item">
-                      <div className="notif-item-dot inactive" />
+                      <div className="notif-item-dot" />
                       <div className="notif-item-body">
-                        <p className="notif-title">Official Rule Notice</p>
-                        <p className="notif-desc">Emulators and iPads are strictly prohibited. Fair play enforced.</p>
-                        <span className="notif-time">2 hours ago</span>
+                        <p className="notif-title">Official BGMI Scrims</p>
+                        <p className="notif-desc">Room ID &amp; Password will be published in your registered slot details 15 mins prior to match start.</p>
+                        <span className="notif-time">Official</span>
                       </div>
                     </div>
                   </div>
@@ -311,15 +299,20 @@ function Navbar() {
               )}
             </div>
 
-            {/* User Avatar Circle "AK" */}
+            {/* User Avatar Circle */}
             <div
               className="navbar-avatar-circle"
               onClick={() => navigate(userInfo ? '/profile' : '/user/login')}
-              title={userInfo ? userInfo.teamName : 'Profile'}
+              title={userInfo ? (userInfo.teamName || userInfo.name || 'My Profile') : 'Login / Register'}
               role="button"
               tabIndex={0}
+              aria-label={userInfo ? "User Profile" : "Login"}
             >
-              <span>{getInitials()}</span>
+              {userInfo ? (
+                <span>{getInitials() || 'U'}</span>
+              ) : (
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              )}
             </div>
 
             {/* Hamburger Button */}

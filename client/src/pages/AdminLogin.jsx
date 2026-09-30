@@ -21,7 +21,7 @@ const AdminLogin = () => {
         password
       });
 
-      localStorage.setItem('adminInfo', JSON.stringify(data));
+      localStorage.setItem('adminInfo', JSON.stringify({ ...data, role: data.role || 'admin' }));
       navigate('/admin/dashboard');
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed');

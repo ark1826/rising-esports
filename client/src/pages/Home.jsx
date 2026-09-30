@@ -58,7 +58,7 @@ function BgmiHelmetIcon({ size = 15, color = '#c084fc' }) {
 
 export default function Home() {
   const navigate = useNavigate();
-  const [walletBalance, setWalletBalance] = useState(500.0);
+  const [walletBalance, setWalletBalance] = useState(0.0);
   const [featuredSlot, setFeaturedSlot] = useState(null);
   const [announcements, setAnnouncements] = useState([]);
   const [showRulesModal, setShowRulesModal] = useState(false);
@@ -75,7 +75,7 @@ export default function Home() {
   const [isProcessing, setIsProcessing] = useState(false);
 
   // Withdraw state
-  const [withdrawAmount, setWithdrawAmount] = useState('50');
+  const [withdrawAmount, setWithdrawAmount] = useState('');
   const [withdrawUpi, setWithdrawUpi] = useState('');
   const [withdrawNotes, setWithdrawNotes] = useState('');
   const [withdrawMsg, setWithdrawMsg] = useState(null);
@@ -133,18 +133,24 @@ export default function Home() {
       .then((res) => {
         if (typeof res.data?.balance === 'number') {
           setWalletBalance(res.data.balance);
+        } else {
+          setWalletBalance(0.0);
         }
       })
       .catch(() => {
-        setWalletBalance(500.0);
+        setWalletBalance(0.0);
       });
+    } else {
+      setWalletBalance(0.0);
     }
   }, [userInfo]);
 
   // Handler for Add Money button
   const handleAddMoneyClick = () => {
-    if (!userInfo) {
-      navigate('/user/login');
+    if (!userInfo || !userInfo.token) {
+      navigate('/user/login', {
+        state: { from: '/', message: 'Please sign in to add money to your wallet.' }
+      });
       return;
     }
     setDepositStep(1);
@@ -154,8 +160,10 @@ export default function Home() {
 
   // Handler for Withdraw button
   const handleWithdrawClick = () => {
-    if (!userInfo) {
-      navigate('/user/login');
+    if (!userInfo || !userInfo.token) {
+      navigate('/user/login', {
+        state: { from: '/', message: 'Please sign in to withdraw funds.' }
+      });
       return;
     }
     setWithdrawMsg(null);

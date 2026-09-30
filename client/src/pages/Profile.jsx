@@ -108,8 +108,12 @@ function Profile() {
   }, [userInfo, navigate]);
 
   useEffect(() => {
-    fetchProfileData();
-  }, [fetchProfileData]);
+    if (!userInfo || !userInfo.token) {
+      navigate('/user/login', { replace: true, state: { from: '/profile', message: 'Please sign in to access your profile and wallet.' } });
+    } else {
+      fetchProfileData();
+    }
+  }, [userInfo, fetchProfileData, navigate]);
 
   // Auto-dismiss notification
   useEffect(() => {

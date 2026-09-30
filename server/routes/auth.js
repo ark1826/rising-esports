@@ -13,12 +13,13 @@ router.post('/login', async (req, res) => {
     if (dbAdmin) {
       const isMatch = await dbAdmin.comparePassword(password);
       if (isMatch) {
-        const token = jwt.sign({ id: dbAdmin._id }, process.env.JWT_SECRET, {
+        const token = jwt.sign({ id: dbAdmin._id, role: 'admin' }, process.env.JWT_SECRET, {
           expiresIn: '30d',
         });
         return res.json({
           _id: dbAdmin._id,
           username: dbAdmin.username,
+          role: 'admin',
           token: token,
         });
       }
@@ -29,13 +30,14 @@ router.post('/login', async (req, res) => {
     const envPassword = (process.env.ADMIN_PASSWORD || 'admin@123').trim();
 
     if (username.trim() === envUsername && password.trim() === envPassword) {
-      const token = jwt.sign({ id: 'static-admin-id' }, process.env.JWT_SECRET, {
+      const token = jwt.sign({ id: 'static-admin-id', role: 'admin' }, process.env.JWT_SECRET, {
         expiresIn: '30d',
       });
 
       return res.json({
         _id: 'static-admin-id',
         username: envUsername,
+        role: 'admin',
         token: token,
       });
     }
