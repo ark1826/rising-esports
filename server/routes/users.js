@@ -1,6 +1,7 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import { User } from '../models/User.js';
+import { Booking } from '../models/Booking.js';
 import { userProtect } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -102,7 +103,11 @@ router.post('/reset-password', async (req, res) => {
     // Check if input matches registered Team Name, Registration Number (e.g. 1024 or #1024), or WhatsApp
     const matchesTeamName = userTeamName && userTeamName === trimmedInput;
     const matchesRegNum = userRegNum && (userRegNum === trimmedInput || userRegNum === trimmedInput.replace('#', ''));
-    const matchesWhatsapp = userWhatsapp && inputCleanedPhone && userWhatsapp === inputCleanedPhone;
+    
+    // Robust WhatsApp match: compare last 10 digits to ignore prefixes (+91, 0, etc.)
+    const userLast10 = userWhatsapp.slice(-10);
+    const inputLast10 = inputCleanedPhone.slice(-10);
+    const matchesWhatsapp = userLast10.length === 10 && inputLast10.length === 10 && userLast10 === inputLast10;
 
     if (!matchesTeamName && !matchesRegNum && !matchesWhatsapp) {
       return res.status(400).json({
@@ -197,16 +202,62 @@ router.put('/profile', userProtect, async (req, res) => {
     }
 
     if (whatsappNumber !== undefined) {
-      const cleanedPhone = whatsappNumber.replace(/\D/g, '');
-      if (cleanedPhone && (cleanedPhone.length < 10 || cleanedPhone.length > 13)) {
-        return res.status(400).json({ message: 'Please enter a valid WhatsApp phone number' });
+      const raw = String(whatsappNumber || '').trim();
+      if (!raw) {
+        updateData.whatsappNumber = '';
+      } else {
+        // Disallow URLs or non-phone links (some users might mistakenly paste chat.whatsapp.com links)
+        if (/whatsapp\.com|wa\.me/i.test(raw)) {
+          return res.status(400).json({
+            message: 'Please enter your 10-digit WhatsApp phone number, not a group invite link.'
+          });
+        }
+
+        const digits = raw.replace(/\D/g, '');
+        if (digits.length < 10 || digits.length > 15) {
+          return res.status(400).json({
+            message: 'Please enter a valid 10-digit WhatsApp phone number (e.g. 9876543210 or +91 9876543210)'
+          });
+        }
+
+        // Standardize Indian phone numbers
+        let normalized = raw;
+        if (digits.length === 10) {
+          normalized = `+91 ${digits}`;
+        } else if (digits.length === 11 && digits.startsWith('0')) {
+          normalized = `+91 ${digits.slice(1)}`;
+        } else if (digits.length === 12 && digits.startsWith('91')) {
+          normalized = `+91 ${digits.slice(2)}`;
+        } else if (digits.length === 13 && digits.startsWith('910')) {
+          normalized = `+91 ${digits.slice(3)}`;
+        } else if (digits.length === 14 && digits.startsWith('0091')) {
+          normalized = `+91 ${digits.slice(4)}`;
+        } else {
+          normalized = raw.startsWith('+') ? raw : `+${raw}`;
+        }
+        updateData.whatsappNumber = normalized;
       }
-      updateData.whatsappNumber = whatsappNumber.trim();
     }
 
-    if (erangelDrop !== undefined) updateData.erangelDrop = erangelDrop.trim();
-    if (rondoDrop !== undefined) updateData.rondoDrop = rondoDrop.trim();
-    if (miramarDrop !== undefined) updateData.miramarDrop = miramarDrop.trim();
+    if (erangelDrop !== undefined) updateData.erangelDrop = String(erangelDrop || '').trim();
+    if (rondoDrop !== undefined) updateData.rondoDrop = String(rondoDrop || '').trim();
+    if (miramarDrop !== undefined) updateData.miramarDrop = String(miramarDrop || '').trim();
+
+    // Also sync the drop locations across user's active/upcoming bookings so the drop list immediately updates
+    if (erangelDrop !== undefined || rondoDrop !== undefined || miramarDrop !== undefined) {
+      const dropUpdate = {};
+      if (erangelDrop !== undefined) dropUpdate['dropLocations.erangel'] = String(erangelDrop || '').trim();
+      if (rondoDrop !== undefined) dropUpdate['dropLocations.rondo'] = String(rondoDrop || '').trim();
+      if (miramarDrop !== undefined) dropUpdate['dropLocations.miramar'] = String(miramarDrop || '').trim();
+      try {
+        await Booking.updateMany(
+          { userId: req.user._id },
+          { $set: dropUpdate }
+        );
+      } catch (err) {
+        console.warn('[Profile Update] Failed to sync bookings drops:', err.message);
+      }
+    }
 
     const updatedUser = await User.findByIdAndUpdate(
       req.user._id,

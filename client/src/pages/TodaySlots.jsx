@@ -2,12 +2,333 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
+import {
+  Users, MapPin, Search, AlertTriangle, Check, RefreshCw, X,
+  ChevronRight, Crosshair, Copy, CheckCheck, Grid, Columns, Shield, Sparkles
+} from 'lucide-react';
 import PaymentModal from '../components/PaymentModal';
+import DropListView from '../components/DropListView';
 import bannerImg from '../assets/slots_banner.jpg';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const CATEGORIES = ['SCRIMS', 'GRANDS', 'WEEKLY WAR', 'WEEKEND WAR', 'ALL'];
+
+// Predefined drop locations for major BGMI scrim maps
+const MAP_DROP_PRESETS = {
+  ERANGEL: [
+    'Pochinki',
+    'School / Apartments',
+    'Rozhok',
+    'Georgopol (City & Crates)',
+    'Military Base (Sosnovka)',
+    'Yasnaya Polyana',
+    'Novorepnoye',
+    'Mylta / Mylta Power',
+    'Severny',
+    'Gatka',
+    'Primorsk',
+    'Lipovka',
+    'Shelter / Prison',
+    'Mansion',
+    'Quarry / Ferry Pier',
+    'Zharki',
+    'Kameshki / Stalber',
+    'Hospital',
+    'Shooting Range',
+    'Water City',
+    'Farm'
+  ],
+  ERANGLE: [
+    'Pochinki',
+    'School / Apartments',
+    'Rozhok',
+    'Georgopol (City & Crates)',
+    'Military Base (Sosnovka)',
+    'Yasnaya Polyana',
+    'Novorepnoye',
+    'Mylta / Mylta Power',
+    'Severny',
+    'Gatka',
+    'Primorsk',
+    'Lipovka',
+    'Shelter / Prison',
+    'Mansion',
+    'Quarry / Ferry Pier',
+    'Zharki',
+    'Kameshki / Stalber',
+    'Hospital',
+    'Shooting Range',
+    'Water City',
+    'Farm'
+  ],
+  MIRAMAR: [
+    'Pecado',
+    'Hacienda del Patron',
+    'Los Leones',
+    'San Martin',
+    'El Pozo',
+    'Chumacera',
+    'Impala',
+    'Monte Nuevo',
+    'Campo Militar',
+    'Valle del Mar',
+    'Minas Generales',
+    'Puerto Paraiso',
+    'La Cobreria',
+    'Tierra Robada',
+    'Water Treatment',
+    'Crater Fields'
+  ],
+  RONDO: [
+    'Jadena City',
+    'Neoox',
+    'Stadium',
+    'Yu Lin',
+    'Tin Long Garden',
+    'Mey Ran',
+    'Dan Sang',
+    'Bei Li',
+    'Rin Jiang',
+    'Lo Hua Xing',
+    'Hung Shan',
+    'Fang'
+  ],
+  SANHOK: [
+    'Bootcamp',
+    'Paradise Resort',
+    'Ruins',
+    'Camp Alpha',
+    'Camp Bravo',
+    'Camp Charlie',
+    'Pai Nan',
+    'Ha Tinh',
+    'Sahmee',
+    'Khai',
+    'Cave'
+  ],
+  VIKENDI: [
+    'Castle',
+    'Villa',
+    'Goroka',
+    'Cosmodrome',
+    'Dino Park',
+    'Volnova',
+    'Peshkova',
+    'Podvosto',
+    'Cement Factory'
+  ]
+};
+
+const getMapDropOptions = (mapName) => {
+  const norm = (mapName || '').toUpperCase().trim();
+  if (norm.includes('ERANG')) return MAP_DROP_PRESETS.ERANGEL;
+  if (norm.includes('MIRAM')) return MAP_DROP_PRESETS.MIRAMAR;
+  if (norm.includes('ROND')) return MAP_DROP_PRESETS.RONDO;
+  if (norm.includes('SANH')) return MAP_DROP_PRESETS.SANHOK;
+  if (norm.includes('VIKEND')) return MAP_DROP_PRESETS.VIKENDI;
+  return MAP_DROP_PRESETS.ERANGEL;
+};
+
+const getTeamDrop = (team, mapName) => {
+  if (!team) return '';
+  const drops = team.dropLocations || {};
+  const normalizedKey = (mapName || '').toLowerCase().trim();
+  if (drops[normalizedKey]) return drops[normalizedKey];
+  if (normalizedKey.includes('erang') && drops.erangel) return drops.erangel;
+  if (normalizedKey.includes('erang') && drops.erangle) return drops.erangle;
+  if (normalizedKey.includes('miram') && drops.miramar) return drops.miramar;
+  if (normalizedKey.includes('rond') && drops.rondo) return drops.rondo;
+  if (normalizedKey.includes('sanh') && drops.sanhok) return drops.sanhok;
+  if (normalizedKey.includes('vikend') && drops.vikendi) return drops.vikendi;
+  // Also check direct user profile fields on team object
+  if (normalizedKey.includes('erang') && (team.erangelDrop || team.erangleDrop)) return team.erangelDrop || team.erangleDrop;
+  if (normalizedKey.includes('miram') && team.miramarDrop) return team.miramarDrop;
+  if (normalizedKey.includes('rond') && team.rondoDrop) return team.rondoDrop;
+  for (const [k, v] of Object.entries(drops)) {
+    if (k.toLowerCase().includes(normalizedKey) || normalizedKey.includes(k.toLowerCase())) {
+      if (v) return v;
+    }
+  }
+  return '';
+};
+
+const resolveMaps = (slot) => {
+  if (!slot) return ['ERANGEL', 'MIRAMAR', 'RONDO'];
+  if (slot.maps && Array.isArray(slot.maps) && slot.maps.length > 0) {
+    const flattened = slot.maps.flatMap((m) => {
+      if (!m) return [];
+      if (typeof m === 'string') {
+        return m.split(/[\s,+/]+/).filter(Boolean);
+      }
+      return [String(m)];
+    });
+    if (flattened.length > 0) {
+      const normalized = flattened.map(m => {
+        const u = m.toUpperCase().trim();
+        return u === 'ERANGLE' ? 'ERANGEL' : u;
+      });
+      return Array.from(new Set(normalized));
+    }
+  }
+  if (slot.mapName) {
+    const parts = slot.mapName.split(/[\s,+/]+/).filter(Boolean).map(m => {
+      const u = m.toUpperCase().trim();
+      return u === 'ERANGLE' ? 'ERANGEL' : u;
+    });
+    if (parts.length > 0) return Array.from(new Set(parts));
+  }
+  return ['ERANGEL', 'MIRAMAR', 'RONDO'];
+};
+
+const getTeamMonogram = (name, tag) => {
+  if (tag && tag.trim()) {
+    return tag.trim().substring(0, 4).toUpperCase();
+  }
+  if (!name) return 'TM';
+  const clean = name.trim();
+  const matchTeam = clean.match(/^team\s+(.+)$/i);
+  if (matchTeam) {
+    const after = matchTeam[1].trim();
+    if (after.length <= 4) return after.toUpperCase();
+    const parts = after.split(/\s+/);
+    if (parts.length > 1) return (parts[0][0] + parts[1][0]).toUpperCase();
+    return after.substring(0, 3).toUpperCase();
+  }
+  const words = clean.split(/\s+/).filter(Boolean);
+  if (words.length === 1) {
+    return words[0].substring(0, Math.min(3, words[0].length)).toUpperCase();
+  }
+  // Handles names like "RACIST 4" -> "R4"
+  if (words.length === 2 && (/^\d+$/.test(words[1]) || words[1].length <= 2)) {
+    return (words[0][0] + words[1]).toUpperCase();
+  }
+  return (words[0][0] + (words[1] ? words[1][0] : '')).toUpperCase();
+};
+
+const STICKER_PALETTES = [
+  { bg: 'linear-gradient(135deg, #b91c1c 0%, #7f1d1d 100%)', border: '#ef4444', text: '#fee2e2', glow: 'rgba(239, 68, 68, 0.45)' }, // Red like R4
+  { bg: 'linear-gradient(135deg, #0369a1 0%, #0c4a6e 100%)', border: '#38bdf8', text: '#e0f2fe', glow: 'rgba(56, 189, 248, 0.45)' }, // Cyan/blue like DF
+  { bg: 'linear-gradient(135deg, #6d28d9 0%, #4c1d95 100%)', border: '#c084fc', text: '#f3e8ff', glow: 'rgba(192, 132, 252, 0.45)' }, // Purple like Yodha
+  { bg: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)', border: '#818cf8', text: '#e0e7ff', glow: 'rgba(129, 140, 248, 0.45)' }, // Indigo like DNG
+  { bg: 'linear-gradient(135deg, #b45309 0%, #78350f 100%)', border: '#f59e0b', text: '#fef3c7', glow: 'rgba(245, 158, 11, 0.45)' }, // Gold
+  { bg: 'linear-gradient(135deg, #047857 0%, #064e3b 100%)', border: '#10b981', text: '#d1fae5', glow: 'rgba(16, 185, 129, 0.45)' }, // Emerald
+  { bg: 'linear-gradient(135deg, #be185d 0%, #831843 100%)', border: '#f43f5e', text: '#ffe4e6', glow: 'rgba(244, 63, 94, 0.45)' }, // Crimson
+  { bg: 'linear-gradient(135deg, #c2410c 0%, #7c2d12 100%)', border: '#ea580c', text: '#ffedd5', glow: 'rgba(234, 88, 12, 0.45)' }, // Orange
+];
+
+const renderTeamSticker = (team, idx, isMyTeam, size = 'normal') => {
+  const pal = STICKER_PALETTES[idx % STICKER_PALETTES.length];
+  const monogram = getTeamMonogram(team?.teamName, team?.teamTag);
+  const isSmall = size === 'small';
+
+  return (
+    <div
+      className={`ts-team-sticker ${isSmall ? 'small' : ''} ${isMyTeam ? 'my-team' : ''}`}
+      style={{
+        background: team?.teamLogo ? '#0d091a' : pal.bg,
+        borderColor: isMyTeam ? '#c084fc' : (team?.teamLogo ? 'rgba(168, 85, 247, 0.6)' : pal.border),
+        boxShadow: isMyTeam
+          ? '0 0 16px rgba(192, 132, 252, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.3)'
+          : `0 4px 12px ${pal.glow}, inset 0 1px 0 rgba(255, 255, 255, 0.25)`
+      }}
+      title={`${team?.teamName || 'Team'} (Slot #${idx + 1})`}
+    >
+      {team?.teamLogo ? (
+        <img
+          src={team.teamLogo}
+          alt={team.teamName || 'Team Logo'}
+          className="ts-team-sticker-img"
+          onError={(e) => {
+            e.currentTarget.style.display = 'none';
+            if (e.currentTarget.nextSibling) {
+              e.currentTarget.nextSibling.style.display = 'flex';
+            }
+          }}
+        />
+      ) : null}
+
+      <div
+        className="ts-team-sticker-fallback"
+        style={{
+          display: team?.teamLogo ? 'none' : 'flex',
+          color: pal.text,
+          fontWeight: 900,
+          fontSize: isSmall ? '0.62rem' : (monogram.length > 3 ? '0.68rem' : '0.8rem'),
+          letterSpacing: '0.4px',
+          textTransform: 'uppercase'
+        }}
+      >
+        {monogram}
+      </div>
+
+      <div className="ts-team-sticker-gloss" />
+    </div>
+  );
+};
+
+const getMapMeta = (mapName) => {
+  const norm = (mapName || '').toUpperCase();
+  if (norm.includes('ERANG')) {
+    return {
+      key: 'erangel',
+      displayName: 'Erangel',
+      icon: '🗺️',
+      color: '#10b981',
+      bgAlpha: 'rgba(16, 185, 129, 0.12)',
+      borderAlpha: 'rgba(16, 185, 129, 0.4)',
+    };
+  }
+  if (norm.includes('MIRAM')) {
+    return {
+      key: 'miramar',
+      displayName: 'Miramar',
+      icon: '🏜️',
+      color: '#f59e0b',
+      bgAlpha: 'rgba(245, 158, 11, 0.12)',
+      borderAlpha: 'rgba(245, 158, 11, 0.4)',
+    };
+  }
+  if (norm.includes('ROND')) {
+    return {
+      key: 'rondo',
+      displayName: 'Rondo',
+      icon: '🏙️',
+      color: '#06b6d4',
+      bgAlpha: 'rgba(6, 182, 212, 0.12)',
+      borderAlpha: 'rgba(6, 182, 212, 0.4)',
+    };
+  }
+  if (norm.includes('SANH')) {
+    return {
+      key: 'sanhok',
+      displayName: 'Sanhok',
+      icon: '🌴',
+      color: '#10b981',
+      bgAlpha: 'rgba(16, 185, 129, 0.12)',
+      borderAlpha: 'rgba(16, 185, 129, 0.4)',
+    };
+  }
+  if (norm.includes('VIKEND')) {
+    return {
+      key: 'vikendi',
+      displayName: 'Vikendi',
+      icon: '❄️',
+      color: '#0ea5e9',
+      bgAlpha: 'rgba(14, 165, 233, 0.12)',
+      borderAlpha: 'rgba(14, 165, 233, 0.4)',
+    };
+  }
+  const cleanName = (mapName || 'Map').charAt(0).toUpperCase() + (mapName || 'Map').slice(1).toLowerCase();
+  return {
+    key: (mapName || 'custom').toLowerCase(),
+    displayName: cleanName,
+    icon: '📍',
+    color: '#8b5cf6',
+    bgAlpha: 'rgba(139, 92, 246, 0.12)',
+    borderAlpha: 'rgba(139, 92, 246, 0.4)',
+  };
+};
 
 function TodaySlots() {
   const [slots, setSlots] = useState([]);
@@ -15,7 +336,18 @@ function TodaySlots() {
   const [myBookings, setMyBookings] = useState({});
   const [notification, setNotification] = useState(null); // { type: 'success' | 'error', message: string }
   const [credentialsModal, setCredentialsModal] = useState(null); // { slot, data: null, loading: false, error: null }
-  const [teamsModalSlot, setTeamsModalSlot] = useState(null); // slot object for registered teams list modal
+  const [teamsModalSlot, setTeamsModalSlot] = useState(null); // slot object for registered teams / drops modal
+  const [teamsModalTab, setTeamsModalTab] = useState('teams'); // 'teams' | 'drops'
+  const [selectedDropMap, setSelectedDropMap] = useState('ERANGEL');
+  const [dropViewMode, setDropViewMode] = useState('matrix'); // 'matrix' | 'columns'
+  const [copiedDropSheet, setCopiedDropSheet] = useState(false);
+  const [dropSearchQuery, setDropSearchQuery] = useState('');
+  const [userDropSelectVal, setUserDropSelectVal] = useState('');
+  const [userDropCustomVal, setUserDropCustomVal] = useState('');
+  const [userMultiDrops, setUserMultiDrops] = useState({});
+  const [userMultiDropsCustom, setUserMultiDropsCustom] = useState({});
+  const [isSavingDrop, setIsSavingDrop] = useState(false);
+  const [dropSaveSuccess, setDropSaveSuccess] = useState('');
   const [copiedField, setCopiedField] = useState(null);
   const [paymentModal, setPaymentModal] = useState(null);
   const [walletBalance, setWalletBalance] = useState(0);
@@ -47,6 +379,248 @@ function TodaySlots() {
       setLoading(false);
     }
   }, []);
+
+  // ── Modal & Drop Handlers ──
+  const openTeamsModal = (slot, tab = 'teams') => {
+    setTeamsModalSlot(slot);
+    setTeamsModalTab(tab);
+    const maps = resolveMaps(slot);
+    const initialMap = maps[0] || 'ERANGEL';
+    setSelectedDropMap(initialMap);
+    setDropSearchQuery('');
+    setDropSaveSuccess('');
+    setCopiedDropSheet(false);
+
+    // Pre-fill user drop state if logged-in user is booked
+    const currentUsr = getUserInfo();
+    const myTeam = (slot.bookedTeams || []).find(
+      t => (currentUsr?._id && String(t.userId) === String(currentUsr._id)) ||
+           (currentUsr?.teamName && t.teamName?.toLowerCase() === currentUsr.teamName?.toLowerCase())
+    );
+
+    const initialVals = {};
+    const initialCustom = {};
+    if (myTeam) {
+      maps.forEach(m => {
+        const k = m.toLowerCase().trim();
+        let existing = getTeamDrop(myTeam, m);
+        if (!existing && currentUsr) {
+          if (k.includes('erang')) existing = currentUsr.erangelDrop || '';
+          else if (k.includes('miram')) existing = currentUsr.miramarDrop || '';
+          else if (k.includes('rond')) existing = currentUsr.rondoDrop || '';
+        }
+        const presets = getMapDropOptions(m);
+        if (presets.includes(existing)) {
+          initialVals[k] = existing;
+          initialCustom[k] = '';
+        } else if (existing) {
+          initialVals[k] = 'Other';
+          initialCustom[k] = existing;
+        } else {
+          initialVals[k] = '';
+          initialCustom[k] = '';
+        }
+      });
+      const initialDrop = getTeamDrop(myTeam, initialMap);
+      const presetOptions = getMapDropOptions(initialMap);
+      if (presetOptions.includes(initialDrop)) {
+        setUserDropSelectVal(initialDrop);
+        setUserDropCustomVal('');
+      } else if (initialDrop) {
+        setUserDropSelectVal('Other');
+        setUserDropCustomVal(initialDrop);
+      } else {
+        setUserDropSelectVal('');
+        setUserDropCustomVal('');
+      }
+    } else {
+      maps.forEach(m => {
+        const k = m.toLowerCase().trim();
+        initialVals[k] = '';
+        initialCustom[k] = '';
+      });
+      setUserDropSelectVal('');
+      setUserDropCustomVal('');
+    }
+    setUserMultiDrops(initialVals);
+    setUserMultiDropsCustom(initialCustom);
+  };
+
+  const handleSelectDropMap = (mapName) => {
+    setSelectedDropMap(mapName);
+    setDropSaveSuccess('');
+    if (!teamsModalSlot) return;
+    const currentUsr = getUserInfo();
+    const myTeam = (teamsModalSlot.bookedTeams || []).find(
+      t => (currentUsr?._id && String(t.userId) === String(currentUsr._id)) ||
+           (currentUsr?.teamName && t.teamName?.toLowerCase() === currentUsr.teamName?.toLowerCase())
+    );
+    if (myTeam) {
+      const existingDrop = getTeamDrop(myTeam, mapName);
+      const presetOptions = getMapDropOptions(mapName);
+      if (presetOptions.includes(existingDrop)) {
+        setUserDropSelectVal(existingDrop);
+        setUserDropCustomVal('');
+      } else if (existingDrop) {
+        setUserDropSelectVal('Other');
+        setUserDropCustomVal(existingDrop);
+      } else {
+        setUserDropSelectVal('');
+        setUserDropCustomVal('');
+      }
+    }
+  };
+
+  const handleSaveAllDrops = async () => {
+    const currentUsr = getUserInfo();
+    if (!currentUsr || !currentUsr.token) {
+      navigate('/user/login', {
+        state: { from: '/slots', message: 'Please login to set your drop locations.' }
+      });
+      return;
+    }
+    if (!teamsModalSlot) return;
+
+    const maps = resolveMaps(teamsModalSlot);
+    const payload = {};
+    maps.forEach(m => {
+      const k = m.toLowerCase().trim();
+      const sel = userMultiDrops[k];
+      const cust = userMultiDropsCustom[k];
+      const val = sel === 'Other' ? (cust || '').trim() : (sel || '').trim();
+      if (val) {
+        payload[k] = val;
+      }
+    });
+
+    if (Object.keys(payload).length === 0) {
+      setNotification({ type: 'error', message: 'Please select at least one drop location.' });
+      return;
+    }
+
+    setIsSavingDrop(true);
+    try {
+      await axios.put(
+        `${API_URL}/api/slots/${teamsModalSlot._id}/my-drop`,
+        { dropLocations: payload },
+        { headers: { Authorization: `Bearer ${currentUsr.token}` } }
+      );
+
+      // Update in-memory teamsModalSlot bookedTeams
+      setTeamsModalSlot(prev => {
+        if (!prev) return prev;
+        const updated = (prev.bookedTeams || []).map(t => {
+          const isMe = (currentUsr._id && String(t.userId) === String(currentUsr._id)) ||
+                       (currentUsr.teamName && t.teamName?.toLowerCase() === currentUsr.teamName?.toLowerCase());
+          if (isMe) {
+            return {
+              ...t,
+              dropLocations: {
+                ...(t.dropLocations || {}),
+                ...payload,
+              }
+            };
+          }
+          return t;
+        });
+        return { ...prev, bookedTeams: updated };
+      });
+
+      setDropSaveSuccess('Drop locations updated successfully!');
+      setTimeout(() => setDropSaveSuccess(''), 3500);
+      fetchSlots();
+    } catch (err) {
+      setNotification({
+        type: 'error',
+        message: err.response?.data?.message || 'Failed to update drop locations',
+      });
+    } finally {
+      setIsSavingDrop(false);
+    }
+  };
+
+  const handleCopyDropSheet = () => {
+    if (!teamsModalSlot) return;
+    const maps = resolveMaps(teamsModalSlot);
+    let text = `🔥 *${teamsModalSlot.matchName || 'RISING ESPORTS SCRIMS'}* - DROP LIST\n`;
+    text += `⏰ ${teamsModalSlot.timing || (teamsModalSlot.date && String(teamsModalSlot.date).length > 2 ? teamsModalSlot.date : 'Today')} • ${teamsModalSlot.lobby || 'LOBBY 1'}\n`;
+    text += `━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+    text += `SLOT | TEAM | ${maps.join(' | ')}\n`;
+    text += `━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+    (teamsModalSlot.bookedTeams || []).forEach((t, i) => {
+      const drops = maps.map(m => getTeamDrop(t, m) || 'TBD').join(' | ');
+      const tag = t.teamTag ? ` [${t.teamTag}]` : '';
+      text += `#${String(i + 1).padStart(2, '0')} | ${t.teamName}${tag} | ${drops}\n`;
+    });
+    text += `━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+    text += `👑 Powered by Rising Esports`;
+
+    try {
+      navigator.clipboard.writeText(text);
+      setCopiedDropSheet(true);
+      setTimeout(() => setCopiedDropSheet(false), 2500);
+    } catch {
+      setNotification({ type: 'error', message: 'Unable to copy to clipboard' });
+    }
+  };
+
+  const handleSaveMyDrop = async () => {
+    const currentUsr = getUserInfo();
+    if (!currentUsr || !currentUsr.token) {
+      navigate('/user/login', {
+        state: { from: '/slots', message: 'Please login to set your drop location.' }
+      });
+      return;
+    }
+    const finalLocation = userDropSelectVal === 'Other' ? userDropCustomVal.trim() : userDropSelectVal.trim();
+    if (!finalLocation) {
+      setNotification({ type: 'error', message: 'Please select or enter your drop location.' });
+      return;
+    }
+
+    setIsSavingDrop(true);
+    try {
+      await axios.put(
+        `${API_URL}/api/slots/${teamsModalSlot._id}/my-drop`,
+        {
+          mapName: selectedDropMap,
+          dropLocation: finalLocation,
+        },
+        { headers: { Authorization: `Bearer ${currentUsr.token}` } }
+      );
+
+      // Update in-memory teamsModalSlot bookedTeams
+      setTeamsModalSlot(prev => {
+        if (!prev) return prev;
+        const mapKey = selectedDropMap.toLowerCase().trim();
+        const updated = (prev.bookedTeams || []).map(t => {
+          const isMe = (currentUsr._id && String(t.userId) === String(currentUsr._id)) ||
+                       (currentUsr.teamName && t.teamName?.toLowerCase() === currentUsr.teamName?.toLowerCase());
+          if (isMe) {
+            return {
+              ...t,
+              dropLocations: {
+                ...(t.dropLocations || {}),
+                [mapKey]: finalLocation,
+              }
+            };
+          }
+          return t;
+        });
+        return { ...prev, bookedTeams: updated };
+      });
+
+      setDropSaveSuccess(`Saved "${finalLocation}" for ${selectedDropMap}!`);
+      fetchSlots();
+    } catch (err) {
+      setNotification({
+        type: 'error',
+        message: err.response?.data?.message || 'Failed to update drop location',
+      });
+    } finally {
+      setIsSavingDrop(false);
+    }
+  };
 
   // ── Fetch current user bookings ──
   const fetchMyBookings = useCallback(async () => {
@@ -322,21 +896,6 @@ function TodaySlots() {
       { matchNumber: 2, label: 'MATCH 2', time: '2:22 PM' },
       { matchNumber: 3, label: 'MATCH 3', time: '3:02 PM' },
     ];
-  };
-
-  // Helper to resolve Maps
-  const resolveMaps = (slot) => {
-    if (slot.maps && Array.isArray(slot.maps) && slot.maps.length > 0) {
-      const flattened = slot.maps.flatMap((m) => {
-        if (!m) return [];
-        if (typeof m === 'string') {
-          return m.split(/[\s,+/]+/).filter(Boolean);
-        }
-        return [String(m)];
-      });
-      if (flattened.length > 0) return flattened;
-    }
-    return ['ERANGEL', 'RONDO', 'MIRAMAR'];
   };
 
   // Avatar color helper
@@ -645,6 +1204,9 @@ function TodaySlots() {
           const isPending = userBooking?.paymentStatus === 'pending' || userBooking?.paymentStatus === 'pending_verification';
           const isSoldOut = Boolean(slot.isSoldOut || remainingSlots <= 0);
 
+          const waRawLink = (userBooking?.whatsappLink || userBooking?.slotLink || '').trim();
+          const normalizedWaLink = waRawLink ? (waRawLink.startsWith('http://') || waRawLink.startsWith('https://') ? waRawLink : `https://${waRawLink}`) : '';
+
           const prizes = resolvePrizes(slot);
           const schedule = resolveSchedule(slot);
           const maps = resolveMaps(slot);
@@ -716,42 +1278,68 @@ function TodaySlots() {
                 </div>
               </div>
 
-              {/* ── Box 3: Teams Row (Clickable) ── */}
-              <div
-                className="ts-teams-row"
-                onClick={() => setTeamsModalSlot(slot)}
-                title="Click to view registered teams"
-              >
-                <div className="ts-teams-left">
-                  <div className="ts-avatars-cluster">
-                    {bookedTeams.slice(0, 2).map((team, idx) => {
-                      const initial = (team.teamName || 'T').charAt(0).toUpperCase();
-                      const colorClass = avatarColors[idx % avatarColors.length];
-                      return (
-                        <div key={idx} className={`ts-avatar-dot ${colorClass}`}>
-                          {initial}
+              {/* ── Box 3: Dual Action Options (Teams & Drop List) ── */}
+              <div className="ts-card-dual-options">
+                <button
+                  type="button"
+                  className="ts-dual-opt-btn teams-btn"
+                  onClick={() => openTeamsModal(slot, 'teams')}
+                  title="View registered teams"
+                >
+                  <div className="ts-dual-opt-content">
+                    <div className="ts-avatars-cluster">
+                      {bookedTeams.slice(0, 2).map((team, idx) => {
+                        const initial = (team.teamName || 'T').charAt(0).toUpperCase();
+                        const colorClass = avatarColors[idx % avatarColors.length];
+                        return (
+                          <div key={idx} className={`ts-avatar-dot ${colorClass}`}>
+                            {initial}
+                          </div>
+                        );
+                      })}
+                      {bookedTeams.length > 2 && (
+                        <div className="ts-avatar-dot more">
+                          +{bookedTeams.length - 2}
                         </div>
-                      );
-                    })}
-                    {bookedTeams.length > 2 && (
-                      <div className="ts-avatar-dot more">
-                        +{bookedTeams.length - 2}
-                      </div>
-                    )}
-                    {bookedTeams.length === 0 && (
-                      <div className="ts-avatar-dot purple">
-                        0
-                      </div>
-                    )}
+                      )}
+                      {bookedTeams.length === 0 && (
+                        <div className="ts-avatar-dot purple">
+                          0
+                        </div>
+                      )}
+                    </div>
+                    <div className="ts-dual-opt-text">
+                      <span className="ts-dual-opt-title">Teams</span>
+                      <span className="ts-dual-opt-count">({bookedSlots}/{totalSlots})</span>
+                    </div>
                   </div>
-                  <span className="ts-teams-text">
-                    Teams ({bookedSlots}/{totalSlots})
-                  </span>
-                </div>
+                  <svg className="ts-dual-opt-arrow" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
+                </button>
 
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="9 18 15 12 9 6"/>
-                </svg>
+                <button
+                  type="button"
+                  className="ts-dual-opt-btn drops-btn"
+                  onClick={() => openTeamsModal(slot, 'drops')}
+                  title="View map-wise drop locations"
+                >
+                  <div className="ts-dual-opt-content">
+                    <div className="ts-drop-icon-badge">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#c084fc" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+                        <circle cx="12" cy="10" r="3"/>
+                      </svg>
+                    </div>
+                    <div className="ts-dual-opt-text">
+                      <span className="ts-dual-opt-title">Drop List</span>
+                      <span className="ts-dual-opt-sub">Map-Wise</span>
+                    </div>
+                  </div>
+                  <svg className="ts-dual-opt-arrow" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
+                </button>
               </div>
 
               {/* ── Map Rotation ── */}
@@ -769,21 +1357,69 @@ function TodaySlots() {
                 </div>
               </div>
 
-              {/* ── Card Footer: Entry Fee & Book Action ── */}
-              <div className="ts-card-bottom">
-                <div className="ts-fee-col">
-                  <span className="ts-fee-label">SLOT ENTRY FEE</span>
-                  <span className="ts-fee-value">
-                    {Number(slot.entryFee ?? slot.price ?? 0) === 0 ? 'FREE' : `₹${slot.entryFee ?? slot.price ?? 0}`}
-                  </span>
-                </div>
+              {/* ── Booked Slot: WhatsApp Group Link Card ── */}
+              {isPaid && (
+                <div className="ts-booked-whatsapp-card">
+                  <div className="ts-booked-wa-header">
+                    <div className="ts-booked-wa-badge">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/>
+                      </svg>
+                      <span>OFFICIAL MATCH WHATSAPP GROUP</span>
+                    </div>
+                    <span className="ts-booked-wa-tag">CONFIRMED SLOT</span>
+                  </div>
 
-                {isPaid ? (
+                  {normalizedWaLink ? (
+                    <div className="ts-booked-wa-body">
+                      <div className="ts-booked-wa-link-row">
+                        <span className="ts-booked-wa-url" title={waRawLink}>{waRawLink}</span>
+                        <button
+                          type="button"
+                          className="ts-booked-wa-copy-btn"
+                          onClick={() => copyToClipboard(waRawLink, `card_link_${slot._id}`)}
+                          title="Copy WhatsApp Group Link"
+                        >
+                          {copiedField === `card_link_${slot._id}` ? 'COPIED!' : 'COPY LINK'}
+                        </button>
+                      </div>
+                      <a
+                        href={normalizedWaLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="ts-booked-wa-join-btn"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/>
+                      </svg>
+                      <span>JOIN OFFICIAL WHATSAPP GROUP ↗</span>
+                    </a>
+                  </div>
+                ) : (
+                  <div className="ts-booked-wa-pending">
+                    <span className="ts-booked-wa-dot" />
+                    <span>WhatsApp group link will be updated here by admin before the match starts.</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── Card Footer: Entry Fee & Book Action ── */}
+            <div className="ts-card-bottom">
+              <div className="ts-fee-col">
+                <span className="ts-fee-label">SLOT ENTRY FEE</span>
+                <span className="ts-fee-value">
+                  {Number(slot.entryFee ?? slot.price ?? 0) === 0 ? 'FREE' : `₹${slot.entryFee ?? slot.price ?? 0}`}
+                </span>
+              </div>
+
+              {isPaid ? (
+                <div className="ts-paid-actions-wrap">
                   <button
                     type="button"
                     onClick={() => handleOpenCredentials(slot)}
                     className="ts-book-action-btn booked"
-                    title="View room credentials"
+                    title="View room credentials & slot match link"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                       <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
@@ -791,6 +1427,21 @@ function TodaySlots() {
                     </svg>
                     ROOM CREDENTIALS 🔑
                   </button>
+                  {normalizedWaLink && (
+                    <a
+                      href={normalizedWaLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ts-slot-whatsapp-btn"
+                      title="Join Official Match WhatsApp Group"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/>
+                      </svg>
+                      JOIN WHATSAPP ↗
+                    </a>
+                  )}
+                </div>
                 ) : isPending ? (
                   <button
                     type="button"
@@ -808,17 +1459,28 @@ function TodaySlots() {
                     VERIFICATION PENDING ⏳
                   </button>
                 ) : isSoldOut ? (
-                  <button
-                    type="button"
-                    disabled
-                    className="ts-book-action-btn sold-out"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="10"/>
-                      <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
-                    </svg>
-                    SOLD OUT
-                  </button>
+                  <div className="ts-soldout-actions-row">
+                    <button
+                      type="button"
+                      disabled
+                      className="ts-book-action-btn sold-out"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+                      </svg>
+                      SOLD OUT
+                    </button>
+                    <button
+                      type="button"
+                      className="ts-book-action-btn view-droplist-soldout"
+                      onClick={() => openTeamsModal(slot, 'drops')}
+                      title="View Drop List for this full slot"
+                    >
+                      <MapPin size={15} />
+                      DROP LIST
+                    </button>
+                  </div>
                 ) : (
                   <button
                     type="button"
@@ -837,103 +1499,16 @@ function TodaySlots() {
         })
       )}
 
-      {/* ── Registered Teams Modal ── */}
+      {/* ── Registered Teams & Drop List Modal (Matches Target Design Exactly) ── */}
       {teamsModalSlot && createPortal(
-        <div className="ts-modal-overlay" onClick={() => setTeamsModalSlot(null)}>
-          <div className="ts-modal-card" onClick={(e) => e.stopPropagation()}>
-            <div className="ts-modal-header">
-              <div>
-                <h3 className="ts-modal-title">REGISTERED TEAMS</h3>
-                <p style={{ fontSize: '0.8rem', color: '#a78bfa', margin: '0.2rem 0 0' }}>
-                  {teamsModalSlot.matchName} • {teamsModalSlot.lobby || 'LOBBY 1'}
-                </p>
-              </div>
-              <button className="ts-modal-close-btn" onClick={() => setTeamsModalSlot(null)}>×</button>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.5rem' }}>
-              {teamsModalSlot.bookedTeams && teamsModalSlot.bookedTeams.length > 0 ? (
-                teamsModalSlot.bookedTeams.map((team, idx) => (
-                  <div
-                    key={idx}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '0.75rem 1rem',
-                      background: 'rgba(22, 17, 46, 0.75)',
-                      border: '1px solid rgba(139, 92, 246, 0.25)',
-                      borderRadius: '10px'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <span style={{
-                        width: '28px',
-                        height: '28px',
-                        borderRadius: '50%',
-                        background: 'rgba(121, 40, 202, 0.3)',
-                        border: '1px solid #7928ca',
-                        color: '#c084fc',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '0.8rem',
-                        fontWeight: 800
-                      }}>
-                        {idx + 1}
-                      </span>
-                      <div>
-                        <div style={{ fontWeight: 800, color: '#fff', fontSize: '0.92rem' }}>
-                          {team.teamName}
-                        </div>
-                        {team.teamTag && (
-                          <span style={{ fontSize: '0.75rem', color: '#94a3b8', letterSpacing: '0.5px' }}>
-                            [{team.teamTag}]
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    <span style={{
-                      padding: '0.25rem 0.65rem',
-                      borderRadius: '6px',
-                      fontSize: '0.72rem',
-                      fontWeight: 800,
-                      letterSpacing: '1px',
-                      textTransform: 'uppercase',
-                      background: team.paymentStatus === 'paid' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)',
-                      color: team.paymentStatus === 'paid' ? '#10b981' : '#f59e0b',
-                      border: team.paymentStatus === 'paid' ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(245, 158, 11, 0.4)'
-                    }}>
-                      {team.paymentStatus === 'paid' ? 'CONFIRMED' : 'PENDING'}
-                    </span>
-                  </div>
-                ))
-              ) : (
-                <div style={{ textAlign: 'center', padding: '2rem 1rem', color: '#94a3b8' }}>
-                  <p style={{ margin: 0, fontWeight: 700 }}>No teams registered yet.</p>
-                  <p style={{ margin: '0.25rem 0 0', fontSize: '0.8rem', color: '#64748b' }}>Be the first team to book this slot!</p>
-                </div>
-              )}
-            </div>
-
-            <div style={{ marginTop: '1.25rem', textAlign: 'right' }}>
-              <button
-                type="button"
-                onClick={() => setTeamsModalSlot(null)}
-                style={{
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  color: '#fff',
-                  padding: '0.55rem 1.25rem',
-                  borderRadius: '8px',
-                  fontWeight: 700,
-                  cursor: 'pointer'
-                }}
-              >
-                CLOSE
-              </button>
-            </div>
+        <div className="ts-modal-overlay ts-droplist-modal-overlay" onClick={() => setTeamsModalSlot(null)}>
+          <div className="ts-droplist-modal-content-wrap" onClick={(e) => e.stopPropagation()}>
+            <DropListView
+              slot={teamsModalSlot}
+              onClose={() => setTeamsModalSlot(null)}
+              isStandalonePage={false}
+              initialTab={teamsModalTab || 'drops'}
+            />
           </div>
         </div>,
         document.body
@@ -942,6 +1517,11 @@ function TodaySlots() {
       {/* ── Room Credentials Modal ── */}
       {credentialsModal && (() => {
         const resolved = getResolvedCredentials(credentialsModal.data);
+        const rawSlotLink = (credentialsModal.data?.customLink || credentialsModal.data?.slotLink || credentialsModal.data?.whatsappLink || '').trim();
+        const normalizedSlotLink = rawSlotLink ? (rawSlotLink.startsWith('http://') || rawSlotLink.startsWith('https://') ? rawSlotLink : `https://${rawSlotLink}`) : '';
+        const isWhatsApp = /whatsapp\.com|wa\.me/i.test(rawSlotLink);
+        const isDiscord = /discord\.(gg|com)/i.test(rawSlotLink);
+
         return createPortal(
           <div className="credentials-modal-overlay" onClick={() => setCredentialsModal(null)}>
             <div className="credentials-modal-content" onClick={(e) => e.stopPropagation()}>
@@ -1014,17 +1594,62 @@ function TodaySlots() {
                       </div>
                     )}
 
-                    {credentialsModal.data?.whatsappLink && (
-                      <div className="credentials-whatsapp-section">
-                        <a
-                          href={credentialsModal.data.whatsappLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="credentials-whatsapp-btn"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                          JOIN OFFICIAL MATCH WHATSAPP GROUP
-                        </a>
+                    {/* ── Slot Match Link (Uploaded by Admin) ── */}
+                    {normalizedSlotLink ? (
+                      <div className="credentials-match-link-card">
+                        <div className="credentials-link-card-header">
+                          <div className="credentials-link-card-badge">
+                            <span className="credentials-link-indicator" />
+                            {isWhatsApp ? 'OFFICIAL WHATSAPP GROUP' : isDiscord ? 'OFFICIAL DISCORD CHANNEL' : 'OFFICIAL MATCH LINK'}
+                          </div>
+                          <span className="credentials-link-note">Uploaded by Admin for this slot</span>
+                        </div>
+
+                        <div className="credentials-link-card-content">
+                          <div className="credentials-link-url-wrapper">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                            </svg>
+                            <span className="credentials-link-url-text" title={rawSlotLink}>{rawSlotLink}</span>
+                            <button
+                              type="button"
+                              className="copy-field-btn credentials-link-copy"
+                              onClick={() => copyToClipboard(rawSlotLink, 'slotLink')}
+                            >
+                              {copiedField === 'slotLink' ? 'COPIED!' : 'COPY'}
+                            </button>
+                          </div>
+
+                          <a
+                            href={normalizedSlotLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`credentials-join-link-btn ${isWhatsApp ? 'whatsapp-theme' : isDiscord ? 'discord-theme' : 'custom-theme'}`}
+                          >
+                            {isWhatsApp ? (
+                              <>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                                JOIN OFFICIAL WHATSAPP GROUP ↗
+                              </>
+                            ) : isDiscord ? (
+                              <>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6h0a5 5 0 0 1 4 4.5v3.5a5 5 0 0 1-4 4.5h0M6 6h0A5 5 0 0 0 2 10.5v3.5A5 5 0 0 0 6 18.5h0"/><path d="M9 12h.01M15 12h.01"/><path d="M8 17a6 6 0 0 0 8 0"/></svg>
+                                JOIN OFFICIAL DISCORD ↗
+                              </>
+                            ) : (
+                              <>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                                OPEN MATCH LINK ↗
+                              </>
+                            )}
+                          </a>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="credentials-no-link-box">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                        <span>No match link has been uploaded by the admin for this slot yet. Please check back before match start or use Room ID & Password above.</span>
                       </div>
                     )}
                   </div>

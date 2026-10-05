@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import {
   Plus,
@@ -83,6 +83,23 @@ const AdminDashboard = () => {
   const [editorSaving, setEditorSaving] = useState({});
   const [editorSaved, setEditorSaved] = useState({});
 
+  // ── Official Community WhatsApp Group state ──
+  const [showOfficialWaModal, setShowOfficialWaModal] = useState(false);
+  const [officialWaLink, setOfficialWaLink] = useState('https://chat.whatsapp.com/FLX8eM2APOFCyiK8ReWER6?mode=gi_t');
+  const [savingOfficialWa, setSavingOfficialWa] = useState(false);
+  const [officialWaSavedMsg, setOfficialWaSavedMsg] = useState(null);
+
+  const tabsRef = useRef(null);
+
+  useEffect(() => {
+    if (tabsRef.current) {
+      const activeEl = tabsRef.current.querySelector('.tab-btn.active');
+      if (activeEl) {
+        activeEl.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      }
+    }
+  }, [activeTab]);
+
   const adminInfo = JSON.parse(localStorage.getItem('adminInfo'));
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
   const config = {
@@ -119,6 +136,10 @@ const AdminDashboard = () => {
       setDeposits(depRes.data || []);
       setAllTransactions(allTxnRes.data?.transactions || allTxnRes.data || []);
       setAllUsers(usersRes.data || []);
+
+      axios.get(`${apiUrl}/api/config/official-whatsapp`)
+        .then(r => { if (r.data?.url) setOfficialWaLink(r.data.url); })
+        .catch(() => {});
     } catch (err) {
       console.error('Error fetching data', err);
     } finally {
@@ -167,7 +188,8 @@ const AdminDashboard = () => {
           roomId: s.roomId || '',
           roomPassword: s.roomPassword || '',
           note: s.note || '',
-          whatsappLink: s.whatsappLink || '',
+          whatsappLink: s.whatsappLink || s.customLink || '',
+          customLink: s.customLink || s.whatsappLink || '',
         };
       });
       setEditorData(map);
@@ -226,7 +248,8 @@ const AdminDashboard = () => {
           roomId: item.roomId || '',
           roomPassword: item.roomPassword || '',
           note: item.note || '',
-          whatsappLink: item.whatsappLink || '',
+          whatsappLink: item.whatsappLink || item.customLink || '',
+          customLink: item.customLink || item.whatsappLink || '',
         });
       } else if (activeTab === 'announcements') {
         setFormData({
@@ -529,6 +552,8 @@ const AdminDashboard = () => {
             : formData.maps || ['ERANGEL', 'RONDO', 'MIRAMAR'],
           scheduleMatches: formData.scheduleMatches || [],
           prizeDistribution: formData.prizeDistribution || [],
+          customLink: formData.customLink || formData.whatsappLink || '',
+          whatsappLink: formData.whatsappLink || formData.customLink || '',
         };
       } else if (activeTab === 'tournaments') {
         payload = { ...formData, prizePool: Number(formData.prizePool || 0), entryFee: Number(formData.entryFee || 0) };
@@ -827,6 +852,8 @@ const AdminDashboard = () => {
           : data.maps,
         scheduleMatches: data.scheduleMatches || [],
         prizeDistribution: data.prizeDistribution || [],
+        customLink: data.customLink || data.whatsappLink || '',
+        whatsappLink: data.whatsappLink || data.customLink || '',
       };
 
       await axios.put(`${apiUrl}/api/slots/${slotId}`, payload, config);
@@ -843,17 +870,109 @@ const AdminDashboard = () => {
     }
   };
 
+  // ── Save Official Community WhatsApp Group Link ──
+  const handleSaveOfficialWa = async (e) => {
+    if (e) e.preventDefault();
+    if (!officialWaLink || !officialWaLink.trim()) {
+      alert('Please enter a valid WhatsApp Group link');
+      return;
+    }
+    setSavingOfficialWa(true);
+    setOfficialWaSavedMsg(null);
+    try {
+      await axios.put(
+        `${apiUrl}/api/config/official-whatsapp`,
+        { url: officialWaLink.trim() },
+        config
+      );
+      setOfficialWaSavedMsg('✅ Official WhatsApp Group link updated successfully!');
+      setTimeout(() => {
+        setOfficialWaSavedMsg(null);
+        setShowOfficialWaModal(false);
+      }, 1600);
+    } catch (err) {
+      alert('Failed to update link: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setSavingOfficialWa(false);
+    }
+  };
+
   // ──────────────────────────── RENDER ────────────────────────────
   return (
     <div className="admin-dashboard fade-in">
       <div className="admin-nav">
         <h1>Admin <span>Panel</span></h1>
-        <button onClick={handleLogout} className="tab-btn" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'transparent' }}>
-          <LogOut size={18} /> Logout
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={() => setShowOfficialWaModal(true)}
+            className="tab-btn admin-official-wa-btn"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.45rem',
+              background: 'rgba(37, 211, 102, 0.14)',
+              border: '1px solid rgba(37, 211, 102, 0.45)',
+              color: '#4ade80',
+              fontWeight: 700,
+              padding: '0.45rem 0.9rem',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '0.82rem'
+            }}
+            title="Edit Official Community WhatsApp Group Link"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/>
+            </svg>
+            <span>Official WhatsApp Link</span>
+          </button>
+          <button onClick={handleLogout} className="tab-btn" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'transparent' }}>
+            <LogOut size={18} /> Logout
+          </button>
+        </div>
       </div>
 
-      <div className="admin-tabs">
+      {/* ── Mobile Quick Section Selector ── */}
+      <div className="admin-mobile-tab-select-wrap">
+        <label htmlFor="admin-mobile-tab-select" className="admin-mobile-tab-label">
+          Quick Section Jump:
+        </label>
+        <div className="admin-mobile-select-wrapper">
+          <select
+            id="admin-mobile-tab-select"
+            value={activeTab === 'withdrawals' || activeTab === 'transactions' ? 'wallet' : activeTab}
+            onChange={(e) => {
+              const val = e.target.value;
+              if (val === 'official_wa') {
+                setShowOfficialWaModal(true);
+                return;
+              }
+              setActiveTab(val);
+              if (val === 'wallet') setWalletSubTab('deposits');
+            }}
+            className="admin-mobile-tab-select"
+          >
+            <option value="todayslots">📅 Today Slots ({slots.filter(s => s.date && String(s.date).includes(new Date().toISOString().split('T')[0])).length})</option>
+            <option value="official_wa">💬 Official WhatsApp Group Link</option>
+            <option value="announcements">📢 Announcements ({announcements.length})</option>
+            <option value="matches">⚔️ Matches ({matches.length})</option>
+            <option value="results">🎖️ Results ({matchResults.length})</option>
+            <option value="rankings">🏆 Rankings ({rankings.length})</option>
+            <option value="wallet">
+              💳 Wallet &amp; Txns {(deposits.filter(d => d.status === 'pending' || d.status === 'pending_verification').length + withdrawals.filter(w => w.status === 'pending').length) > 0 ? `(${deposits.filter(d => d.status === 'pending' || d.status === 'pending_verification').length + withdrawals.filter(w => w.status === 'pending').length} pending)` : ''}
+            </option>
+            <option value="payments">
+              ✅ Slot Payments {bookings.filter(b => b.paymentStatus === 'pending_verification').length > 0 ? `(${bookings.filter(b => b.paymentStatus === 'pending_verification').length} pending)` : ''}
+            </option>
+            <option value="bookings">🛡️ Bookings ({bookings.length})</option>
+            <option value="tournaments">🏆 Tournaments ({tournaments.length})</option>
+          </select>
+          <ChevronDown size={16} className="admin-mobile-select-icon" />
+        </div>
+      </div>
+
+      <div className="admin-tabs" ref={tabsRef}>
         <button
           className={`tab-btn ${activeTab === 'todayslots' ? 'active' : ''}`}
           onClick={() => setActiveTab('todayslots')}
@@ -944,7 +1063,7 @@ const AdminDashboard = () => {
           </h2>
 
           {activeTab === 'payments' ? (
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <div className="admin-header-actions" style={{ display: 'flex', gap: '0.5rem' }}>
               <button
                 className={`tab-btn ${paymentFilter === 'pending' ? 'active' : ''}`}
                 onClick={() => setPaymentFilter('pending')}
@@ -961,7 +1080,7 @@ const AdminDashboard = () => {
               </button>
             </div>
           ) : activeTab === 'bookings' ? (
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <div className="admin-header-actions" style={{ display: 'flex', gap: '0.5rem' }}>
               <button
                 className={`tab-btn ${bookingView === 'grouped' ? 'active' : ''}`}
                 onClick={() => setBookingView('grouped')}
@@ -978,7 +1097,7 @@ const AdminDashboard = () => {
               </button>
             </div>
           ) : activeTab === 'rankings' ? (
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <div className="admin-header-actions" style={{ display: 'flex', gap: '0.5rem' }}>
               <button
                 className="action-btn"
                 onClick={handleSyncRankings}
@@ -994,20 +1113,26 @@ const AdminDashboard = () => {
               </button>
             </div>
           ) : activeTab === 'results' ? (
-            <button className="action-btn" onClick={() => handleOpenResultsModal()}>
-              <Plus size={18} /> Enter Match Results
-            </button>
+            <div className="admin-header-actions">
+              <button className="action-btn" onClick={() => handleOpenResultsModal()}>
+                <Plus size={18} /> Enter Match Results
+              </button>
+            </div>
           ) : activeTab === 'announcements' ? (
-            <button className="action-btn" onClick={() => handleOpenModal()}>
-              <Plus size={18} /> New Announcement
-            </button>
+            <div className="admin-header-actions">
+              <button className="action-btn" onClick={() => handleOpenModal()}>
+                <Plus size={18} /> New Announcement
+              </button>
+            </div>
           ) : activeTab === 'matches' ? (
-            <button className="action-btn" onClick={() => handleOpenModal()}>
-              <Plus size={18} /> Add Match
-            </button>
+            <div className="admin-header-actions">
+              <button className="action-btn" onClick={() => handleOpenModal()}>
+                <Plus size={18} /> Add Match
+              </button>
+            </div>
           ) : (activeTab === 'wallet' || activeTab === 'withdrawals' || activeTab === 'transactions') ? null
           : activeTab === 'todayslots' ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <div className="admin-header-actions today-slots-toolbar" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Date:</label>
                 <input
@@ -1033,7 +1158,7 @@ const AdminDashboard = () => {
               </button>
             </div>
           ) : activeTab === 'slots' ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <div className="admin-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
               <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <Calendar size={14} />
                 Configure category, lobby, schedule matches, prize pool &amp; credentials
@@ -1043,7 +1168,7 @@ const AdminDashboard = () => {
               </button>
             </div>
           ) : activeTab === 'tournaments' ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <div className="admin-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
               <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <ImageIcon size={14} /> Upload posters and publish event details
               </div>
@@ -1052,9 +1177,11 @@ const AdminDashboard = () => {
               </button>
             </div>
           ) : (
-            <button className="action-btn" onClick={() => handleOpenModal()}>
-              <Plus size={18} /> Add New
-            </button>
+            <div className="admin-header-actions">
+              <button className="action-btn" onClick={() => handleOpenModal()}>
+                <Plus size={18} /> Add New
+              </button>
+            </div>
           )}
         </div>
 
@@ -1245,7 +1372,7 @@ const AdminDashboard = () => {
             {(activeTab === 'transactions' || activeTab === 'wallet' || activeTab === 'withdrawals') && (
               <div>
                 {/* Sub-Navigation Buttons */}
-                <div style={{ display: 'flex', gap: '0.6rem', marginBottom: '1.5rem', flexWrap: 'wrap', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.8rem' }}>
+                <div className="wallet-subtabs-bar" style={{ display: 'flex', gap: '0.6rem', marginBottom: '1.5rem', flexWrap: 'wrap', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.8rem' }}>
                   <button
                     className={`tab-btn ${walletSubTab === 'deposits' ? 'active' : ''}`}
                     onClick={() => setWalletSubTab('deposits')}
@@ -1297,7 +1424,7 @@ const AdminDashboard = () => {
                 {walletSubTab === 'deposits' && (
                   <div>
                     {/* Filters bar */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <div className="wallet-filter-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
                         <button
                           className={`tab-btn ${depositFilter === 'pending' ? 'active' : ''}`}
@@ -1458,7 +1585,7 @@ const AdminDashboard = () => {
                 {walletSubTab === 'withdrawals' && (
                   <div>
                     {/* Filters bar */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <div className="wallet-filter-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
                         <button
                           className={`tab-btn ${withdrawalFilter === 'pending' ? 'active' : ''}`}
@@ -1599,7 +1726,7 @@ const AdminDashboard = () => {
                 {walletSubTab === 'all' && (
                   <div>
                     {/* Filters & Search */}
-                    <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <div className="wallet-search-filter-bar" style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
                       <div style={{ flex: 1, minWidth: '220px', position: 'relative' }}>
                         <input
                           type="text"
@@ -1784,7 +1911,7 @@ const AdminDashboard = () => {
                         </select>
                       </div>
 
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                      <div className="form-grid adjust-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                         <div className="form-group">
                           <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.82rem', fontWeight: 'bold' }}>
                             Action Type *
@@ -2408,13 +2535,13 @@ const AdminDashboard = () => {
               <div>
                 {/* Inline Slot Create / Edit Modal */}
                 {showSlotModal && (
-                  <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', overflowY: 'auto', padding: '2rem 1rem' }}>
-                    <div style={{ width: '100%', maxWidth: '640px', background: 'linear-gradient(160deg,#13131f,#0e0e1a)', border: '1px solid rgba(139,92,246,0.3)', borderRadius: '20px', padding: '1.75rem', margin: 'auto' }}>
+                  <div className="slot-inline-modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', overflowY: 'auto', padding: '2rem 1rem' }}>
+                    <div className="slot-inline-modal-card" style={{ width: '100%', maxWidth: '640px', background: 'linear-gradient(160deg,#13131f,#0e0e1a)', border: '1px solid rgba(139,92,246,0.3)', borderRadius: '20px', padding: '1.75rem', margin: 'auto' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                         <h2 style={{ margin: 0, fontSize: '1.1rem', color: '#fff' }}>{slotEditTarget ? 'Edit Slot' : 'Create New Slot'}</h2>
                         <button onClick={() => setShowSlotModal(false)} style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '50%', width: '32px', height: '32px', color: '#94a3b8', fontSize: '1.2rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>x</button>
                       </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                      <div className="form-grid slot-modal-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                         <div>
                           <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '0.3rem' }}>Match Title *</label>
                           <input type="text" value={slotFormData.matchName || ''} onChange={e => setSlotFormData(p => ({ ...p, matchName: e.target.value }))} placeholder="e.g. RISING 1-3 GRIND SCRIMS" style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(139,92,246,0.3)', borderRadius: '8px', color: '#fff', padding: '0.55rem 0.75rem', fontSize: '0.88rem' }} />
@@ -2589,9 +2716,24 @@ const AdminDashboard = () => {
                           <input type="text" value={slotFormData.roomPassword || ''} onChange={e => setSlotFormData(p => ({ ...p, roomPassword: e.target.value }))} placeholder="Password (set before match)" style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(139,92,246,0.3)', borderRadius: '8px', color: '#fff', padding: '0.55rem 0.75rem', fontSize: '0.88rem' }} />
                         </div>
                       </div>
-                      <div style={{ marginBottom: '1.25rem' }}>
+                      <div style={{ marginBottom: '1rem' }}>
                         <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '0.3rem' }}>Note / Instructions</label>
                         <input type="text" value={slotFormData.note || ''} onChange={e => setSlotFormData(p => ({ ...p, note: e.target.value }))} placeholder="e.g. ID/Pass will be provided 30 min before match" style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(139,92,246,0.3)', borderRadius: '8px', color: '#fff', padding: '0.55rem 0.75rem', fontSize: '0.88rem' }} />
+                      </div>
+                      <div style={{ marginBottom: '1.25rem' }}>
+                        <label style={{ fontSize: '0.75rem', color: '#a78bfa', display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.3rem', fontWeight: '700' }}>
+                          🔗 Match / Slot Link (WhatsApp / Discord / Custom URL)
+                        </label>
+                        <input
+                          type="url"
+                          value={slotFormData.customLink || slotFormData.whatsappLink || ''}
+                          onChange={e => setSlotFormData(p => ({ ...p, customLink: e.target.value, whatsappLink: e.target.value }))}
+                          placeholder="https://chat.whatsapp.com/... or https://discord.gg/..."
+                          style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(139,92,246,0.3)', borderRadius: '8px', color: '#fff', padding: '0.55rem 0.75rem', fontSize: '0.88rem' }}
+                        />
+                        <span style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '0.25rem', display: 'block' }}>
+                          🔒 Only visible to users who book and pay for this specific slot.
+                        </span>
                       </div>
                       <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
                         <button onClick={() => setShowSlotModal(false)} style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '10px', color: '#94a3b8', padding: '0.65rem 1.25rem', cursor: 'pointer', fontSize: '0.88rem' }}>Cancel</button>
@@ -2615,6 +2757,8 @@ const AdminDashboard = () => {
                                   : (slotFormData.maps || ['ERANGEL', 'RONDO', 'MIRAMAR']),
                                 scheduleMatches: slotFormData.scheduleMatches || [],
                                 prizeDistribution: slotFormData.prizeDistribution || [],
+                                customLink: slotFormData.customLink || slotFormData.whatsappLink || '',
+                                whatsappLink: slotFormData.whatsappLink || slotFormData.customLink || '',
                               };
                               if (slotEditTarget) {
                                 await axios.put(`${apiUrl}/api/slots/${slotEditTarget._id}`, payload, config);
@@ -2645,7 +2789,7 @@ const AdminDashboard = () => {
                     <button
                       className="action-btn"
                       style={{ marginTop: '1.25rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
-                      onClick={() => { setSlotEditTarget(null); setSlotFormData({ category: 'SCRIMS', lobby: 'LOBBY 1', matchName: 'RISING 1-3 GRIND SCRIMS', date: todaySlotsDate, timing: '1:42 PM', mode: 'Squad TPP', entryFee: 60, price: 60, maxTeams: 19, maps: 'ERANGEL, RONDO, MIRAMAR', scheduleMatches: [], prizeDistribution: [{ rank: '#1', prize: 'Rs.400' }, { rank: '#2', prize: 'Rs.150' }, { rank: '#3', prize: 'Rs.100' }], roomId: '', roomPassword: '', note: 'ID/Pass 30 min before match', whatsappLink: '' }); setShowSlotModal(true); }}
+                      onClick={() => { setSlotEditTarget(null); setSlotFormData({ category: 'SCRIMS', lobby: 'LOBBY 1', matchName: 'RISING 1-3 GRIND SCRIMS', date: todaySlotsDate, timing: '1:42 PM', mode: 'Squad TPP', entryFee: 60, price: 60, maxTeams: 19, maps: 'ERANGEL, RONDO, MIRAMAR', scheduleMatches: [], prizeDistribution: [{ rank: '#1', prize: 'Rs.400' }, { rank: '#2', prize: 'Rs.150' }, { rank: '#3', prize: 'Rs.100' }], roomId: '', roomPassword: '', note: 'ID/Pass 30 min before match', whatsappLink: '', customLink: '' }); setShowSlotModal(true); }}
                     >
                       <Plus size={16} /> Create First Slot
                     </button>
@@ -2657,7 +2801,7 @@ const AdminDashboard = () => {
                       const todayBookings = bookings.filter(b => todaySlots.some(sl => sl._id === (b.slotId && b.slotId._id ? b.slotId._id : b.slotId)));
                       return (
                         <>
-                          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                          <div className="today-slots-stats-grid" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
                             {[
                               { label: 'Total Slots', value: todaySlots.length, color: '#10b981' },
                               { label: 'Teams Booked', value: todaySlots.reduce((s, sl) => s + (Number(sl.bookedCount) || 0), 0), color: '#a78bfa' },
@@ -2717,7 +2861,8 @@ const AdminDashboard = () => {
                                         roomId: slot.roomId || '',
                                         roomPassword: slot.roomPassword || '',
                                         note: slot.note || '',
-                                        whatsappLink: slot.whatsappLink || '',
+                                        whatsappLink: slot.whatsappLink || slot.customLink || '',
+                                        customLink: slot.customLink || slot.whatsappLink || '',
                                         scheduleMatches: slot.scheduleMatches || [],
                                         prizeDistribution: pDist,
                                       });
@@ -2736,7 +2881,7 @@ const AdminDashboard = () => {
                                       <div style={{ height: '100%', width: `${pct}%`, borderRadius: '10px', background: pct >= 80 ? '#f59e0b' : pct >= 50 ? '#60a5fa' : '#10b981', transition: 'width 0.5s' }} />
                                     </div>
                                   </div>
-                                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '0.55rem' }}>
+                                  <div className="slot-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '0.55rem' }}>
                                     {[{ l: 'Paid', v: paidB.length, c: '#10b981' }, { l: 'Pending', v: pendingB.length, c: '#f59e0b' }, { l: 'Fee', v: 'Rs.' + (slot.entryFee || slot.price || 0), c: '#a78bfa' }, { l: 'Revenue', v: 'Rs.' + paidB.reduce((s, b) => s + (Number(b.amount) || Number(slot.entryFee) || 0), 0), c: '#60a5fa' }].map(st => (
                                       <div key={st.l} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '7px', padding: '0.45rem 0.55rem', textAlign: 'center' }}>
                                         <div style={{ fontSize: '0.6rem', color: '#64748b', textTransform: 'uppercase' }}>{st.l}</div>
@@ -2760,12 +2905,27 @@ const AdminDashboard = () => {
                                     ))}
                                   </div>
                                   <div style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '0.8rem 0.95rem' }}>
-                                    <div style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.7px', marginBottom: '0.6rem' }}>Room Credentials</div>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                                    <div style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.7px', marginBottom: '0.6rem' }}>Room Credentials &amp; Link</div>
+                                    <div className="slot-room-cred-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '0.5rem' }}>
                                       <input type="text" value={ed.roomId || ''} onChange={e => handleEditorFieldChange(slotId, 'roomId', e.target.value)} placeholder="Room ID" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(139,92,246,0.22)', borderRadius: '6px', color: '#fff', padding: '0.38rem 0.55rem', fontSize: '0.8rem', outline: 'none', width: '100%', boxSizing: 'border-box' }} />
                                       <input type="text" value={ed.roomPassword || ''} onChange={e => handleEditorFieldChange(slotId, 'roomPassword', e.target.value)} placeholder="Password" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(139,92,246,0.22)', borderRadius: '6px', color: '#fff', padding: '0.38rem 0.55rem', fontSize: '0.8rem', outline: 'none', width: '100%', boxSizing: 'border-box' }} />
                                     </div>
-                                    <input type="text" value={ed.note || ''} onChange={e => handleEditorFieldChange(slotId, 'note', e.target.value)} placeholder="Note / Instructions" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(139,92,246,0.22)', borderRadius: '6px', color: '#fff', padding: '0.38rem 0.55rem', fontSize: '0.8rem', outline: 'none', width: '100%', boxSizing: 'border-box', marginBottom: '0.6rem' }} />
+                                    <input type="text" value={ed.note || ''} onChange={e => handleEditorFieldChange(slotId, 'note', e.target.value)} placeholder="Note / Instructions" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(139,92,246,0.22)', borderRadius: '6px', color: '#fff', padding: '0.38rem 0.55rem', fontSize: '0.8rem', outline: 'none', width: '100%', boxSizing: 'border-box', marginBottom: '0.5rem' }} />
+                                    <div style={{ marginBottom: '0.6rem' }}>
+                                      <label style={{ fontSize: '0.68rem', color: '#a78bfa', display: 'block', marginBottom: '0.2rem', fontWeight: '700' }}>
+                                        🔗 Slot Link (WhatsApp / Discord / Custom URL)
+                                      </label>
+                                      <input
+                                        type="url"
+                                        value={ed.customLink || ed.whatsappLink || ''}
+                                        onChange={e => {
+                                          handleEditorFieldChange(slotId, 'customLink', e.target.value);
+                                          handleEditorFieldChange(slotId, 'whatsappLink', e.target.value);
+                                        }}
+                                        placeholder="https://chat.whatsapp.com/... or Discord link"
+                                        style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(139,92,246,0.22)', borderRadius: '6px', color: '#fff', padding: '0.38rem 0.55rem', fontSize: '0.8rem', outline: 'none', width: '100%', boxSizing: 'border-box' }}
+                                      />
+                                    </div>
                                     <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                                       <button className="action-btn" onClick={() => handleEditorSave(slotId)} disabled={editorSaving[slotId]} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.38rem 0.85rem', fontSize: '0.78rem', background: editorSaved[slotId] ? 'rgba(16,185,129,0.28)' : 'linear-gradient(135deg,#7c3aed,#6d28d9)' }}>
                                         {editorSaved[slotId] ? <><CheckCircle size={12} /> Saved</> : editorSaving[slotId] ? 'Saving...' : <><Save size={12} /> Save</>}
@@ -3075,15 +3235,17 @@ const AdminDashboard = () => {
                                 />
                               </div>
                               <div className="se-field">
-                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="#25d366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
-                                  WhatsApp Group Link (Paid users only)
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#a78bfa', fontWeight: '700' }}>
+                                  🔗 Slot / Match Link (WhatsApp / Discord / Custom URL)
                                 </label>
                                 <input
                                   type="url"
-                                  value={ed.whatsappLink || ''}
-                                  onChange={(e) => handleEditorFieldChange(slot._id, 'whatsappLink', e.target.value)}
-                                  placeholder="https://chat.whatsapp.com/..."
+                                  value={ed.customLink || ed.whatsappLink || ''}
+                                  onChange={(e) => {
+                                    handleEditorFieldChange(slot._id, 'customLink', e.target.value);
+                                    handleEditorFieldChange(slot._id, 'whatsappLink', e.target.value);
+                                  }}
+                                  placeholder="https://chat.whatsapp.com/... or https://discord.gg/..."
                                 />
                               </div>
                             </div>
@@ -3568,7 +3730,7 @@ const AdminDashboard = () => {
             </div>
 
             <form onSubmit={handleSaveMatchResults}>
-              <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+              <div className="form-grid results-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
                 <div className="form-group">
                   <label>Match / Scrim Name</label>
                   <input
@@ -3603,7 +3765,7 @@ const AdminDashboard = () => {
                 Enter Team Names and Kills below. Placement points and Total points are auto-calculated and synced to Leaderboard.
               </p>
 
-              <div className="results-input-table-wrap" style={{ maxHeight: '350px', overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
+              <div className="results-input-table-wrap" style={{ maxHeight: '350px', overflowY: 'auto', overflowX: 'auto', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
                 <table className="rankings-table" style={{ margin: 0 }}>
                   <thead>
                     <tr>
@@ -3668,6 +3830,174 @@ const AdminDashboard = () => {
                 <button type="button" className="tab-btn cancel-btn" onClick={() => setResultsModal(false)}>Cancel</button>
                 <button type="submit" className="action-btn" disabled={isSubmitting} style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)' }}>
                   {isSubmitting ? 'Publishing...' : 'Publish Results & Sync Rankings'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── OFFICIAL COMMUNITY WHATSAPP GROUP LINK MODAL ── */}
+      {showOfficialWaModal && (
+        <div className="modal-overlay fade-in" onClick={() => setShowOfficialWaModal(false)}>
+          <div
+            className="modal-content"
+            style={{ maxWidth: '560px' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                <div style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '10px',
+                  background: 'rgba(37, 211, 102, 0.15)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#25D366'
+                }}>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/>
+                  </svg>
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#fff' }}>Official WhatsApp Group Link</h3>
+                  <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                    Controls the &quot;Official WhatsApp Group / Join Now&quot; banner &amp; footer link
+                  </p>
+                </div>
+              </div>
+              <button className="modal-close-btn" onClick={() => setShowOfficialWaModal(false)}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveOfficialWa}>
+              <div style={{ padding: '1.25rem 0' }}>
+                <div style={{
+                  padding: '0.85rem 1rem',
+                  borderRadius: '8px',
+                  background: 'rgba(37, 211, 102, 0.08)',
+                  border: '1px solid rgba(37, 211, 102, 0.25)',
+                  marginBottom: '1.2rem',
+                  fontSize: '0.82rem',
+                  color: '#d1fae5',
+                  lineHeight: '1.45'
+                }}>
+                  📢 Users clicking <strong>&quot;Join Now&quot;</strong> on the homepage community banner or footer WhatsApp icon will be automatically redirected to this group for Room ID, passwords, and tournament updates.
+                </div>
+
+                <div className="form-group" style={{ marginBottom: '1.2rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.85rem' }}>
+                    Official WhatsApp Group Invite Link:
+                  </label>
+                  <input
+                    type="url"
+                    value={officialWaLink}
+                    onChange={(e) => setOfficialWaLink(e.target.value)}
+                    placeholder="https://chat.whatsapp.com/..."
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem 0.9rem',
+                      background: 'var(--bg-secondary)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '8px',
+                      color: '#fff',
+                      fontSize: '0.9rem',
+                      fontFamily: 'monospace'
+                    }}
+                  />
+                </div>
+
+                {/* Direct Action Link & Test Button */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '0.75rem',
+                  padding: '0.75rem 1rem',
+                  borderRadius: '8px',
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px dashed var(--border-color)',
+                  flexWrap: 'wrap'
+                }}>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                    <span>Want to test the redirection?</span>
+                  </div>
+                  <a
+                    href={officialWaLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      padding: '0.4rem 0.85rem',
+                      borderRadius: '6px',
+                      background: 'rgba(37, 211, 102, 0.18)',
+                      border: '1px solid #25D366',
+                      color: '#4ade80',
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      textDecoration: 'none'
+                    }}
+                  >
+                    <span>Test &amp; Open Group</span>
+                    <ArrowUpRight size={14} />
+                  </a>
+                </div>
+
+                {officialWaSavedMsg && (
+                  <div style={{
+                    marginTop: '1rem',
+                    padding: '0.75rem 1rem',
+                    borderRadius: '8px',
+                    background: 'rgba(16, 185, 129, 0.15)',
+                    border: '1px solid rgba(16, 185, 129, 0.4)',
+                    color: '#34d399',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    textAlign: 'center'
+                  }}>
+                    {officialWaSavedMsg}
+                  </div>
+                )}
+              </div>
+
+              <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                <button
+                  type="button"
+                  className="tab-btn cancel-btn"
+                  onClick={() => setShowOfficialWaModal(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="action-btn"
+                  disabled={savingOfficialWa}
+                  style={{
+                    background: 'linear-gradient(135deg, #16a34a, #22c55e)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.45rem',
+                    color: '#fff',
+                    fontWeight: 600
+                  }}
+                >
+                  {savingOfficialWa ? (
+                    <>
+                      <RefreshCw size={15} className="spin" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save size={15} />
+                      <span>Save &amp; Update Link</span>
+                    </>
+                  )}
                 </button>
               </div>
             </form>

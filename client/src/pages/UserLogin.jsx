@@ -215,21 +215,21 @@ function UserLogin() {
             <div className="form-group">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
                 <label htmlFor="reset-verification" style={{ margin: 0 }}>
-                  Team Name or Player ID
+                  Team Name, Player ID or WhatsApp Number
                 </label>
                 <span style={{ fontSize: '0.7rem', color: '#c084fc', fontWeight: 600 }}>Security Check</span>
               </div>
               <input
                 id="reset-verification"
                 type="text"
-                placeholder="e.g. Soul, Team Hydra, or #1024"
+                placeholder="e.g. Team Name, #1024, or WhatsApp number"
                 value={verificationAnswer}
                 onChange={(e) => setVerificationAnswer(e.target.value)}
                 required
                 autoComplete="off"
               />
               <p style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '0.35rem', lineHeight: '1.4' }}>
-                Enter the <strong>Team Name</strong> or <strong>Player ID</strong> (e.g. 1024) linked to this account.
+                Enter the <strong>Team Name</strong>, <strong>Player ID</strong> (e.g. #1024), or registered <strong>WhatsApp Number</strong> linked to this account.
               </p>
             </div>
 

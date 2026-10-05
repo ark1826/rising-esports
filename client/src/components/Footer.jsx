@@ -1,4 +1,23 @@
+import { useState, useEffect } from 'react';
+import axios from 'axios';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 function Footer() {
+  const [waLink, setWaLink] = useState('https://chat.whatsapp.com/FLX8eM2APOFCyiK8ReWER6?mode=gi_t');
+
+  useEffect(() => {
+    let isMounted = true;
+    axios.get(`${API_URL}/api/config/official-whatsapp`)
+      .then(res => {
+        if (isMounted && res.data?.url) {
+          setWaLink(res.data.url);
+        }
+      })
+      .catch(() => {});
+    return () => { isMounted = false; };
+  }, []);
+
   return (
     <footer className="footer">
       <div className="footer-socials">
@@ -14,7 +33,7 @@ function Footer() {
           </svg>
         </a>
         <a
-          href="https://chat.whatsapp.com/FLX8eM2APOFCyiK8ReWER6?mode=gi_t"
+          href={waLink}
           target="_blank"
           rel="noopener noreferrer"
           className="footer-social-link"

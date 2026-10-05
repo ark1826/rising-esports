@@ -823,6 +823,180 @@ input, select, textarea {
   color: #f1f5f9 !important;
 }
 
+/* Dual Options: Teams & Drop List in Slot Card (Mobile) */
+.ts-card-dual-options {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 0.45rem !important;
+  margin-bottom: 0.45rem !important;
+}
+
+.ts-dual-opt-btn {
+  padding: 0.42rem 0.55rem !important;
+  border-radius: 8px !important;
+  background: rgba(18, 14, 38, 0.75) !important;
+  border: 1px solid rgba(139, 92, 246, 0.22) !important;
+}
+
+.ts-dual-opt-content {
+  gap: 0.45rem !important;
+}
+
+.ts-drop-icon-badge {
+  width: 22px !important;
+  height: 22px !important;
+  border-radius: 50% !important;
+}
+
+.ts-drop-icon-badge svg {
+  width: 12px !important;
+  height: 12px !important;
+}
+
+.ts-dual-opt-title {
+  font-size: 0.72rem !important;
+  font-weight: 800 !important;
+}
+
+.ts-dual-opt-count,
+.ts-dual-opt-sub {
+  font-size: 0.62rem !important;
+  font-weight: 700 !important;
+}
+
+.ts-dual-opt-arrow {
+  width: 13px !important;
+  height: 13px !important;
+  margin-left: 0.2rem !important;
+}
+
+.ts-modal-tab-switch {
+  gap: 0.35rem !important;
+  padding: 0.25rem !important;
+  margin: 0.6rem 0 0.85rem 0 !important;
+}
+
+.ts-modal-tab-btn {
+  padding: 0.5rem 0.65rem !important;
+  font-size: 0.75rem !important;
+}
+
+.ts-teams-drops-modal {
+  width: 98% !important;
+  max-width: 98% !important;
+  padding: 0.85rem 0.75rem !important;
+  max-height: 92vh !important;
+}
+
+.ts-droplist-controls-bar {
+  flex-direction: column !important;
+  align-items: stretch !important;
+  gap: 0.5rem !important;
+}
+
+.ts-droplist-views-toggle {
+  width: 100% !important;
+  justify-content: center !important;
+}
+
+.ts-droplist-view-btn {
+  flex: 1 !important;
+  justify-content: center !important;
+  padding: 0.35rem 0.5rem !important;
+  font-size: 0.72rem !important;
+}
+
+.ts-copy-sheet-btn {
+  width: 100% !important;
+  justify-content: center !important;
+  padding: 0.4rem 0.75rem !important;
+}
+
+.ts-multi-drop-grid {
+  grid-template-columns: 1fr !important;
+  gap: 0.45rem !important;
+}
+
+.ts-droplist-table {
+  min-width: 560px !important;
+}
+
+/* Hero banner on mobile */
+.ts-droplist-hero-banner {
+  padding: 0.9rem 1rem !important;
+}
+
+.ts-banner-icon-box {
+  width: 44px !important;
+  height: 44px !important;
+}
+
+.ts-banner-title {
+  font-size: 1.25rem !important;
+}
+
+.ts-banner-sub {
+  font-size: 0.76rem !important;
+}
+
+.ts-banner-soldier-art {
+  display: none !important;
+}
+
+/* Sticky Slot # & Team column on mobile table scroll */
+.ts-droplist-table thead th.ts-th-slot-num,
+.ts-droplist-table tbody td.ts-col-slot-num {
+  position: sticky !important;
+  left: 0 !important;
+  z-index: 6 !important;
+  background: #140d2b !important;
+}
+
+.ts-droplist-table thead th.ts-th-team-name,
+.ts-droplist-table tbody td.ts-col-team {
+  position: sticky !important;
+  left: 44px !important;
+  z-index: 6 !important;
+  background: #140d2b !important;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.45) !important;
+}
+
+.ts-droplist-table tbody tr.is-my-team-row td.ts-col-slot-num,
+.ts-droplist-table tbody tr.is-my-team-row td.ts-col-team {
+  background: #1f123f !important;
+}
+
+.ts-team-sticker {
+  width: 38px !important;
+  height: 38px !important;
+}
+
+.ts-team-sticker.small {
+  width: 30px !important;
+  height: 30px !important;
+}
+
+.ts-cell-drop-badge {
+  font-size: 0.72rem !important;
+  padding: 0.25rem 0.5rem !important;
+}
+
+.ts-map-boards-grid {
+  grid-template-columns: 1fr !important;
+  gap: 0.75rem !important;
+}
+
+.ts-drop-team-row {
+  padding: 0.55rem 0.75rem !important;
+  gap: 0.5rem !important;
+}
+
+.ts-drop-badge {
+  font-size: 0.7rem !important;
+  padding: 0.2rem 0.5rem !important;
+  max-width: 130px !important;
+}
+
 /* Map Rotation */
 .ts-maps-block {
   margin-bottom: 0.45rem !important;
@@ -1388,6 +1562,19 @@ input, select, textarea {
   color: #ffffff !important;
 }
 
+.profile-form-divider {
+  height: 1px !important;
+  background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.3), rgba(139, 92, 246, 0.5), rgba(139, 92, 246, 0.3), transparent) !important;
+  margin: 0.9rem 0 !important;
+  border: none !important;
+}
+
+.profile-details-form.profile-form-section .profile-submit-row {
+  margin-top: 1rem !important;
+  padding-top: 0.85rem !important;
+  border-top: 1px solid rgba(139, 92, 246, 0.15) !important;
+}
+
 /* Mobile Transaction Cards (Responsive list instead of table) */
 @media (max-width: 640px) {
   .profile-txns-table {
@@ -1544,3 +1731,468 @@ input, select, textarea {
     display: none !important;
   }
 }
+
+/* ==========================================================================
+   12. ADMIN DASHBOARD - ULTRA RESPONSIVE MOBILE EXPERIENCE
+   Tailored exclusively for mobile phones & tablets (viewport <= 850px)
+   Does not affect public user pages or desktop layouts
+   ========================================================================== */
+
+/* Universal counter badge styling */
+.tab-counter-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: #fff;
+  margin-left: 6px;
+  line-height: 1;
+}
+
+/* Hide mobile tab dropdown on desktop */
+.admin-mobile-tab-select-wrap {
+  display: none;
+}
+
+@media (max-width: 850px) {
+  /* ── 1. Admin Main Layout & Containers ── */
+  .admin-main {
+    padding-top: 1rem !important;
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+    padding-bottom: calc(var(--safe-bottom, 0px) + 2rem) !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+  }
+
+  .admin-dashboard {
+    padding: 0.25rem !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+  }
+
+  .admin-section {
+    padding: 1rem 0.75rem !important;
+    border-radius: 16px !important;
+    background: var(--bg-card) !important;
+    border: 1px solid rgba(139, 92, 246, 0.25) !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+  }
+
+  /* ── 2. Top Navigation Bar ── */
+  .admin-nav {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    margin-bottom: 0.85rem !important;
+    padding: 0.2rem 0.25rem !important;
+  }
+
+  .admin-nav h1 {
+    font-size: 1.25rem !important;
+    letter-spacing: 1px !important;
+    margin: 0 !important;
+  }
+
+  .admin-nav .tab-btn {
+    padding: 0.4rem 0.8rem !important;
+    font-size: 0.78rem !important;
+    border-radius: 20px !important;
+    border: 1px solid rgba(239, 68, 68, 0.4) !important;
+    color: #f87171 !important;
+    background: rgba(239, 68, 68, 0.1) !important;
+    min-height: 36px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 0.4rem !important;
+  }
+
+  /* ── 3. Mobile Quick Section Dropdown Switcher ── */
+  .admin-mobile-tab-select-wrap {
+    display: block !important;
+    margin-bottom: 0.85rem !important;
+    padding: 0 0.1rem !important;
+  }
+
+  .admin-mobile-tab-label {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--purple-light);
+    margin-bottom: 0.35rem;
+  }
+
+  .admin-mobile-select-wrapper {
+    position: relative;
+    width: 100%;
+  }
+
+  .admin-mobile-tab-select {
+    width: 100% !important;
+    padding: 0.7rem 2.2rem 0.7rem 0.9rem !important;
+    background: linear-gradient(135deg, rgba(20, 15, 42, 0.95), rgba(13, 10, 28, 0.95)) !important;
+    border: 1px solid rgba(139, 92, 246, 0.4) !important;
+    border-radius: 12px !important;
+    color: #ffffff !important;
+    font-size: 15px !important;
+    font-weight: 600 !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    cursor: pointer;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+    outline: none;
+  }
+
+  .admin-mobile-tab-select:focus {
+    border-color: #a855f7 !important;
+    box-shadow: 0 0 12px rgba(168, 85, 247, 0.4) !important;
+  }
+
+  .admin-mobile-select-icon {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: var(--purple-light);
+  }
+
+  /* ── 4. Horizontal Scrollable Admin Tabs (Pill Bar) ── */
+  .admin-tabs {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    gap: 0.45rem !important;
+    margin-bottom: 1.15rem !important;
+    padding: 0.2rem 0.1rem 0.65rem !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+    scroll-snap-type: x mandatory !important;
+  }
+
+  .admin-tabs::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+
+  .admin-tabs .tab-btn {
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+    scroll-snap-align: start !important;
+    padding: 0.5rem 0.85rem !important;
+    font-size: 0.76rem !important;
+    border-radius: 999px !important;
+    min-height: 38px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 0.35rem !important;
+    border: 1px solid rgba(139, 92, 246, 0.25) !important;
+    background: rgba(18, 14, 38, 0.85) !important;
+    color: #cbd5e1 !important;
+    transition: all 0.2s ease !important;
+  }
+
+  .admin-tabs .tab-btn.active {
+    background: linear-gradient(135deg, #7c3aed, #9333ea) !important;
+    color: #ffffff !important;
+    border-color: #a855f7 !important;
+    box-shadow: 0 0 14px rgba(124, 58, 237, 0.5) !important;
+  }
+
+  /* ── 5. Admin Section Header ── */
+  .admin-header {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.85rem !important;
+    margin-bottom: 1.25rem !important;
+  }
+
+  .admin-header h2 {
+    font-size: 1.12rem !important;
+    line-height: 1.35 !important;
+    word-break: break-word !important;
+    margin: 0 !important;
+  }
+
+  .admin-header-actions {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 0.5rem !important;
+    width: 100% !important;
+  }
+
+  .admin-header-actions .tab-btn,
+  .admin-header-actions .action-btn,
+  .admin-header > .action-btn {
+    flex: 1 1 auto !important;
+    justify-content: center !important;
+    min-height: 38px !important;
+    font-size: 0.78rem !important;
+    padding: 0.45rem 0.75rem !important;
+    border-radius: 8px !important;
+    white-space: nowrap !important;
+  }
+
+  /* ── 6. Today Slots Toolbar & Stats Summary ── */
+  .today-slots-toolbar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.6rem !important;
+  }
+
+  .today-slots-toolbar > div:first-child {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+    width: 100% !important;
+  }
+
+  .today-slots-toolbar input[type="date"] {
+    flex: 1 !important;
+    min-height: 38px !important;
+    font-size: 15px !important;
+    box-sizing: border-box !important;
+  }
+
+  .today-slots-stats-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.5rem !important;
+    width: 100% !important;
+    margin-bottom: 1rem !important;
+  }
+
+  .today-slots-stats-grid > div {
+    min-width: unset !important;
+    padding: 0.6rem 0.75rem !important;
+    border-radius: 10px !important;
+  }
+
+  /* ── 7. Slot Cards Responsive Tweaks ── */
+  .slot-stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.45rem !important;
+  }
+
+  .slot-room-cred-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.5rem !important;
+  }
+
+  .slot-room-cred-grid input {
+    font-size: 15px !important;
+    min-height: 38px !important;
+  }
+
+  /* ── 8. Wallet Sub-Navigation & Filter Bars ── */
+  .wallet-subtabs-bar {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    gap: 0.4rem !important;
+    padding-bottom: 0.65rem !important;
+    margin-bottom: 1rem !important;
+    scrollbar-width: none !important;
+  }
+
+  .wallet-subtabs-bar::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .wallet-subtabs-bar .tab-btn {
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+    font-size: 0.75rem !important;
+    padding: 0.45rem 0.8rem !important;
+    border-radius: 20px !important;
+    min-height: 36px !important;
+  }
+
+  .wallet-filter-bar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.6rem !important;
+    margin-bottom: 1rem !important;
+  }
+
+  .wallet-filter-bar > div:first-child {
+    display: flex !important;
+    gap: 0.4rem !important;
+    width: 100% !important;
+  }
+
+  .wallet-filter-bar .tab-btn {
+    flex: 1 !important;
+    text-align: center !important;
+    justify-content: center !important;
+    font-size: 0.74rem !important;
+    padding: 0.45rem 0.6rem !important;
+  }
+
+  .wallet-search-filter-bar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.6rem !important;
+  }
+
+  .wallet-search-filter-bar input,
+  .wallet-search-filter-bar select {
+    width: 100% !important;
+    min-height: 42px !important;
+    font-size: 15px !important;
+    border-radius: 8px !important;
+    box-sizing: border-box !important;
+  }
+
+  .adjust-form-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem !important;
+  }
+
+  /* ── 9. All Data Tables Responsiveness ── */
+  .rankings-table-wrapper {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    border-radius: 12px !important;
+    border: 1px solid rgba(139, 92, 246, 0.22) !important;
+    box-sizing: border-box !important;
+    margin-top: 0.75rem !important;
+    position: relative !important;
+    scrollbar-width: thin !important;
+  }
+
+  .rankings-table {
+    min-width: 580px !important;
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  .rankings-table th {
+    padding: 0.65rem 0.65rem !important;
+    font-size: 0.72rem !important;
+    letter-spacing: 1px !important;
+    white-space: nowrap !important;
+  }
+
+  .rankings-table td {
+    padding: 0.65rem 0.65rem !important;
+    font-size: 0.8rem !important;
+    word-break: normal !important;
+  }
+
+  .rankings-table .action-btn {
+    white-space: nowrap !important;
+    min-height: 32px !important;
+    padding: 0.3rem 0.6rem !important;
+    font-size: 0.74rem !important;
+    border-radius: 6px !important;
+  }
+
+  /* ── 10. Modals & Form Dialogs ── */
+  .modal-overlay {
+    padding: 0.5rem !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    z-index: 9999 !important;
+  }
+
+  .modal,
+  .slot-modal,
+  .modal-content,
+  .slot-inline-modal-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 1.25rem 0.9rem !important;
+    border-radius: 16px !important;
+    max-height: 90vh !important;
+    box-sizing: border-box !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .slot-inline-modal-overlay {
+    padding: 0.5rem !important;
+    align-items: center !important;
+  }
+
+  .modal .form-grid,
+  .slot-modal-form-grid,
+  .results-form-grid,
+  .se-grid-4,
+  .se-grid-2 {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem !important;
+  }
+
+  .modal .form-group[style*="span 2"],
+  .modal .form-group[style*="span 3"],
+  .modal div[style*="gridColumn: 'span 2'"],
+  .modal div[style*="gridColumn: 'span 3'"] {
+    grid-column: span 1 !important;
+  }
+
+  .modal input,
+  .modal select,
+  .modal textarea,
+  .slot-inline-modal-card input,
+  .slot-inline-modal-card select {
+    font-size: 16px !important;
+    min-height: 42px !important;
+    border-radius: 8px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .modal-footer {
+    flex-direction: column-reverse !important;
+    width: 100% !important;
+    gap: 0.6rem !important;
+    margin-top: 1.25rem !important;
+  }
+
+  .modal-footer button {
+    width: 100% !important;
+    justify-content: center !important;
+    min-height: 42px !important;
+    font-size: 0.85rem !important;
+  }
+
+  /* ── 11. Results Modal Input Table ── */
+  .results-input-table-wrap {
+    overflow-x: auto !important;
+    max-height: 350px !important;
+    -webkit-overflow-scrolling: touch !important;
+    width: 100% !important;
+    border-radius: 8px !important;
+  }
+
+  .results-input-table-wrap .rankings-table {
+    min-width: 520px !important;
+  }
+
+  .results-input-table-wrap input {
+    font-size: 14px !important;
+    min-height: 34px !important;
+    box-sizing: border-box !important;
+  }
+}
+

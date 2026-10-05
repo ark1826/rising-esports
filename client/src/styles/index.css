@@ -3844,6 +3844,161 @@ img {
     background: var(--purple-light);
 }
 
+.credentials-match-link-card {
+    margin-top: 1.5rem;
+    padding: 1.1rem;
+    background: linear-gradient(135deg, rgba(20, 16, 45, 0.9) 0%, rgba(29, 21, 63, 0.8) 100%);
+    border: 1px solid rgba(139, 92, 246, 0.35);
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.credentials-link-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.85rem;
+}
+
+.credentials-link-card-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #c084fc;
+}
+
+.credentials-link-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #10b981;
+    box-shadow: 0 0 8px #10b981;
+    animation: linkPulse 2s infinite ease-in-out;
+}
+
+@keyframes linkPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.85); }
+}
+
+.credentials-link-note {
+    font-size: 0.72rem;
+    color: #94a3b8;
+    font-weight: 600;
+}
+
+.credentials-link-card-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.credentials-link-url-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.6rem 0.85rem;
+    background: rgba(10, 8, 22, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+}
+
+.credentials-link-url-wrapper svg {
+    color: #a78bfa;
+    flex-shrink: 0;
+}
+
+.credentials-link-url-text {
+    flex: 1;
+    font-family: monospace;
+    font-size: 0.82rem;
+    color: #e2e8f0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.credentials-link-copy {
+    flex-shrink: 0;
+}
+
+.credentials-join-link-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    padding: 0.85rem 1.25rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 800;
+    letter-spacing: 0.8px;
+    text-decoration: none;
+    text-transform: uppercase;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+}
+
+.credentials-join-link-btn.whatsapp-theme {
+    background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%);
+    color: #ffffff;
+    box-shadow: 0 4px 15px rgba(34, 197, 94, 0.35);
+}
+
+.credentials-join-link-btn.whatsapp-theme:hover {
+    background: linear-gradient(135deg, #15803d 0%, #16a34a 100%);
+    box-shadow: 0 6px 20px rgba(34, 197, 94, 0.55);
+    transform: translateY(-2px);
+}
+
+.credentials-join-link-btn.discord-theme {
+    background: linear-gradient(135deg, #4f46e5 0%, #5865f2 100%);
+    color: #ffffff;
+    box-shadow: 0 4px 15px rgba(88, 101, 242, 0.35);
+}
+
+.credentials-join-link-btn.discord-theme:hover {
+    background: linear-gradient(135deg, #4338ca 0%, #4f46e5 100%);
+    box-shadow: 0 6px 20px rgba(88, 101, 242, 0.55);
+    transform: translateY(-2px);
+}
+
+.credentials-join-link-btn.custom-theme {
+    background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+    color: #ffffff;
+    box-shadow: 0 4px 15px rgba(139, 92, 246, 0.35);
+}
+
+.credentials-join-link-btn.custom-theme:hover {
+    background: linear-gradient(135deg, #6d28d9 0%, #9333ea 100%);
+    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.55);
+    transform: translateY(-2px);
+}
+
+.credentials-no-link-box {
+    margin-top: 1.25rem;
+    padding: 0.85rem 1rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px dashed rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    font-size: 0.8rem;
+    color: #94a3b8;
+    line-height: 1.4;
+}
+
+.credentials-no-link-box svg {
+    color: #64748b;
+    flex-shrink: 0;
+}
+
 .credentials-whatsapp-section {
     margin-top: 1.5rem;
     padding-top: 1.25rem;
@@ -5067,6 +5222,48 @@ img {
     gap: 1.25rem;
 }
 
+.profile-fields-grid .form-group {
+    margin-bottom: 0;
+}
+
+.use-phone-chip-btn {
+    background: rgba(139, 92, 246, 0.16);
+    border: 1px solid rgba(139, 92, 246, 0.4);
+    color: #c4b5fd;
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 0.18rem 0.55rem;
+    border-radius: 9999px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.use-phone-chip-btn:hover {
+    background: rgba(139, 92, 246, 0.32);
+    border-color: #a78bfa;
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+}
+
+.profile-input-hint {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 0.35rem;
+    line-height: 1.35;
+}
+
+.profile-form-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.25), rgba(139, 92, 246, 0.45), rgba(139, 92, 246, 0.25), transparent);
+    margin: 1.75rem 0 1.5rem 0;
+    border: none;
+}
+
 /* Drop Locations - Full width responsive inputs */
 .drops-fields-grid {
     display: grid;
@@ -5131,10 +5328,87 @@ img {
     background: rgba(124, 58, 237, 0.05);
 }
 
+.drop-field-controls {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.drop-location-select {
+    width: 100% !important;
+    box-sizing: border-box;
+    background: rgba(18, 14, 38, 0.85);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 0.75rem 1rem;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    font-family: var(--font-body);
+    outline: none;
+    transition: var(--transition);
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23a78bfa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    background-size: 16px;
+    padding-right: 2.5rem;
+}
+
+.drop-location-select:focus {
+    border-color: var(--purple-primary);
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2);
+    background-color: rgba(22, 17, 46, 0.95);
+}
+
+.drop-location-select option {
+    background: #0f0c23;
+    color: #e2e8f0;
+    padding: 0.5rem;
+}
+
+.custom-drop-input-wrap {
+    margin-top: 0.55rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.custom-drop-input {
+    width: 100% !important;
+    box-sizing: border-box;
+    background: rgba(124, 58, 237, 0.08) !important;
+    border: 1px solid rgba(139, 92, 246, 0.45) !important;
+    border-radius: var(--radius-md);
+    padding: 0.7rem 1rem;
+    color: #fff !important;
+    font-size: 0.88rem;
+    outline: none;
+    transition: var(--transition);
+}
+
+.custom-drop-input:focus {
+    border-color: var(--purple-light) !important;
+    box-shadow: 0 0 14px rgba(167, 139, 250, 0.35) !important;
+    background: rgba(124, 58, 237, 0.14) !important;
+}
+
+.custom-drop-helper-text {
+    font-size: 0.72rem;
+    color: #a78bfa;
+    margin-left: 0.25rem;
+}
+
 .profile-submit-row {
     display: flex;
     justify-content: flex-end;
     margin-top: 1.5rem;
+}
+
+.profile-details-form .profile-submit-row {
+    margin-top: 2rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 /* Transactions Table */
@@ -5877,6 +6151,971 @@ img {
     color: #f1f5f9;
 }
 
+/* ── Dual Options: Teams & Drop List in Slot Card ── */
+.ts-card-dual-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+
+.ts-dual-opt-btn {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(18, 14, 38, 0.75);
+    border: 1px solid rgba(139, 92, 246, 0.25);
+    border-radius: 12px;
+    padding: 0.7rem 0.95rem;
+    cursor: pointer;
+    transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+    text-align: left;
+    outline: none;
+    position: relative;
+    overflow: hidden;
+    user-select: none;
+}
+
+.ts-dual-opt-btn.teams-btn:hover {
+    background: rgba(28, 20, 58, 0.95);
+    border-color: rgba(168, 85, 247, 0.55);
+    transform: translateY(-1.5px);
+    box-shadow: 0 4px 16px rgba(121, 40, 202, 0.25);
+}
+
+.ts-dual-opt-btn.drops-btn:hover {
+    background: rgba(28, 20, 58, 0.95);
+    border-color: rgba(168, 85, 247, 0.55);
+    transform: translateY(-1.5px);
+    box-shadow: 0 4px 16px rgba(121, 40, 202, 0.25);
+}
+
+.ts-dual-opt-content {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    min-width: 0;
+}
+
+.ts-drop-icon-badge {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(124, 58, 237, 0.15);
+    border: 1.5px solid rgba(168, 85, 247, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+}
+
+.ts-dual-opt-btn.drops-btn:hover .ts-drop-icon-badge {
+    transform: scale(1.1);
+    background: rgba(124, 58, 237, 0.25);
+}
+
+.ts-dual-opt-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.ts-dual-opt-title {
+    font-size: 0.84rem;
+    font-weight: 800;
+    color: #f8fafc;
+    letter-spacing: 0.3px;
+    line-height: 1.15;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ts-dual-opt-count {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #c084fc;
+    margin-top: 2px;
+}
+
+.ts-dual-opt-sub {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #c084fc;
+    margin-top: 2px;
+}
+
+.ts-dual-opt-arrow {
+    flex-shrink: 0;
+    margin-left: 0.4rem;
+    transition: transform 0.2s ease;
+}
+
+.ts-dual-opt-btn.teams-btn .ts-dual-opt-arrow {
+    stroke: #a78bfa;
+}
+
+.ts-dual-opt-btn.drops-btn .ts-dual-opt-arrow {
+    stroke: #a78bfa;
+}
+
+.ts-dual-opt-btn:hover .ts-dual-opt-arrow {
+    transform: translateX(2px);
+}
+
+/* ── Teams & Drops Modal Upgrades ── */
+/* ── Teams & Drops Modal Upgrades ── */
+.ts-teams-drops-modal {
+    max-width: 980px !important;
+    width: 96% !important;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    background: radial-gradient(circle at 50% 0%, #1d1338 0%, #0d081d 75%) !important;
+    border: 1px solid rgba(168, 85, 247, 0.35) !important;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6), 0 0 40px rgba(121, 40, 202, 0.25) !important;
+}
+
+.ts-modal-tab-switch {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    background: rgba(12, 9, 24, 0.95);
+    padding: 0.35rem;
+    border-radius: 12px;
+    border: 1px solid rgba(139, 92, 246, 0.28);
+    margin: 0.85rem 0 1rem 0;
+}
+
+.ts-modal-tab-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.65rem 0.85rem;
+    border-radius: 9px;
+    font-size: 0.84rem;
+    font-weight: 800;
+    color: #94a3b8;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ts-modal-tab-btn.active.teams-tab,
+.ts-modal-tab-btn.active.drops-tab {
+    background: linear-gradient(135deg, #7928ca, #9333ea);
+    color: #fff;
+    box-shadow: 0 4px 15px rgba(121, 40, 202, 0.45);
+}
+
+/* ── Esports Team Sticker Badge ── */
+.ts-team-sticker {
+    position: relative;
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border: 2px solid rgba(168, 85, 247, 0.55);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    overflow: hidden;
+    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    user-select: none;
+}
+
+.ts-team-sticker:hover {
+    transform: scale(1.1) rotate(-2deg);
+    box-shadow: 0 8px 22px rgba(168, 85, 247, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.ts-team-sticker.my-team {
+    border-color: #c084fc !important;
+    box-shadow: 0 0 18px rgba(192, 132, 252, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.5) !important;
+}
+
+.ts-team-sticker.small {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+}
+
+.ts-team-sticker-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.ts-team-sticker-fallback {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Outfit', sans-serif, system-ui;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.7);
+    line-height: 1;
+}
+
+.ts-team-sticker-gloss {
+    position: absolute;
+    top: -20%;
+    left: -20%;
+    width: 140%;
+    height: 60%;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.08) 50%, transparent 100%);
+    transform: rotate(-20deg);
+    pointer-events: none;
+}
+
+.ts-team-sticker-slot-badge {
+    position: absolute;
+    bottom: -1px;
+    right: -1px;
+    font-size: 0.55rem;
+    font-weight: 900;
+    padding: 0.05rem 0.22rem;
+    border-radius: 4px;
+    background: #090615;
+    color: #e9d5ff;
+    border: 1px solid rgba(168, 85, 247, 0.6);
+    line-height: 1;
+    letter-spacing: 0.3px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+}
+
+/* ── Drop List Header & Controls Bar ── */
+.ts-droplist-controls-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.85rem;
+}
+
+.ts-droplist-views-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    background: rgba(14, 10, 28, 0.95);
+    padding: 0.25rem;
+    border-radius: 9px;
+    border: 1px solid rgba(139, 92, 246, 0.28);
+}
+
+.ts-droplist-view-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.42rem 0.85rem;
+    border-radius: 7px;
+    font-size: 0.76rem;
+    font-weight: 800;
+    color: #94a3b8;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.ts-droplist-view-btn:hover {
+    color: #ffffff;
+}
+
+.ts-droplist-view-btn.active {
+    background: linear-gradient(135deg, #7928ca, #9333ea);
+    color: #ffffff;
+    box-shadow: 0 2px 10px rgba(121, 40, 202, 0.45);
+}
+
+.ts-copy-sheet-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.45rem 0.9rem;
+    border-radius: 8px;
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(16, 185, 129, 0.45);
+    color: #34d399;
+    font-size: 0.76rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ts-copy-sheet-btn:hover {
+    background: rgba(16, 185, 129, 0.25);
+    border-color: #34d399;
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+}
+
+/* ── Interactive Multi-Map Drop Spot Configurator ── */
+.ts-multi-drop-config-box {
+    background: linear-gradient(135deg, rgba(28, 18, 58, 0.95) 0%, rgba(15, 11, 32, 0.95) 100%);
+    border: 1px solid rgba(168, 85, 247, 0.45);
+    border-radius: 12px;
+    padding: 0.9rem 1.1rem;
+    margin-bottom: 0.85rem;
+    box-shadow: 0 4px 22px rgba(121, 40, 202, 0.22);
+}
+
+.ts-multi-drop-config-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+}
+
+.ts-multi-drop-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #c084fc;
+    font-size: 0.82rem;
+    font-weight: 900;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+}
+
+.ts-multi-drop-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.ts-multi-drop-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    background: rgba(12, 8, 24, 0.6);
+    padding: 0.6rem 0.75rem;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.ts-multi-drop-label {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+}
+
+.ts-multi-drop-label.map-erangel { color: #4ade80; }
+.ts-multi-drop-label.map-miramar { color: #facc15; }
+.ts-multi-drop-label.map-rondo   { color: #38bdf8; }
+.ts-multi-drop-label.map-sanhok  { color: #4ade80; }
+.ts-multi-drop-label.map-vikendi { color: #38bdf8; }
+
+.ts-multi-drop-select {
+    width: 100%;
+    padding: 0.5rem 0.65rem;
+    background: rgba(9, 6, 20, 0.95);
+    border: 1px solid rgba(168, 85, 247, 0.35);
+    border-radius: 7px;
+    color: #ffffff;
+    font-size: 0.82rem;
+    font-weight: 600;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.ts-multi-drop-select:focus {
+    border-color: #c084fc;
+    box-shadow: 0 0 10px rgba(168, 85, 247, 0.45);
+}
+
+.ts-multi-drop-custom-input {
+    width: 100%;
+    margin-top: 0.35rem;
+    padding: 0.45rem 0.65rem;
+    background: rgba(9, 6, 20, 0.95);
+    border: 1px dashed rgba(168, 85, 247, 0.5);
+    border-radius: 6px;
+    color: #ffffff;
+    font-size: 0.8rem;
+    outline: none;
+}
+
+.ts-multi-drop-save-btn {
+    background: linear-gradient(135deg, #7928ca, #9333ea);
+    border: none;
+    color: #fff;
+    font-weight: 800;
+    font-size: 0.82rem;
+    padding: 0.55rem 1.15rem;
+    border-radius: 8px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    white-space: nowrap;
+    box-shadow: 0 4px 16px rgba(121, 40, 202, 0.45);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ts-multi-drop-save-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(121, 40, 202, 0.6);
+}
+
+.ts-multi-drop-save-btn:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+
+/* ── Drop Clash Warning Banner ── */
+.ts-drop-clash-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.65rem 0.95rem;
+    border-radius: 9px;
+    background: rgba(245, 158, 11, 0.12);
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    color: #fbbf24;
+    font-size: 0.78rem;
+    font-weight: 700;
+    margin-bottom: 0.85rem;
+    flex-wrap: wrap;
+}
+
+.ts-drop-clash-item {
+    background: rgba(245, 158, 11, 0.22);
+    border: 1px solid rgba(245, 158, 11, 0.45);
+    padding: 0.15rem 0.45rem;
+    border-radius: 5px;
+    color: #fef08a;
+    font-size: 0.72rem;
+    font-weight: 800;
+}
+
+/* ── Scrim Drop List Hero Banner (HUD Design) ── */
+.ts-droplist-hero-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.15rem 1.4rem;
+    background: linear-gradient(135deg, rgba(30, 20, 65, 0.95) 0%, rgba(13, 8, 30, 0.98) 100%);
+    border: 1px solid rgba(139, 92, 246, 0.45);
+    border-radius: 16px;
+    box-shadow: 0 0 25px rgba(124, 58, 237, 0.22);
+    margin-bottom: 0.85rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.ts-banner-left {
+    display: flex;
+    align-items: center;
+    gap: 1.1rem;
+    z-index: 2;
+}
+
+.ts-banner-icon-box {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.35) 0%, rgba(99, 102, 241, 0.2) 100%);
+    border: 1px solid rgba(168, 85, 247, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 15px rgba(168, 85, 247, 0.35);
+    flex-shrink: 0;
+}
+
+.ts-banner-title {
+    margin: 0;
+    font-size: 1.6rem;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    line-height: 1.1;
+    text-transform: uppercase;
+    font-family: 'Outfit', sans-serif, system-ui;
+}
+
+.ts-title-white {
+    color: #ffffff;
+}
+
+.ts-title-purple {
+    color: #a855f7;
+    text-shadow: 0 0 16px rgba(168, 85, 247, 0.6);
+}
+
+.ts-banner-sub {
+    margin: 0.3rem 0 0 0;
+    color: #94a3b8;
+    font-size: 0.84rem;
+    font-weight: 500;
+}
+
+.ts-banner-soldier-art {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+    opacity: 0.95;
+    margin-right: 0.5rem;
+}
+
+/* ── Sold-out Card Drop List Action ── */
+.ts-soldout-actions-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.ts-soldout-actions-row .ts-book-action-btn.sold-out {
+    flex: 1;
+}
+
+.ts-book-action-btn.view-droplist-soldout {
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.25) 0%, rgba(79, 70, 229, 0.2) 100%);
+    border: 1px solid rgba(168, 85, 247, 0.55);
+    color: #c084fc;
+    font-weight: 800;
+    font-size: 0.78rem;
+    padding: 0.6rem 0.9rem;
+    border-radius: 9px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+
+.ts-book-action-btn.view-droplist-soldout:hover {
+    background: linear-gradient(135deg, #7928ca 0%, #9333ea 100%);
+    color: #ffffff;
+    border-color: #c084fc;
+    box-shadow: 0 0 16px rgba(168, 85, 247, 0.5);
+    transform: translateY(-1px);
+}
+
+/* ── Master Esports Drop Sheet Table ── */
+.ts-droplist-table-container {
+    width: 100%;
+    border-radius: 14px;
+    background: rgba(8, 10, 26, 0.95);
+    border: 1px solid rgba(79, 70, 229, 0.35);
+    overflow: hidden;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), 0 0 30px rgba(79, 70, 229, 0.15);
+}
+
+.ts-droplist-table-scroll {
+    overflow-x: auto;
+    max-height: 52vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.ts-droplist-table {
+    width: 100%;
+    min-width: 680px;
+    border-collapse: separate;
+    border-spacing: 0;
+    text-align: left;
+}
+
+/* Table Header */
+.ts-droplist-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: linear-gradient(90deg, #371a82 0%, #2c166d 50%, #24115b 100%);
+    padding: 0.95rem 1rem;
+    font-size: 0.88rem;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    color: #ffffff;
+    border-bottom: 1px solid rgba(139, 92, 246, 0.35);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+
+.ts-th-slot-num {
+    width: 50px;
+    text-align: center;
+    color: #ffffff;
+    font-weight: 800;
+    font-size: 0.92rem;
+}
+
+.ts-th-team-name {
+    width: 25%;
+    min-width: 180px;
+    text-align: left;
+    color: #ffffff;
+    font-weight: 800;
+    font-size: 0.92rem;
+}
+
+.ts-th-map-col {
+    width: 24%;
+    min-width: 170px;
+    text-align: left;
+    color: #ffffff;
+    font-weight: 800;
+    font-size: 0.92rem;
+}
+
+/* Table Rows */
+.ts-droplist-table tbody tr {
+    transition: background 0.15s ease;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(12, 14, 34, 0.7);
+}
+
+.ts-droplist-table tbody tr:hover {
+    background: rgba(67, 56, 202, 0.18);
+}
+
+.ts-droplist-table tbody tr.is-my-team-row {
+    background: rgba(121, 40, 202, 0.24);
+    border-left: 3px solid #a855f7;
+}
+
+.ts-droplist-table tbody td {
+    padding: 0.85rem 1rem;
+    vertical-align: middle;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Slot number cell */
+.ts-col-slot-num {
+    text-align: center;
+    width: 50px;
+}
+
+.ts-td-slot-number {
+    font-size: 1rem;
+    font-weight: 800;
+    color: #ffffff;
+    display: inline-block;
+}
+
+/* Team cell content */
+.ts-col-team {
+    width: 25%;
+}
+
+.ts-td-team-content {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+}
+
+.ts-td-team-meta {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.ts-td-team-name-row {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-weight: 800;
+    color: #ffffff;
+    font-size: 0.92rem;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    line-height: 1.25;
+}
+
+.ts-td-team-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ts-td-team-tag {
+    color: #a78bfa;
+    font-size: 0.74rem;
+    font-weight: 700;
+}
+
+.ts-td-you-badge {
+    background: linear-gradient(135deg, #7928ca, #9333ea);
+    color: #fff;
+    font-size: 0.6rem;
+    font-weight: 900;
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+    box-shadow: 0 0 8px rgba(147, 51, 234, 0.5);
+    flex-shrink: 0;
+}
+
+/* Map Drop Cell Layout */
+.ts-col-map {
+    width: 24%;
+}
+
+.ts-drop-cell-content {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+}
+
+.ts-drop-pin-icon {
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.ts-drop-text-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    line-height: 1.35;
+}
+
+.ts-drop-location-text {
+    font-size: 0.86rem;
+    font-weight: 600;
+    color: #cbd5e1;
+    letter-spacing: 0.2px;
+}
+
+.ts-drop-location-text.clash {
+    color: #f87171;
+    font-weight: 800;
+}
+
+.ts-drop-location-text.unassigned {
+    color: #64748b;
+    font-style: italic;
+    font-weight: 500;
+}
+
+.ts-clash-mini-badge {
+    font-size: 0.62rem;
+    background: #ef4444;
+    color: #fff;
+    padding: 0.08rem 0.35rem;
+    border-radius: 4px;
+    margin-left: 0.25rem;
+    font-weight: 900;
+    letter-spacing: 0.5px;
+}
+
+.ts-cell-pending-drop {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.74rem;
+    color: #64748b;
+    padding: 0.25rem 0.55rem;
+    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px dashed rgba(255, 255, 255, 0.12);
+}
+
+/* ── Map Columns / Boards View ── */
+.ts-map-boards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1rem;
+    max-height: 54vh;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.ts-map-board-card {
+    background: rgba(18, 13, 36, 0.88);
+    border-radius: 12px;
+    border: 1px solid rgba(139, 92, 246, 0.25);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.ts-map-board-card.map-erangel {
+    border-top: 3px solid #10b981;
+}
+
+.ts-map-board-card.map-miramar {
+    border-top: 3px solid #f59e0b;
+}
+
+.ts-map-board-card.map-rondo {
+    border-top: 3px solid #06b6d4;
+}
+
+.ts-map-board-card.map-sanhok {
+    border-top: 3px solid #22c55e;
+}
+
+.ts-map-board-card.map-vikendi {
+    border-top: 3px solid #38bdf8;
+}
+
+.ts-map-board-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 0.9rem;
+    background: rgba(12, 8, 24, 0.95);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.ts-map-board-title {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-weight: 900;
+    font-size: 0.85rem;
+    letter-spacing: 0.8px;
+    color: #ffffff;
+}
+
+.ts-map-board-count {
+    font-size: 0.68rem;
+    font-weight: 800;
+    color: #a78bfa;
+    background: rgba(139, 92, 246, 0.15);
+    padding: 0.15rem 0.45rem;
+    border-radius: 5px;
+    border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+.ts-map-board-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    padding: 0.75rem;
+    overflow-y: auto;
+    max-height: 42vh;
+}
+
+.ts-board-item-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.5rem 0.65rem;
+    border-radius: 8px;
+    background: rgba(25, 18, 48, 0.7);
+    border: 1px solid rgba(139, 92, 246, 0.15);
+    transition: all 0.15s ease;
+}
+
+.ts-board-item-row:hover {
+    background: rgba(121, 40, 202, 0.18);
+    border-color: rgba(168, 85, 247, 0.35);
+}
+
+.ts-board-item-row.has-clash {
+    border-color: rgba(239, 68, 68, 0.5);
+    background: rgba(38, 17, 26, 0.75);
+}
+
+.ts-board-team-head {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    min-width: 0;
+}
+
+.ts-board-team-name-wrap {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.ts-board-team-name {
+    font-size: 0.82rem;
+    font-weight: 800;
+    color: #ffffff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ts-board-team-slot {
+    font-size: 0.65rem;
+    color: #94a3b8;
+    font-weight: 700;
+}
+
+/* Backward compatibility fallbacks */
+.ts-drop-team-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    background: rgba(22, 17, 46, 0.75);
+    border: 1px solid rgba(139, 92, 246, 0.25);
+    border-radius: 10px;
+    gap: 0.75rem;
+    transition: all 0.2s ease;
+}
+
+.ts-drop-team-row.has-clash {
+    border-color: rgba(245, 158, 11, 0.45);
+    background: rgba(35, 23, 30, 0.75);
+}
+
+.ts-drop-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.75rem;
+    border-radius: 7px;
+    font-size: 0.78rem;
+    font-weight: 800;
+    background: rgba(121, 40, 202, 0.18);
+    border: 1px solid rgba(168, 85, 247, 0.35);
+    color: #d8b4fe;
+    text-align: right;
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ts-drop-badge.pending {
+    background: rgba(148, 163, 184, 0.1);
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    color: #94a3b8;
+    font-weight: 600;
+    font-size: 0.74rem;
+}
+
+.ts-drop-badge.clash {
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.45);
+    color: #f87171;
+}
+
+.ts-clash-pill {
+    font-size: 0.65rem;
+    background: #ef4444;
+    color: #fff;
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    margin-left: 0.3rem;
+    font-weight: 900;
+}
+
 /* Map Rotation */
 .ts-maps-block {
     margin-bottom: 1.35rem;
@@ -6006,6 +7245,226 @@ img {
 
 .ts-book-action-btn:hover:not(:disabled) svg {
     transform: translateX(3px);
+}
+
+.ts-paid-actions-wrap {
+    display: flex;
+    gap: 0.65rem;
+    align-items: center;
+    width: 100%;
+    flex-wrap: wrap;
+}
+
+.ts-paid-actions-wrap .ts-book-action-btn.booked {
+    flex: 1 1 180px;
+    min-width: 170px;
+    margin-top: 0;
+}
+
+.ts-slot-direct-link-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    padding: 0.85rem 1.25rem;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.25) 0%, rgba(139, 92, 246, 0.35) 100%);
+    border: 1px solid rgba(139, 92, 246, 0.6);
+    border-radius: 8px;
+    color: #c4b5fd;
+    font-size: 0.8rem;
+    font-weight: 800;
+    letter-spacing: 0.8px;
+    text-decoration: none;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+    box-shadow: 0 0 15px rgba(124, 58, 237, 0.25);
+}
+
+.ts-slot-direct-link-btn:hover {
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    border-color: #a78bfa;
+    color: #ffffff;
+    transform: translateY(-2px);
+    box-shadow: 0 0 24px rgba(139, 92, 246, 0.6);
+}
+
+/* ── Booked Slot: WhatsApp Group Card on Slot Card ── */
+.ts-booked-whatsapp-card {
+    background: linear-gradient(135deg, rgba(6, 78, 59, 0.38) 0%, rgba(15, 23, 42, 0.88) 100%);
+    border: 1px solid rgba(16, 185, 129, 0.48);
+    border-radius: 12px;
+    padding: 0.9rem 1.1rem;
+    margin-top: 0.35rem;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(52, 211, 153, 0.15);
+    position: relative;
+    overflow: hidden;
+}
+
+.ts-booked-whatsapp-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: linear-gradient(180deg, #10b981 0%, #25d366 100%);
+    box-shadow: 0 0 10px #10b981;
+}
+
+.ts-booked-wa-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.65rem;
+    flex-wrap: wrap;
+}
+
+.ts-booked-wa-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.8px;
+    color: #4ade80;
+    text-transform: uppercase;
+}
+
+.ts-booked-wa-badge svg {
+    color: #25d366;
+    flex-shrink: 0;
+}
+
+.ts-booked-wa-tag {
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.6px;
+    padding: 0.18rem 0.5rem;
+    background: rgba(16, 185, 129, 0.18);
+    border: 1px solid rgba(16, 185, 129, 0.4);
+    border-radius: 4px;
+    color: #a7f3d0;
+}
+
+.ts-booked-wa-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.ts-booked-wa-link-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    padding: 0.45rem 0.75rem;
+}
+
+.ts-booked-wa-url {
+    font-family: monospace;
+    font-size: 0.8rem;
+    color: #e2e8f0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+}
+
+.ts-booked-wa-copy-btn {
+    background: rgba(16, 185, 129, 0.2);
+    border: 1px solid rgba(16, 185, 129, 0.45);
+    color: #86efac;
+    font-size: 0.72rem;
+    font-weight: 800;
+    padding: 0.3rem 0.65rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.ts-booked-wa-copy-btn:hover {
+    background: #10b981;
+    color: #000;
+}
+
+.ts-booked-wa-join-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.68rem 1rem;
+    background: linear-gradient(135deg, #15803d 0%, #16a34a 100%);
+    border: 1px solid rgba(34, 197, 94, 0.6);
+    border-radius: 8px;
+    color: #ffffff;
+    font-size: 0.82rem;
+    font-weight: 800;
+    letter-spacing: 0.6px;
+    text-decoration: none;
+    text-transform: uppercase;
+    transition: all 0.25s ease;
+    box-shadow: 0 4px 15px rgba(22, 163, 74, 0.35);
+}
+
+.ts-booked-wa-join-btn:hover {
+    background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(34, 197, 94, 0.55);
+    color: #ffffff;
+}
+
+.ts-booked-wa-pending {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.78rem;
+    color: #94a3b8;
+    padding: 0.35rem 0.2rem;
+}
+
+.ts-booked-wa-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #eab308;
+    box-shadow: 0 0 6px #eab308;
+    animation: linkPulse 2s infinite ease-in-out;
+}
+
+.ts-slot-whatsapp-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    padding: 0.85rem 1.25rem;
+    background: linear-gradient(135deg, #15803d 0%, #16a34a 100%);
+    border: 1px solid rgba(34, 197, 94, 0.6);
+    border-radius: 8px;
+    color: #ffffff;
+    font-size: 0.8rem;
+    font-weight: 800;
+    letter-spacing: 0.8px;
+    text-decoration: none;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+    box-shadow: 0 0 15px rgba(34, 197, 94, 0.3);
+}
+
+.ts-slot-whatsapp-btn:hover {
+    background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%);
+    border-color: #86efac;
+    color: #ffffff;
+    transform: translateY(-2px);
+    box-shadow: 0 0 24px rgba(34, 197, 94, 0.6);
 }
 
 .ts-book-action-btn.booked {
@@ -6282,5 +7741,564 @@ img {
     .ts-book-action-btn {
         width: 100%;
         justify-content: center;
+    }
+    .ts-paid-actions-wrap {
+        flex-direction: column;
+        width: 100%;
+    }
+    .ts-paid-actions-wrap .ts-book-action-btn.booked,
+    .ts-slot-direct-link-btn,
+    .ts-slot-whatsapp-btn {
+        width: 100%;
+        text-align: center;
+        justify-content: center;
+    }
+}
+
+/* ============================================================
+   EXACT ESPORTS DROP LIST VIEW (MATCHING TARGET DESIGN)
+   ============================================================ */
+.ts-droplist-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    background: rgba(3, 4, 12, 0.92);
+    backdrop-filter: blur(12px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 1.5rem 1rem 3rem;
+}
+
+.ts-droplist-modal-content-wrap {
+    width: 100%;
+    max-width: 820px;
+    position: relative;
+    z-index: 2;
+    animation: tsFadeSlideIn 0.25s ease-out forwards;
+}
+
+@keyframes tsFadeSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(16px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.ts-droplist-page-root {
+    position: relative;
+    width: 100%;
+    min-height: 100%;
+    background-color: #03040e;
+    color: #ffffff;
+    font-family: 'Outfit', sans-serif, system-ui, -apple-system, sans-serif;
+    overflow: hidden;
+}
+
+.ts-droplist-page-root.is-page {
+    min-height: 100vh;
+}
+
+.ts-droplist-page-bg-soldier {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    left: 0;
+    height: 60%;
+    max-height: 520px;
+    background-position: bottom center;
+    background-repeat: no-repeat;
+    background-size: cover;
+    opacity: 0.38;
+    pointer-events: none;
+    z-index: 0;
+    mask-image: linear-gradient(to top, rgba(0,0,0,1) 30%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,1) 30%, transparent 100%);
+}
+
+.ts-droplist-page-bg-gradient {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 15%, rgba(124, 58, 237, 0.18) 0%, rgba(3, 4, 14, 0.95) 70%, #03040e 100%);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.ts-droplist-page-container {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 1.5rem 1rem 4rem;
+}
+
+/* Top Actions */
+.ts-droplist-top-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.15rem;
+    gap: 0.75rem;
+}
+
+.ts-droplist-back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(124, 58, 237, 0.15);
+    border: 1px solid rgba(168, 85, 247, 0.4);
+    color: #e9d5ff;
+    padding: 0.5rem 1rem;
+    border-radius: 9999px;
+    font-weight: 700;
+    font-size: 0.84rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.ts-droplist-back-btn:hover {
+    background: rgba(124, 58, 237, 0.35);
+    border-color: #c084fc;
+    color: #ffffff;
+    box-shadow: 0 0 14px rgba(168, 85, 247, 0.4);
+}
+
+.ts-droplist-copy-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    background: linear-gradient(135deg, rgba(88, 28, 135, 0.4) 0%, rgba(59, 130, 246, 0.25) 100%);
+    border: 1px solid rgba(139, 92, 246, 0.45);
+    color: #c084fc;
+    padding: 0.5rem 1rem;
+    border-radius: 9999px;
+    font-weight: 700;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.ts-droplist-copy-btn:hover {
+    background: linear-gradient(135deg, #7928ca 0%, #9333ea 100%);
+    color: #ffffff;
+    border-color: #c084fc;
+    box-shadow: 0 0 16px rgba(168, 85, 247, 0.5);
+}
+
+.ts-droplist-refresh-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    background: rgba(139, 92, 246, 0.15);
+    border: 1px solid rgba(139, 92, 246, 0.35);
+    color: #c084fc;
+    padding: 0.5rem 0.95rem;
+    border-radius: 9999px;
+    font-weight: 700;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.ts-droplist-refresh-btn:hover:not(:disabled) {
+    background: rgba(139, 92, 246, 0.3);
+    border-color: #c084fc;
+    color: #ffffff;
+    box-shadow: 0 0 14px rgba(168, 85, 247, 0.35);
+}
+
+.ts-droplist-refresh-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.ts-droplist-refresh-btn .spin {
+    animation: ts-spin-refresh 1s linear infinite;
+}
+
+@keyframes ts-spin-refresh {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* ── Top Hero Banner (Exact Target Design) ── */
+.ts-exact-hero-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.15rem 1.4rem;
+    background: linear-gradient(135deg, rgba(22, 14, 52, 0.96) 0%, rgba(10, 8, 28, 0.98) 100%);
+    border: 1.5px solid rgba(139, 92, 246, 0.45);
+    border-radius: 18px;
+    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.7), 0 0 25px rgba(124, 58, 237, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 1.25rem;
+}
+
+.ts-exact-banner-left {
+    display: flex;
+    align-items: center;
+    gap: 1.15rem;
+    z-index: 2;
+    min-width: 0;
+}
+
+.ts-exact-banner-icon-box {
+    width: 58px;
+    height: 58px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.55) 0%, rgba(79, 70, 229, 0.35) 100%);
+    border: 1.5px solid rgba(168, 85, 247, 0.6);
+    box-shadow: 0 0 20px rgba(168, 85, 247, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.ts-exact-banner-text {
+    min-width: 0;
+}
+
+.ts-exact-banner-title {
+    margin: 0;
+    font-size: 1.85rem;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    line-height: 1.1;
+    text-transform: uppercase;
+    font-family: 'Outfit', sans-serif, system-ui;
+}
+
+.ts-exact-banner-title .text-white {
+    color: #ffffff;
+}
+
+.ts-exact-banner-title .text-purple {
+    color: #a855f7;
+    text-shadow: 0 0 16px rgba(168, 85, 247, 0.75);
+}
+
+.ts-exact-banner-sub {
+    margin: 0.35rem 0 0 0;
+    color: #94a3b8;
+    font-size: 0.86rem;
+    font-weight: 500;
+    letter-spacing: 0.2px;
+}
+
+.ts-exact-banner-right {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 2;
+    flex-shrink: 0;
+    margin-left: 0.75rem;
+}
+
+.ts-exact-helmet-wrap {
+    position: relative;
+    width: 96px;
+    height: 96px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ts-exact-helmet-img {
+    width: 96px;
+    height: 96px;
+    object-fit: cover;
+    border-radius: 50%;
+    filter: drop-shadow(0 0 14px rgba(168, 85, 247, 0.7));
+    mask-image: radial-gradient(circle at 55% 50%, black 58%, transparent 95%);
+    -webkit-mask-image: radial-gradient(circle at 55% 50%, black 58%, transparent 95%);
+}
+
+.ts-exact-helmet-glow {
+    position: absolute;
+    inset: -6px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(168, 85, 247, 0.35) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: -1;
+}
+
+/* ── Master Table Card (Target Screenshot Design) ── */
+.ts-exact-table-card {
+    border-radius: 18px;
+    border: 1.5px solid rgba(59, 130, 246, 0.45);
+    background: rgba(6, 8, 22, 0.96);
+    box-shadow: 0 16px 45px rgba(0, 0, 0, 0.85), 0 0 30px rgba(59, 130, 246, 0.18);
+    overflow: hidden;
+    position: relative;
+    z-index: 2;
+}
+
+.ts-exact-table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.ts-exact-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 620px;
+    text-align: left;
+}
+
+.ts-exact-table thead th {
+    background: linear-gradient(90deg, #381273 0%, #4c1d95 30%, #581c87 70%, #381273 100%);
+    padding: 1.05rem 1rem;
+    color: #ffffff;
+    font-weight: 800;
+    font-size: 0.95rem;
+    letter-spacing: 0.03em;
+    border-bottom: 1.5px solid rgba(139, 92, 246, 0.35);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+}
+
+.ts-exact-table thead th.col-num {
+    width: 55px;
+    text-align: center;
+}
+
+.ts-exact-table thead th.col-team {
+    width: 25%;
+    min-width: 175px;
+}
+
+.ts-exact-table thead th.col-map {
+    width: 23%;
+    min-width: 145px;
+}
+
+/* Table Rows */
+.ts-exact-row {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    transition: background 0.15s ease;
+    background: rgba(10, 13, 30, 0.7);
+}
+
+.ts-exact-row:hover {
+    background: rgba(99, 102, 241, 0.14);
+}
+
+.ts-exact-row:last-child {
+    border-bottom: none;
+}
+
+.ts-exact-row td {
+    padding: 1.05rem 1rem;
+    vertical-align: middle;
+}
+
+.ts-exact-row td.col-num {
+    text-align: center;
+}
+
+.ts-slot-number-text {
+    color: #ffffff;
+    font-weight: 800;
+    font-size: 1.05rem;
+    display: inline-block;
+}
+
+/* Team Cell with Sticker */
+.ts-team-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+}
+
+.ts-team-name-text {
+    color: #ffffff;
+    font-weight: 800;
+    font-size: 0.92rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    line-height: 1.25;
+}
+
+/* Map Pin & Drop Spot Cell */
+.ts-drop-pin-cell {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.55rem;
+    line-height: 1.35;
+}
+
+.ts-exact-map-pin {
+    flex-shrink: 0;
+    margin-top: 2px;
+    filter: drop-shadow(0 0 6px rgba(139, 92, 246, 0.85));
+}
+
+.ts-exact-drop-text {
+    color: #e2e8f0;
+    font-weight: 600;
+    font-size: 0.86rem;
+    line-height: 1.38;
+    white-space: pre-line;
+}
+
+/* ── Custom Esports Stickers ── */
+.ts-esports-sticker-box {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    position: relative;
+    border-radius: 8px;
+    transition: transform 0.2s ease;
+}
+
+.ts-esports-sticker-box:hover {
+    transform: scale(1.08);
+}
+
+.ts-esports-sticker-box.custom-logo {
+    background: #0b0718;
+    border: 1.5px solid #a855f7;
+    border-radius: 10px;
+    padding: 3px;
+    box-shadow: 0 0 10px rgba(168, 85, 247, 0.5);
+}
+
+.ts-sticker-custom-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 7px;
+}
+
+.ts-esports-sticker-box.fallback-badge {
+    border-radius: 9px;
+    border-width: 1.5px;
+    border-style: solid;
+}
+
+.ts-sticker-svg {
+    display: block;
+}
+
+/* ── Esports Mode Switcher ── */
+.ts-esports-mode-switch {
+    background: rgba(18, 14, 40, 0.95);
+    border: 1px solid rgba(139, 92, 246, 0.45);
+    border-radius: 9999px;
+    padding: 3px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+}
+
+.ts-mode-switch-btn {
+    background: transparent;
+    border: none;
+    color: #c4b5fd;
+    padding: 0.42rem 0.95rem;
+    border-radius: 9999px;
+    font-weight: 700;
+    font-size: 0.8rem;
+    letter-spacing: 0.3px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ts-mode-switch-btn:hover {
+    color: #ffffff;
+    background: rgba(139, 92, 246, 0.2);
+}
+
+.ts-mode-switch-btn.active {
+    background: linear-gradient(135deg, #7928ca 0%, #9333ea 100%);
+    color: #ffffff;
+    box-shadow: 0 0 16px rgba(168, 85, 247, 0.65);
+}
+
+/* ── Registered Teams Table Specifics ── */
+.ts-registered-teams-table thead th.col-reg-name {
+    width: 60%;
+    padding-left: 2.2rem;
+    text-align: left;
+}
+
+.ts-registered-teams-table thead th.col-reg-logo {
+    width: 30%;
+    text-align: center;
+    padding-right: 1.5rem;
+}
+
+.ts-reg-team-row td.col-reg-name {
+    padding-left: 2.2rem;
+}
+
+.ts-reg-team-name-text {
+    font-size: 1.08rem;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    display: inline-block;
+}
+
+.ts-reg-logo-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-right: 1.5rem;
+}
+
+.clickable-team-th {
+    cursor: pointer;
+    transition: color 0.15s ease;
+}
+
+.clickable-team-th:hover {
+    color: #e9d5ff;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+    .ts-exact-hero-banner {
+        padding: 1rem 1.15rem;
+    }
+    .ts-exact-banner-title {
+        font-size: 1.55rem;
+    }
+    .ts-exact-banner-icon-box {
+        width: 48px;
+        height: 48px;
+    }
+    .ts-exact-helmet-wrap,
+    .ts-exact-helmet-img {
+        width: 78px;
+        height: 78px;
+    }
+    .ts-exact-table thead th {
+        padding: 0.85rem 0.75rem;
+        font-size: 0.88rem;
+    }
+    .ts-exact-row td {
+        padding: 0.85rem 0.75rem;
+    }
+    .ts-droplist-modal-overlay {
+        padding: 0.5rem;
     }
 }

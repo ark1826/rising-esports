@@ -1,6 +1,7 @@
 import express from 'express';
 import crypto from 'crypto';
 import { Booking } from '../models/Booking.js';
+import { User } from '../models/User.js';
 import { Slot } from '../models/Slot.js';
 import { Tournament } from '../models/Tournament.js';
 import { protect, userProtect } from '../middleware/auth.js';
@@ -85,6 +86,7 @@ router.post('/create', userProtect, async (req, res) => {
 
     const orderId = generateOrderId('UPI');
 
+    const userDoc = await User.findById(userId).select('erangelDrop rondoDrop miramarDrop');
     const booking = await Booking.create({
       userId,
       slotId: slotId || undefined,
@@ -95,6 +97,11 @@ router.post('/create', userProtect, async (req, res) => {
       paymentMethod: 'upi',
       utrNumber: utrNumber.trim(),
       merchantTransactionId: orderId,
+      dropLocations: userDoc ? {
+        erangel: userDoc.erangelDrop || '',
+        rondo: userDoc.rondoDrop || '',
+        miramar: userDoc.miramarDrop || '',
+      } : {},
     });
 
     console.log(`[UPI Booking] Created booking ${booking._id} for ${targetName} — UTR: ${utrNumber.trim()}`);

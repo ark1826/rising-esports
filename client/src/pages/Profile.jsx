@@ -26,6 +26,124 @@ import {
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
+const MAP_DROP_OPTIONS = {
+  Erangel: [
+    'Pochinki',
+    'School / Apartments',
+    'Rozhok',
+    'Georgopol (City & Crates)',
+    'Military Base (Sosnovka)',
+    'Yasnaya Polyana',
+    'Novorepnoye',
+    'Mylta / Mylta Power',
+    'Severny',
+    'Gatka',
+    'Primorsk',
+    'Lipovka',
+    'Shelter / Prison',
+    'Mansion',
+    'Quarry / Ferry Pier',
+    'Zharki',
+    'Kameshki / Stalber',
+  ],
+  Miramar: [
+    'Pecado',
+    'Hacienda del Patron',
+    'Los Leones',
+    'San Martin',
+    'El Pozo',
+    'Chumacera',
+    'Impala',
+    'Monte Nuevo',
+    'Campo Militar',
+    'Valle del Mar',
+    'Minas Generales',
+    'Puerto Paraiso',
+    'La Cobreria',
+    'Tierra Robada',
+    'Water Treatment',
+  ],
+  Rondo: [
+    'Jadena City',
+    'Neoox',
+    'Stadium',
+    'Yu Lin',
+    'Tin Long Garden',
+    'Mey Ran',
+    'Dan Sang',
+    'Bei Li',
+    'Rin Jiang',
+    'Lo Hua Xing',
+    'Hung Shan',
+    'Fang',
+  ],
+};
+
+function DropLocationField({ mapName, badgeClass, options, value, onChange }) {
+  const isPredefined = options.includes(value);
+  const [isOtherSelected, setIsOtherSelected] = useState(!isPredefined && Boolean(value));
+
+  useEffect(() => {
+    if (!options.includes(value) && Boolean(value)) {
+      setIsOtherSelected(true);
+    } else if (options.includes(value)) {
+      setIsOtherSelected(false);
+    }
+  }, [value, options]);
+
+  const selectValue = isOtherSelected ? 'Other' : (isPredefined ? value : '');
+
+  const handleSelectChange = (e) => {
+    const selected = e.target.value;
+    if (selected === 'Other') {
+      setIsOtherSelected(true);
+      if (options.includes(value)) {
+        onChange('');
+      }
+    } else {
+      setIsOtherSelected(false);
+      onChange(selected);
+    }
+  };
+
+  return (
+    <div className="drop-field-item">
+      <div className={`drop-map-badge ${badgeClass}`}>{mapName}</div>
+      <div className="drop-field-controls">
+        <select
+          className="drop-location-select"
+          value={selectValue}
+          onChange={handleSelectChange}
+        >
+          <option value="">-- Select {mapName} Drop Location --</option>
+          {options.map((opt) => (
+            <option key={opt} value={opt}>
+              {opt}
+            </option>
+          ))}
+          <option value="Other">Other (Specify Custom Location)</option>
+        </select>
+
+        {isOtherSelected && (
+          <div className="custom-drop-input-wrap">
+            <input
+              type="text"
+              className="custom-drop-input"
+              placeholder={`Specify custom ${mapName} location (e.g. compound / split)...`}
+              value={options.includes(value) ? '' : value}
+              onChange={(e) => onChange(e.target.value)}
+              autoFocus
+            />
+            <span className="custom-drop-helper-text">
+              ✏️ Enter custom compound or split drop location
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function Profile() {
   const [activeTab, setActiveTab] = useState('details'); // 'details' | 'transactions' | 'logout'
   const [profileData, setProfileData] = useState({
@@ -63,17 +181,25 @@ function Profile() {
   const [copiedUpi, setCopiedUpi] = useState(false);
 
   const navigate = useNavigate();
-  const userInfo = JSON.parse(localStorage.getItem('userInfo') || 'null');
+
+  const getUserInfo = useCallback(() => {
+    try {
+      return JSON.parse(localStorage.getItem('userInfo') || 'null');
+    } catch {
+      return null;
+    }
+  }, []);
 
   // Fetch profile and transactions
   const fetchProfileData = useCallback(async () => {
-    if (!userInfo || !userInfo.token) {
+    const currentUsr = getUserInfo();
+    if (!currentUsr || !currentUsr.token) {
       navigate('/user/login');
       return;
     }
 
     try {
-      const config = { headers: { Authorization: `Bearer ${userInfo.token}` } };
+      const config = { headers: { Authorization: `Bearer ${currentUsr.token}` } };
       const [profileRes, txnsRes, walletRes] = await Promise.all([
         axios.get(`${API_URL}/api/users/profile`, config),
         axios.get(`${API_URL}/api/wallet/transactions`, config).catch(() => ({ data: [] })),
@@ -83,7 +209,8 @@ function Profile() {
       const data = profileRes.data;
       const currentBalance = walletRes.data?.balance ?? data.walletBalance ?? 0;
 
-      setProfileData({
+      setProfileData((prev) => ({
+        ...prev,
         teamName: data.teamName || '',
         phone: data.phone || '',
         teamLogo: data.teamLogo || '',
@@ -93,7 +220,7 @@ function Profile() {
         miramarDrop: data.miramarDrop || '',
         walletBalance: currentBalance,
         registrationNumber: data.registrationNumber || '',
-      });
+      }));
       setLogoPreview(data.teamLogo || '');
       setTransactions(txnsRes.data || []);
     } catch (err) {
@@ -105,15 +232,17 @@ function Profile() {
     } finally {
       setLoading(false);
     }
-  }, [userInfo, navigate]);
+  }, [getUserInfo, navigate]);
 
   useEffect(() => {
-    if (!userInfo || !userInfo.token) {
+    const currentUsr = getUserInfo();
+    if (!currentUsr || !currentUsr.token) {
       navigate('/user/login', { replace: true, state: { from: '/profile', message: 'Please sign in to access your profile and wallet.' } });
     } else {
       fetchProfileData();
     }
-  }, [userInfo, fetchProfileData, navigate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Auto-dismiss notification
   useEffect(() => {
@@ -149,9 +278,35 @@ function Profile() {
   // Save Team Details & Drops
   const handleSaveDetails = async (e) => {
     e.preventDefault();
-    if (!profileData.teamName.trim()) {
+    const currentUsr = getUserInfo();
+    if (!currentUsr || !currentUsr.token) {
+      navigate('/user/login');
+      return;
+    }
+
+    const teamNameTrimmed = (profileData.teamName || '').trim();
+    if (!teamNameTrimmed) {
       setNotification({ type: 'error', message: 'Team name cannot be empty' });
       return;
+    }
+
+    const waRaw = (profileData.whatsappNumber || '').trim();
+    if (waRaw) {
+      if (/whatsapp\.com|wa\.me/i.test(waRaw)) {
+        setNotification({
+          type: 'error',
+          message: 'Please enter your 10-digit WhatsApp phone number, not a group invite link.',
+        });
+        return;
+      }
+      const waDigits = waRaw.replace(/\D/g, '');
+      if (waDigits.length < 10 || waDigits.length > 15) {
+        setNotification({
+          type: 'error',
+          message: 'Please enter a valid 10-digit WhatsApp number (e.g. 9876543210 or +91 9876543210)',
+        });
+        return;
+      }
     }
 
     setSaving(true);
@@ -159,21 +314,33 @@ function Profile() {
       const { data } = await axios.put(
         `${API_URL}/api/users/profile`,
         {
-          teamName: profileData.teamName.trim(),
-          teamLogo: profileData.teamLogo,
-          whatsappNumber: profileData.whatsappNumber.trim(),
-          erangelDrop: profileData.erangelDrop.trim(),
-          rondoDrop: profileData.rondoDrop.trim(),
-          miramarDrop: profileData.miramarDrop.trim(),
+          teamName: teamNameTrimmed,
+          teamLogo: profileData.teamLogo || '',
+          whatsappNumber: waRaw,
+          erangelDrop: (profileData.erangelDrop || '').trim(),
+          rondoDrop: (profileData.rondoDrop || '').trim(),
+          miramarDrop: (profileData.miramarDrop || '').trim(),
         },
-        { headers: { Authorization: `Bearer ${userInfo.token}` } }
+        { headers: { Authorization: `Bearer ${currentUsr.token}` } }
       );
 
       const updatedUserInfo = {
-        ...userInfo,
-        teamName: data.user?.teamName || profileData.teamName,
+        ...currentUsr,
+        teamName: data.user?.teamName || teamNameTrimmed,
       };
       localStorage.setItem('userInfo', JSON.stringify(updatedUserInfo));
+
+      if (data.user) {
+        setProfileData(prev => ({
+          ...prev,
+          teamName: data.user.teamName ?? prev.teamName,
+          teamLogo: data.user.teamLogo ?? prev.teamLogo,
+          whatsappNumber: data.user.whatsappNumber ?? prev.whatsappNumber,
+          erangelDrop: data.user.erangelDrop ?? prev.erangelDrop,
+          rondoDrop: data.user.rondoDrop ?? prev.rondoDrop,
+          miramarDrop: data.user.miramarDrop ?? prev.miramarDrop,
+        }));
+      }
 
       setNotification({
         type: 'success',
@@ -190,8 +357,15 @@ function Profile() {
   };
 
   // Step 1: Initiate Deposit (WinZO-style: creates order with dynamic UPI QR & DeepLink)
+  // Step 1: Initiate Deposit (WinZO-style: creates order with dynamic UPI QR & DeepLink)
   const handleInitiateDeposit = async (e) => {
     e.preventDefault();
+    const currentUsr = getUserInfo();
+    if (!currentUsr || !currentUsr.token) {
+      navigate('/user/login');
+      return;
+    }
+
     const amountNum = Number(addAmount);
     if (!amountNum || amountNum < 10) {
       setDepositError('Minimum deposit amount is ₹10');
@@ -204,7 +378,7 @@ function Profile() {
       const { data } = await axios.post(
         `${API_URL}/api/wallet/deposit/initiate`,
         { amount: amountNum },
-        { headers: { Authorization: `Bearer ${userInfo.token}` } }
+        { headers: { Authorization: `Bearer ${currentUsr.token}` } }
       );
 
       setDepositTxn(data);
@@ -219,6 +393,12 @@ function Profile() {
   // Step 2: Submit UTR number for admin verification (No free money credited!)
   const handleSubmitDepositUtr = async (e) => {
     e.preventDefault();
+    const currentUsr = getUserInfo();
+    if (!currentUsr || !currentUsr.token) {
+      navigate('/user/login');
+      return;
+    }
+
     const cleanUtr = depositUtr.trim();
     if (!cleanUtr) {
       setDepositError('Please enter your 12-digit UPI Transaction ID (UTR number).');
@@ -239,7 +419,7 @@ function Profile() {
           utrNumber: cleanUtr,
           amount: Number(addAmount),
         },
-        { headers: { Authorization: `Bearer ${userInfo.token}` } }
+        { headers: { Authorization: `Bearer ${currentUsr.token}` } }
       );
 
       setDepositStep(3);
@@ -271,6 +451,12 @@ function Profile() {
   // Withdraw
   const handleWithdraw = async (e) => {
     e.preventDefault();
+    const currentUsr = getUserInfo();
+    if (!currentUsr || !currentUsr.token) {
+      navigate('/user/login');
+      return;
+    }
+
     const amountNum = Number(withdrawAmount);
     if (!amountNum || amountNum < 50) {
       setNotification({ type: 'error', message: 'Minimum withdrawal amount is ₹50' });
@@ -293,7 +479,7 @@ function Profile() {
       const { data } = await axios.post(
         `${API_URL}/api/wallet/withdraw`,
         { amount: amountNum, upiId: upiId.trim(), notes: withdrawNotes },
-        { headers: { Authorization: `Bearer ${userInfo.token}` } }
+        { headers: { Authorization: `Bearer ${currentUsr.token}` } }
       );
 
       setProfileData((prev) => ({
@@ -485,9 +671,9 @@ function Profile() {
       {/* ── TAB 1: DETAILS ── */}
       {activeTab === 'details' && (
         <div className="profile-tab-content fade-in">
-          <form onSubmit={handleSaveDetails} className="profile-details-form">
+          <form onSubmit={handleSaveDetails} className="profile-details-form profile-form-section">
             {/* Team Details Section */}
-            <div className="profile-form-section">
+            <div className="profile-form-block">
               <div className="section-title-wrap">
                 <Shield size={20} className="section-icon" />
                 <h3>Team Details</h3>
@@ -500,27 +686,57 @@ function Profile() {
                     id="teamName"
                     type="text"
                     placeholder="Enter official team name"
-                    value={profileData.teamName}
-                    onChange={(e) => setProfileData({ ...profileData, teamName: e.target.value })}
+                    value={profileData.teamName || ''}
+                    onChange={(e) => setProfileData(prev => ({ ...prev, teamName: e.target.value }))}
                     required
                   />
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="whatsappNumber">WhatsApp Number</label>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem', flexWrap: 'wrap', gap: '0.4rem' }}>
+                    <label htmlFor="whatsappNumber" style={{ margin: 0 }}>WhatsApp Number</label>
+                    {profileData.phone && (
+                      <button
+                        type="button"
+                        className="use-phone-chip-btn"
+                        onClick={() => {
+                          const clean = String(profileData.phone || '').replace(/\D/g, '').slice(-10);
+                          if (clean) {
+                            setProfileData(prev => ({
+                              ...prev,
+                              whatsappNumber: `+91 ${clean}`
+                            }));
+                          }
+                        }}
+                        title="Use your registered login phone number for WhatsApp"
+                      >
+                        ⚡ Use Account Phone ({String(profileData.phone || '').replace(/\D/g, '').slice(-10)})
+                      </button>
+                    )}
+                  </div>
                   <input
                     id="whatsappNumber"
                     type="tel"
-                    placeholder="e.g. +91 9876543210 (for scrim group invites)"
-                    value={profileData.whatsappNumber}
-                    onChange={(e) => setProfileData({ ...profileData, whatsappNumber: e.target.value })}
+                    placeholder="Enter 10-digit number (e.g. 9876543210)"
+                    value={profileData.whatsappNumber || ''}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setProfileData(prev => ({ ...prev, whatsappNumber: val }));
+                    }}
+                    autoComplete="tel"
                   />
+                  <span className="profile-input-hint">
+                    Used by scrim hosts to send match lobby invites and updates.
+                  </span>
                 </div>
               </div>
             </div>
 
+            {/* Divider between sections in the single form */}
+            <div className="profile-form-divider" />
+
             {/* Map Drops Section */}
-            <div className="profile-form-section">
+            <div className="profile-form-block">
               <div className="section-title-wrap">
                 <MapPin size={20} className="section-icon" />
                 <h3>Drop Locations</h3>
@@ -530,38 +746,33 @@ function Profile() {
               </p>
 
               <div className="drops-fields-grid">
-                <div className="drop-field-item">
-                  <div className="drop-map-badge map-erangel">Erangel</div>
-                  <input
-                    type="text"
-                    placeholder="e.g. Pochinki / School"
-                    value={profileData.erangelDrop}
-                    onChange={(e) => setProfileData({ ...profileData, erangelDrop: e.target.value })}
-                  />
-                </div>
+                <DropLocationField
+                  mapName="Erangel"
+                  badgeClass="map-erangel"
+                  options={MAP_DROP_OPTIONS.Erangel}
+                  value={profileData.erangelDrop}
+                  onChange={(val) => setProfileData((prev) => ({ ...prev, erangelDrop: val }))}
+                />
 
-                <div className="drop-field-item">
-                  <div className="drop-map-badge map-miramar">Miramar</div>
-                  <input
-                    type="text"
-                    placeholder="e.g. Pecado / Hacienda"
-                    value={profileData.miramarDrop}
-                    onChange={(e) => setProfileData({ ...profileData, miramarDrop: e.target.value })}
-                  />
-                </div>
+                <DropLocationField
+                  mapName="Miramar"
+                  badgeClass="map-miramar"
+                  options={MAP_DROP_OPTIONS.Miramar}
+                  value={profileData.miramarDrop}
+                  onChange={(val) => setProfileData((prev) => ({ ...prev, miramarDrop: val }))}
+                />
 
-                <div className="drop-field-item">
-                  <div className="drop-map-badge map-rondo">Rondo</div>
-                  <input
-                    type="text"
-                    placeholder="e.g. Jadena City / Neoox"
-                    value={profileData.rondoDrop}
-                    onChange={(e) => setProfileData({ ...profileData, rondoDrop: e.target.value })}
-                  />
-                </div>
+                <DropLocationField
+                  mapName="Rondo"
+                  badgeClass="map-rondo"
+                  options={MAP_DROP_OPTIONS.Rondo}
+                  value={profileData.rondoDrop}
+                  onChange={(val) => setProfileData((prev) => ({ ...prev, rondoDrop: val }))}
+                />
               </div>
             </div>
 
+            {/* Submit button row inside the form */}
             <div className="profile-submit-row">
               <button type="submit" className="action-btn" disabled={saving}>
                 <Save size={18} />

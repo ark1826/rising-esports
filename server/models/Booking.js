@@ -28,6 +28,9 @@ const bookingSchema = new mongoose.Schema({
   verifiedAt: { type: Date },
   verifiedBy: { type: String }, // admin username
 
+  // Drop locations for this booking (map-wise: e.g. { erangel: 'Pochinki', rondo: 'Jadena City' })
+  dropLocations: { type: mongoose.Schema.Types.Mixed, default: {} },
+
   // Legacy / compat fields
   merchantTransactionId: { type: String, index: true },
   cfOrderId: { type: String },

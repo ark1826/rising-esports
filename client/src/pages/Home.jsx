@@ -64,6 +64,7 @@ export default function Home() {
   const [showRulesModal, setShowRulesModal] = useState(false);
   const [showDepositModal, setShowDepositModal] = useState(false);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const [officialWhatsAppUrl, setOfficialWhatsAppUrl] = useState('https://chat.whatsapp.com/FLX8eM2APOFCyiK8ReWER6?mode=gi_t');
 
   // Deposit flow state
   const [depositAmount, setDepositAmount] = useState('100');
@@ -115,6 +116,15 @@ export default function Home() {
         if (isMounted && Array.isArray(res.data) && res.data.length > 0) {
           const active = res.data.find((s) => !s.isSoldOut) || res.data[0];
           setFeaturedSlot(active);
+        }
+      })
+      .catch(() => {});
+
+    // 3. Fetch official community WhatsApp group link
+    axios.get(`${API_URL}/api/config/official-whatsapp`)
+      .then((res) => {
+        if (isMounted && res.data?.url) {
+          setOfficialWhatsAppUrl(res.data.url);
         }
       })
       .catch(() => {});
@@ -513,7 +523,7 @@ export default function Home() {
             <p>Join for instant Room ID, Password &amp; updates</p>
           </div>
           <a
-            href="https://chat.whatsapp.com/FLX8eM2APOFCyiK8ReWER6?mode=gi_t"
+            href={officialWhatsAppUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="community-cta-btn"

@@ -15,7 +15,6 @@ function Navbar() {
   const closeMenu = () => setIsOpen(false)
 
   const userInfo = JSON.parse(localStorage.getItem('userInfo') || 'null')
-  const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || 'null')
 
   const handleUserLogout = () => {
     localStorage.removeItem('userInfo')
@@ -180,28 +179,18 @@ function Navbar() {
             </NavLink>
           )}
 
-          <div className="drawer-divider" />
-
-          <NavLink
-            to={adminInfo ? "/admin/dashboard" : "/admin/login"}
-            onClick={closeMenu}
-            className={({ isActive }) => `drawer-nav-item admin-link ${isActive ? 'active' : ''}`}
-          >
-            <span className="drawer-item-icon">
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            </span>
-            <span className="drawer-item-label">{adminInfo ? "Admin Dashboard" : "Admin Panel"}</span>
-          </NavLink>
-
           {userInfo && (
-            <button
-              onClick={handleUserLogout}
-              className="drawer-logout-btn"
-              type="button"
-            >
-              <LogOut size={16} />
-              <span>Sign Out</span>
-            </button>
+            <>
+              <div className="drawer-divider" />
+              <button
+                onClick={handleUserLogout}
+                className="drawer-logout-btn"
+                type="button"
+              >
+                <LogOut size={16} />
+                <span>Sign Out</span>
+              </button>
+            </>
           )}
         </nav>
       </aside>
@@ -246,13 +235,6 @@ function Navbar() {
             ) : (
               <NavLink to="/user/login" className={({ isActive }) => isActive ? 'active' : ''}>Login / Sign Up</NavLink>
             )}
-
-            <NavLink 
-              to={adminInfo ? "/admin/dashboard" : "/admin/login"} 
-              className={({ isActive }) => `admin-nav-link ${isActive ? 'active' : ''}`}
-            >
-              {adminInfo ? "Admin Panel" : "Admin"}
-            </NavLink>
           </div>
 
           {/* Right Header Action Icons: Bell, Avatar "AK", Hamburger */}

@@ -390,6 +390,11 @@ router.post('/pay-slot', userProtect, async (req, res) => {
         merchantTransactionId: txnId,
         paymentId: txnId,
         paidAt: new Date(),
+        dropLocations: {
+          erangel: user.erangelDrop || '',
+          rondo: user.rondoDrop || '',
+          miramar: user.miramarDrop || '',
+        },
       });
     }
 

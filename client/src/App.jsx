@@ -12,6 +12,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import UserLogin from './pages/UserLogin'
 import PaymentStatus from './pages/PaymentStatus'
 import Profile from './pages/Profile'
+import DropListPage from './pages/DropListPage'
 import BottomNav from './components/BottomNav'
 
 function ScrollToTop() {
@@ -55,6 +56,8 @@ function App() {
           <Route path="/payment-status" element={<PaymentStatus />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/wallet" element={<Navigate to="/profile" replace />} />
+          <Route path="/droplist" element={<DropListPage />} />
+          <Route path="/droplist/:slotId" element={<DropListPage />} />
 
           {/* User Auth Routes & Aliases */}
           <Route path="/user/login" element={<UserLogin />} />

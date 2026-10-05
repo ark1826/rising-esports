@@ -2,6 +2,7 @@ import express from 'express';
 import multer from 'multer';
 import { Slot } from '../models/Slot.js';
 import { Booking } from '../models/Booking.js';
+import { User } from '../models/User.js';
 import { protect, userProtect } from '../middleware/auth.js';
 import { uploadToCloudinary } from '../config/cloudinary.js';
 
@@ -55,7 +56,10 @@ router.get('/admin', protect, async(req, res) => {
             Booking.find({
                 slotId: { $in: slotIds },
                 paymentStatus: { $in: ['pending', 'paid', 'pending_verification'] }
-            }).populate('userId', 'teamName teamTag registrationNumber').lean(),
+            })
+            .sort({ createdAt: 1 })
+            .populate('userId', 'teamName teamTag registrationNumber teamLogo erangelDrop rondoDrop miramarDrop')
+            .lean(),
         ]);
 
         const countMap = {};
@@ -67,11 +71,31 @@ router.get('/admin', protect, async(req, res) => {
             if (!sId) return;
             if (!teamsMap[sId]) teamsMap[sId] = [];
             const u = b.userId;
+            const bDrops = b.dropLocations || {};
+            const erangelDrop = (u?.erangelDrop && u.erangelDrop.trim()) || (bDrops.erangel && bDrops.erangel.trim()) || (bDrops.erangle && bDrops.erangle.trim()) || '';
+            const rondoDrop = (u?.rondoDrop && u.rondoDrop.trim()) || (bDrops.rondo && bDrops.rondo.trim()) || '';
+            const miramarDrop = (u?.miramarDrop && u.miramarDrop.trim()) || (bDrops.miramar && bDrops.miramar.trim()) || '';
+            const sanhokDrop = (bDrops.sanhok && bDrops.sanhok.trim()) || '';
+            const vikendiDrop = (bDrops.vikendi && bDrops.vikendi.trim()) || '';
             teamsMap[sId].push({
+                bookingId: b._id,
+                userId: u?._id,
                 teamName: u?.teamName || 'Unknown Team',
                 teamTag: u?.teamTag || '',
+                teamLogo: u?.teamLogo || '',
                 registrationNumber: u?.registrationNumber || '',
                 paymentStatus: b.paymentStatus,
+                erangelDrop,
+                rondoDrop,
+                miramarDrop,
+                dropLocations: {
+                    ...bDrops,
+                    erangel: erangelDrop,
+                    rondo: rondoDrop,
+                    miramar: miramarDrop,
+                    sanhok: sanhokDrop,
+                    vikendi: vikendiDrop,
+                },
             });
         });
 
@@ -102,11 +126,11 @@ router.get('/admin', protect, async(req, res) => {
 
 // ──────────────── PUBLIC ROUTES ────────────────
 
-// Get all slots (WITHOUT roomId / roomPassword / heroImage base64)
+// Get all slots (WITHOUT roomId / roomPassword / heroImage base64 / customLink)
 router.get('/', async(req, res) => {
     try {
         const slots = await Slot.find()
-            .select('-roomId -roomPassword -whatsappLink')
+            .select('-roomId -roomPassword -whatsappLink -customLink')
             .sort({ slotTime: 1, createdAt: -1 });
 
         // Attach booking counts and registered teams preview
@@ -119,7 +143,10 @@ router.get('/', async(req, res) => {
             Booking.find({
                 slotId: { $in: slotIds },
                 paymentStatus: { $in: ['pending', 'paid', 'pending_verification'] }
-            }).populate('userId', 'teamName teamTag registrationNumber').lean(),
+            })
+            .sort({ createdAt: 1 })
+            .populate('userId', 'teamName teamTag registrationNumber teamLogo erangelDrop rondoDrop miramarDrop')
+            .lean(),
         ]);
 
         const countMap = {};
@@ -131,11 +158,31 @@ router.get('/', async(req, res) => {
             if (!sId) return;
             if (!teamsMap[sId]) teamsMap[sId] = [];
             const u = b.userId;
+            const bDrops = b.dropLocations || {};
+            const erangelDrop = (u?.erangelDrop && u.erangelDrop.trim()) || (bDrops.erangel && bDrops.erangel.trim()) || (bDrops.erangle && bDrops.erangle.trim()) || '';
+            const rondoDrop = (u?.rondoDrop && u.rondoDrop.trim()) || (bDrops.rondo && bDrops.rondo.trim()) || '';
+            const miramarDrop = (u?.miramarDrop && u.miramarDrop.trim()) || (bDrops.miramar && bDrops.miramar.trim()) || '';
+            const sanhokDrop = (bDrops.sanhok && bDrops.sanhok.trim()) || '';
+            const vikendiDrop = (bDrops.vikendi && bDrops.vikendi.trim()) || '';
             teamsMap[sId].push({
+                bookingId: b._id,
+                userId: u?._id,
                 teamName: u?.teamName || 'Unknown Team',
                 teamTag: u?.teamTag || '',
+                teamLogo: u?.teamLogo || '',
                 registrationNumber: u?.registrationNumber || '',
                 paymentStatus: b.paymentStatus,
+                erangelDrop,
+                rondoDrop,
+                miramarDrop,
+                dropLocations: {
+                    ...bDrops,
+                    erangel: erangelDrop,
+                    rondo: rondoDrop,
+                    miramar: miramarDrop,
+                    sanhok: sanhokDrop,
+                    vikendi: vikendiDrop,
+                },
             });
         });
 
@@ -198,14 +245,23 @@ router.get('/:id/image', async(req, res) => {
 // Get booking status for current user across all slots
 router.get('/my-bookings', userProtect, async(req, res) => {
     try {
-        const bookings = await Booking.find({ userId: req.user._id, slotId: { $exists: true, $ne: null } });
+        const bookings = await Booking.find({ userId: req.user._id, slotId: { $exists: true, $ne: null } })
+            .populate('slotId', 'customLink whatsappLink roomId roomPassword note matchName timing date');
         const bookingMap = {};
         bookings.forEach(b => {
             if (b.slotId) {
-                bookingMap[b.slotId.toString()] = {
+                const s = b.slotId;
+                const isPaid = b.paymentStatus === 'paid';
+                const sId = (s && s._id ? s._id : b.slotId).toString();
+                const sLink = (s && typeof s === 'object') ? (s.customLink || s.whatsappLink || '') : '';
+                const waLink = (s && typeof s === 'object') ? (s.whatsappLink || s.customLink || '') : '';
+                bookingMap[sId] = {
                     bookingId: b._id,
                     paymentStatus: b.paymentStatus,
                     merchantTransactionId: b.merchantTransactionId || b.razorpayOrderId,
+                    slotLink: isPaid ? sLink : '',
+                    whatsappLink: isPaid ? waLink : '',
+                    hasLink: isPaid && Boolean(sLink || waLink),
                 };
             }
         });
@@ -244,6 +300,7 @@ router.get('/:slotId/room-credentials', userProtect, async(req, res) => {
 
         const hasRoomId = Boolean(slot.roomId && slot.roomId.trim() && slot.roomId.trim() !== 'TBA');
         const hasPassword = Boolean(slot.roomPassword && slot.roomPassword.trim() && slot.roomPassword.trim() !== 'TBA');
+        const targetLink = slot.customLink || slot.whatsappLink || '';
 
         // If admin hasn't set credentials yet and slot time is in the future (>30 min away)
         if (!hasRoomId && !hasPassword && slot.slotTime) {
@@ -253,7 +310,9 @@ router.get('/:slotId/room-credentials', userProtect, async(req, res) => {
                 return res.json({
                     roomId: 'TBA',
                     roomPassword: 'TBA',
-                    whatsappLink: slot.whatsappLink || '',
+                    whatsappLink: targetLink,
+                    customLink: targetLink,
+                    slotLink: targetLink,
                     isScheduled: true,
                     message: 'Credentials have not been posted by admin yet. They will appear here once updated or 30 minutes before match.',
                     unlockAt: unlockAt.toISOString(),
@@ -265,11 +324,82 @@ router.get('/:slotId/room-credentials', userProtect, async(req, res) => {
         res.json({
             roomId: slot.roomId || 'TBA',
             roomPassword: slot.roomPassword || 'TBA',
-            whatsappLink: slot.whatsappLink || '',
+            whatsappLink: targetLink,
+            customLink: targetLink,
+            slotLink: targetLink,
             matchName: slot.matchName || '',
             date: slot.date || '',
             timing: slot.timing || '',
             note: slot.note || '',
+        });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// Get a single slot with populated registered teams and drop locations (PUBLIC)
+router.get('/:id', async (req, res) => {
+    try {
+        const slot = await Slot.findById(req.params.id)
+            .select('-roomId -roomPassword -whatsappLink -customLink');
+        if (!slot) {
+            return res.status(404).json({ message: 'Slot not found' });
+        }
+
+        const bookings = await Booking.find({
+            slotId: slot._id,
+            paymentStatus: { $in: ['pending', 'paid', 'pending_verification'] }
+        })
+        .sort({ createdAt: 1 })
+        .populate('userId', 'teamName teamTag registrationNumber teamLogo erangelDrop rondoDrop miramarDrop phone')
+        .lean();
+
+        const bookedTeams = bookings.map(b => {
+            const u = b.userId;
+            const bDrops = b.dropLocations || {};
+            const erangelDrop = (u?.erangelDrop && u.erangelDrop.trim()) || (bDrops.erangel && bDrops.erangel.trim()) || (bDrops.erangle && bDrops.erangle.trim()) || '';
+            const rondoDrop = (u?.rondoDrop && u.rondoDrop.trim()) || (bDrops.rondo && bDrops.rondo.trim()) || '';
+            const miramarDrop = (u?.miramarDrop && u.miramarDrop.trim()) || (bDrops.miramar && bDrops.miramar.trim()) || '';
+            const sanhokDrop = (bDrops.sanhok && bDrops.sanhok.trim()) || '';
+            const vikendiDrop = (bDrops.vikendi && bDrops.vikendi.trim()) || '';
+
+            return {
+                bookingId: b._id,
+                userId: u?._id,
+                teamName: u?.teamName || (u?.phone ? `Team ${u.phone.slice(-4)}` : 'Unknown Team'),
+                teamTag: u?.teamTag || '',
+                teamLogo: u?.teamLogo || '',
+                registrationNumber: u?.registrationNumber || '',
+                paymentStatus: b.paymentStatus,
+                erangelDrop,
+                rondoDrop,
+                miramarDrop,
+                dropLocations: {
+                    ...bDrops,
+                    erangel: erangelDrop,
+                    rondo: rondoDrop,
+                    miramar: miramarDrop,
+                    sanhok: sanhokDrop,
+                    vikendi: vikendiDrop,
+                },
+            };
+        });
+
+        const obj = slot.toObject();
+        obj.hasHeroImage = Boolean(obj.heroImage);
+        if (obj.heroImage && obj.heroImage.startsWith('http')) {
+            obj.heroImageUrl = obj.heroImage;
+        }
+        const maxTeams = slot.maxTeams || 20;
+        const booked = bookedTeams.length;
+        const remaining = Math.max(0, maxTeams - booked);
+
+        res.json({
+            ...obj,
+            bookedCount: booked,
+            remainingSlots: remaining,
+            isSoldOut: remaining <= 0,
+            bookedTeams,
         });
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -309,6 +439,12 @@ router.post('/', protect, async(req, res) => {
             }
         }
 
+        const incomingLink = req.body.customLink !== undefined ? req.body.customLink : (req.body.slotLink !== undefined ? req.body.slotLink : req.body.whatsappLink);
+        if (incomingLink !== undefined) {
+            req.body.customLink = incomingLink.trim();
+            req.body.whatsappLink = incomingLink.trim();
+        }
+
         parseSlotTime(req.body);
         const slot = await Slot.create(req.body);
         res.status(201).json(slot);
@@ -327,6 +463,12 @@ router.put('/:id', protect, async(req, res) => {
             req.body.price = Number(req.body.entryFee);
         } else if (req.body.price !== undefined && (req.body.entryFee === undefined || req.body.entryFee === null)) {
             req.body.entryFee = Number(req.body.price);
+        }
+
+        const incomingLink = req.body.customLink !== undefined ? req.body.customLink : (req.body.slotLink !== undefined ? req.body.slotLink : req.body.whatsappLink);
+        if (incomingLink !== undefined) {
+            req.body.customLink = incomingLink.trim();
+            req.body.whatsappLink = incomingLink.trim();
         }
 
         parseSlotTime(req.body);
@@ -370,6 +512,65 @@ router.post('/:id/upload-image', protect, upload.single('heroImage'), async(req,
     } catch (error) {
         console.error('Slot image upload error:', error);
         res.status(500).json({ message: error.message || 'Image upload failed' });
+    }
+});
+
+// Update or set drop location for current user in a booked slot
+router.put('/:slotId/my-drop', userProtect, async(req, res) => {
+    try {
+        const { slotId } = req.params;
+        const userId = req.user._id;
+        const { mapName, dropLocation, dropLocations } = req.body;
+
+        const booking = await Booking.findOne({
+            userId,
+            slotId,
+            paymentStatus: { $in: ['pending', 'paid', 'pending_verification'] },
+        });
+
+        if (!booking) {
+            return res.status(404).json({ message: 'No active booking found for this slot. Please book the slot first.' });
+        }
+
+        const currentDrops = booking.dropLocations || {};
+        const userUpdate = {};
+        if (dropLocations && typeof dropLocations === 'object') {
+            for (const [key, val] of Object.entries(dropLocations)) {
+                if (typeof val === 'string') {
+                    const cleanKey = key.toLowerCase().trim();
+                    currentDrops[cleanKey] = val.trim();
+                    if (cleanKey === 'erangel' || cleanKey === 'erangle') userUpdate.erangelDrop = val.trim();
+                    if (cleanKey === 'rondo') userUpdate.rondoDrop = val.trim();
+                    if (cleanKey === 'miramar') userUpdate.miramarDrop = val.trim();
+                }
+            }
+        } else if (mapName && typeof dropLocation === 'string') {
+            const key = mapName.toLowerCase().trim();
+            currentDrops[key] = dropLocation.trim();
+
+            if (key === 'erangel' || key === 'erangle') userUpdate.erangelDrop = dropLocation.trim();
+            if (key === 'rondo') userUpdate.rondoDrop = dropLocation.trim();
+            if (key === 'miramar') userUpdate.miramarDrop = dropLocation.trim();
+        } else {
+            return res.status(400).json({ message: 'mapName and dropLocation are required' });
+        }
+
+        if (Object.keys(userUpdate).length > 0) {
+            await User.findByIdAndUpdate(userId, { $set: userUpdate });
+        }
+
+        booking.dropLocations = currentDrops;
+        booking.markModified('dropLocations');
+        await booking.save();
+
+        res.json({
+            success: true,
+            message: 'Drop location updated successfully!',
+            dropLocations: currentDrops,
+        });
+    } catch (error) {
+        console.error('Error updating drop location:', error);
+        res.status(500).json({ message: error.message || 'Failed to update drop location' });
     }
 });
 

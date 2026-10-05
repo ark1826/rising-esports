@@ -52,6 +52,7 @@ const slotSchema = new mongoose.Schema({
     prize: { type: String, default: '' },
   }],
   whatsappLink: { type: String, default: '' }, // WhatsApp group invite link — only returned to paid users
+  customLink: { type: String, default: '' },   // Custom slot link uploaded by admin (e.g. WhatsApp, Discord, or match URL)
 }, { timestamps: true });
 
 export const Slot = mongoose.model('Slot', slotSchema);
