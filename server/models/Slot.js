@@ -46,6 +46,18 @@ const slotSchema = new mongoose.Schema({
     matchNumber: { type: Number },
     label: { type: String, default: '' },
     time: { type: String, default: '' },
+    map: { type: String, default: '' },
+  }],
+  dropDetails: [{
+    matchNumber: { type: Number, default: 1 },
+    matchLabel: { type: String, default: '' },
+    map: { type: String, default: '' },
+    teamId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    teamName: { type: String, default: '' },
+    teamTag: { type: String, default: '' },
+    teamLogo: { type: String, default: '' },
+    registrationNumber: { type: String, default: '' },
+    dropLocation: { type: String, default: '' },
   }],
   prizeDistribution: [{
     rank: { type: String, default: '' },
@@ -53,6 +65,14 @@ const slotSchema = new mongoose.Schema({
   }],
   whatsappLink: { type: String, default: '' }, // WhatsApp group invite link — only returned to paid users
   customLink: { type: String, default: '' },   // Custom slot link uploaded by admin (e.g. WhatsApp, Discord, or match URL)
+  // ── Extended scheduling fields (backward-compatible) ──
+  description: { type: String, default: '' },        // Tournament overview / rules (shown on detail page)
+  prizePoolTotal: { type: Number, default: 0, min: 0 }, // Total prize pool e.g. ₹5000
+  isPublished: { type: Boolean, default: true },     // false = draft (admin-only), true = visible to public
+  registrationOpenTime: { type: String, default: '' },  // e.g. "09:00 AM 22 Oct 2026" — when registration opens
+  registrationCloseTime: { type: String, default: '' }, // e.g. "01:30 PM 23 Oct 2026" — when registration closes
+  registrationStatus: { type: String, default: 'Open' }, // Open, Upcoming, Closed, Full, Ongoing, Completed, Cancelled
+  rules: { type: String, default: '' },               // Tournament rules & instructions
 }, { timestamps: true });
 
 export const Slot = mongoose.model('Slot', slotSchema);

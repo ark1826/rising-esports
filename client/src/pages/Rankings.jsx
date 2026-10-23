@@ -1,12 +1,28 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
-import { RefreshCw, Trophy } from 'lucide-react'
+import { RefreshCw, Trophy, ArrowLeft } from 'lucide-react'
+import soldierBgImg from '../assets/droplist_bg_soldier.jpg'
+
+const STICKER_PALETTES = [
+  { bg: 'linear-gradient(135deg, #b91c1c 0%, #7f1d1d 100%)', text: '#fee2e2' },
+  { bg: 'linear-gradient(135deg, #0369a1 0%, #0c4a6e 100%)', text: '#e0f2fe' },
+  { bg: 'linear-gradient(135deg, #6d28d9 0%, #4c1d95 100%)', text: '#f3e8ff' },
+  { bg: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)', text: '#e0e7ff' },
+  { bg: 'linear-gradient(135deg, #b45309 0%, #78350f 100%)', text: '#fef3c7' },
+  { bg: 'linear-gradient(135deg, #047857 0%, #064e3b 100%)', text: '#d1fae5' },
+  { bg: 'linear-gradient(135deg, #be185d 0%, #831843 100%)', text: '#ffe4e6' },
+  { bg: 'linear-gradient(135deg, #c2410c 0%, #7c2d12 100%)', text: '#ffedd5' },
+]
 
 function Rankings() {
+  const navigate = useNavigate()
   const [rankings, setRankings] = useState([])
   const [loading, setLoading] = useState(true)
   const [isUpdating, setIsUpdating] = useState(false)
   const [lastUpdated, setLastUpdated] = useState(null)
+  const [activeTab, setActiveTab] = useState('overall')
+  const [featuredMatchName, setFeaturedMatchName] = useState('RISING 1-3 GRIND SCRIMS')
   const intervalRef = useRef(null)
   const isInitialLoad = useRef(true)
 
@@ -33,7 +49,7 @@ function Rankings() {
     if (intervalRef.current) clearInterval(intervalRef.current)
     intervalRef.current = setInterval(() => {
       fetchRankings(true)
-    }, 15000) // 15 seconds
+    }, 15000)
   }, [fetchRankings])
 
   const stopPolling = useCallback(() => {
@@ -44,16 +60,20 @@ function Rankings() {
   }, [])
 
   useEffect(() => {
-    // Initial fetch
     fetchRankings(false)
     startPolling()
 
-    // Visibility change handler
+    // Also fetch latest slot to display its name in hero
+    axios.get(`${apiUrl}/api/slots`).then(res => {
+      if (Array.isArray(res.data) && res.data.length > 0) {
+        setFeaturedMatchName(res.data[0].matchName || 'RISING 1-3 GRIND SCRIMS')
+      }
+    }).catch(() => {})
+
     const handleVisibilityChange = () => {
       if (document.hidden) {
         stopPolling()
       } else {
-        // Immediate refresh when tab becomes visible again
         fetchRankings(true)
         startPolling()
       }
@@ -65,7 +85,7 @@ function Rankings() {
       stopPolling()
       document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
-  }, [fetchRankings, startPolling, stopPolling])
+  }, [fetchRankings, startPolling, stopPolling, apiUrl])
 
   const formatTime = (date) => {
     if (!date) return ''
@@ -82,76 +102,109 @@ function Rankings() {
   }
 
   return (
-    <div className="rankings-page fade-in">
-      <div className="page-header">
-        <p className="subtitle">Official Standings</p>
-        <h1>Team <span>Rankings</span></h1>
-        <div className="rankings-meta">
-          <span className="rankings-live-status"><span className="rankings-live-dot" /> Live standings</span>
-          {lastUpdated && (
-            <span className="last-updated">
-              Last updated at {formatTime(lastUpdated)}
-            </span>
-          )}
-          {isUpdating && (
-            <span className="update-indicator">
-              <span className="update-dot"></span>
-              Updating...
-            </span>
-          )}
-          <button
-            type="button"
-            className="rankings-refresh-btn"
-            onClick={() => fetchRankings(true)}
-            disabled={isUpdating}
-            aria-label="Refresh rankings"
-            title="Refresh rankings"
-          >
-            <RefreshCw size={14} className={isUpdating ? 'is-spinning' : ''} />
-            <span>Refresh</span>
-          </button>
+    <div className="rankings-page fade-in" style={{ padding: '0.5rem 0.75rem 5rem' }}>
+      {/* Header with Back Arrow (Screen 6) */}
+      <div className="category-screen-header">
+        <button type="button" className="category-back-btn" onClick={() => navigate('/')}>
+          <ArrowLeft size={18} />
+        </button>
+        <h2 className="category-screen-title">Points Table</h2>
+      </div>
+
+      {/* Hero Banner (Screen 6) */}
+      <div className="points-table-hero">
+        <div style={{ position: 'relative', zIndex: 2 }}>
+          <h1 className="tourney-hero-title" style={{ fontSize: '1.15rem' }}>
+            {featuredMatchName}
+          </h1>
+          <span className="cat-hero-badge" style={{ marginTop: '0.35rem' }}>BGMI</span>
         </div>
+        <div className="cat-hero-art" aria-hidden="true">
+          <img src={soldierBgImg} alt="Soldier" />
+        </div>
+      </div>
+
+      {/* Match Tabs: Overall | Match 1 | Match 2 | Match 3 */}
+      <div className="points-match-tabs">
+        {['overall', 'match1', 'match2', 'match3'].map((tab) => (
+          <button
+            key={tab}
+            type="button"
+            className={`points-match-tab ${activeTab === tab ? 'active' : ''}`}
+            onClick={() => setActiveTab(tab)}
+          >
+            {tab === 'overall' ? 'Overall' : tab === 'match1' ? 'Match 1' : tab === 'match2' ? 'Match 2' : 'Match 3'}
+          </button>
+        ))}
+      </div>
+
+      {/* Live metadata */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0.4rem 0.2rem 0.75rem', fontSize: '0.72rem', color: '#94a3b8' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+          <span className="rankings-live-dot" /> Live Standings
+        </span>
+        <button
+          type="button"
+          onClick={() => fetchRankings(true)}
+          style={{ background: 'transparent', border: 'none', color: '#c084fc', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', fontWeight: 700 }}
+        >
+          <RefreshCw size={12} className={isUpdating ? 'is-spinning' : ''} />
+          <span>Refresh</span>
+        </button>
       </div>
 
       {loading ? (
         <div className="loading">
           <div className="spinner"></div>
-          <p>Loading Rankings...</p>
+          <p>Loading Points Table...</p>
         </div>
       ) : rankings.length === 0 ? (
         <div className="empty-state">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{fill: 'none', stroke: '#6b6b80', width: '64px', height: '64px', margin: '0 auto 1rem'}}>
-            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-          </svg>
-          <h3>No Rankings Yet</h3>
-          <p>Rankings will appear here once the admin adds team data.</p>
+          <Trophy size={48} style={{ color: '#c084fc', margin: '0 auto 1rem', opacity: 0.6 }} />
+          <h3>No Points Added Yet</h3>
+          <p>Points table will be updated after matches conclude.</p>
         </div>
       ) : (
-        <div className="leaderboard-list" role="list" aria-label="Team leaderboard">
-          <div className="leaderboard-columns" aria-hidden="true">
-            <span>Team</span>
-            <span>WWCD</span>
-            <span>Place</span>
-            <span>Finish</span>
-            <span>Total</span>
-          </div>
-          {rankings.map(team => (
-            <article key={team._id} className={`leaderboard-row rank-${team.rank}`} role="listitem">
-              <div className="leaderboard-rank">{team.rank}</div>
-              <div className="leaderboard-team">
-                <div className="team-mark" aria-hidden="true">{getTeamMark(team.teamName)}</div>
-                <div className="leaderboard-team-copy">
-                  <strong>{team.teamName}</strong>
-                  <span>{team.teamTag ? `[${team.teamTag}]` : `${team.totalMatches} Matches`}</span>
-                </div>
-              </div>
-              <div className="leaderboard-stat" data-label="WWCD"><span>WWCD</span>{team.wwcd}</div>
-              <div className="leaderboard-stat" data-label="Place"><span>Place</span>{team.finishes}</div>
-              <div className="leaderboard-stat" data-label="Finish"><span>Finish</span>{team.totalMatches}</div>
-              <div className="leaderboard-total" data-label="Total"><span>Total</span>{team.totalPoints}</div>
-            </article>
-          ))}
-        </div>
+        <table className="standings-table">
+          <thead>
+            <tr>
+              <th style={{ width: '28px' }}>#</th>
+              <th className="left-align">Team</th>
+              <th>P Pts</th>
+              <th>K Pts</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rankings.map((team, idx) => {
+              const pal = STICKER_PALETTES[idx % STICKER_PALETTES.length]
+              return (
+                <tr key={team._id || idx} className="standings-row">
+                  <td className="rank-cell">{team.rank || idx + 1}</td>
+                  <td className="team-name-cell">
+                    <div
+                      className="tourney-team-crest"
+                      style={{
+                        width: '26px',
+                        height: '26px',
+                        fontSize: '0.65rem',
+                        background: pal.bg,
+                        color: pal.text,
+                        flexShrink: 0
+                      }}
+                    >
+                      {getTeamMark(team.teamName)}
+                    </div>
+                    <span>{team.teamName}</span>
+                  </td>
+                  <td>{team.finishes != null ? team.finishes : '-'}</td>
+                  <td>{team.wwcd != null ? team.wwcd : '-'}</td>
+                  <td className="total-pts-cell">{team.totalPoints != null ? team.totalPoints : 0}</td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
       )}
     </div>
   )

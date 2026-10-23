@@ -1,0 +1,673 @@
+const { spawnSync } = require('child_process');
+const fs = require('fs');
+const path = require('path');
+
+const edgePath = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
+const htmlPath = path.resolve(__dirname, 'admin_manual.html');
+const pdfPath = path.resolve(__dirname, '..', 'Rising_Esports_Admin_Panel_Operations_Manual.pdf');
+const artifactDir = 'C:\\Users\\Arun Katiyar\\.gemini\\antigravity-ide\\brain\\ddad968e-9071-43bb-b46f-99c726388559';
+const artifactPdfPath = path.join(artifactDir, 'Rising_Esports_Admin_Panel_Operations_Manual.pdf');
+
+const htmlContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Rising Esports - Admin Panel Operations Manual</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 14mm 14mm 14mm 14mm;
+      @bottom-right {
+        content: counter(page);
+      }
+    }
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+      color: #1e1b4b;
+      background: #ffffff;
+      line-height: 1.45;
+      font-size: 11pt;
+      margin: 0;
+      padding: 0;
+    }
+    h1, h2, h3, h4 {
+      color: #3b0764;
+      margin-top: 0;
+      font-weight: 800;
+    }
+    h1 { font-size: 24pt; line-height: 1.15; margin-bottom: 6px; }
+    h2 { font-size: 15pt; border-bottom: 2px solid #7c3aed; padding-bottom: 4px; margin-top: 22px; margin-bottom: 10px; page-break-after: avoid; }
+    h3 { font-size: 12pt; color: #581c87; margin-top: 14px; margin-bottom: 6px; page-break-after: avoid; }
+    p { margin: 0 0 8px 0; }
+    
+    .cover {
+      page-break-after: always;
+      height: 94vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      border: 3px solid #7c3aed;
+      border-radius: 12px;
+      padding: 36px 30px;
+      background: linear-gradient(145deg, #faf5ff 0%, #f3e8ff 100%);
+    }
+    .cover-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .brand-logo {
+      font-size: 20pt;
+      font-weight: 900;
+      letter-spacing: 2px;
+      color: #6d28d9;
+    }
+    .confidential-tag {
+      background: #7c3aed;
+      color: #fff;
+      font-size: 8pt;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      text-transform: uppercase;
+    }
+    .cover-center {
+      text-align: center;
+      margin: 40px 0;
+    }
+    .cover-title {
+      font-size: 28pt;
+      font-weight: 900;
+      color: #4c1d95;
+      margin-bottom: 12px;
+      letter-spacing: 0.5px;
+    }
+    .cover-sub {
+      font-size: 14pt;
+      color: #6d28d9;
+      font-weight: 600;
+      margin-bottom: 24px;
+    }
+    .cover-desc {
+      font-size: 10.5pt;
+      color: #4b5563;
+      max-width: 500px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+    .cover-bottom {
+      border-top: 1.5px solid #d8b4fe;
+      padding-top: 18px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 9pt;
+      color: #6b7280;
+    }
+
+    .badge {
+      display: inline-block;
+      font-size: 8pt;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .badge-purple { background: #ede9fe; color: #6d28d9; border: 1px solid #c4b5fd; }
+    .badge-green { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+    .badge-amber { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
+    .badge-red { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
+
+    .callout {
+      border-left: 4px solid #7c3aed;
+      background: #faf5ff;
+      padding: 10px 14px;
+      margin: 10px 0 14px;
+      border-radius: 0 8px 8px 0;
+      font-size: 9.5pt;
+    }
+    .callout-warning {
+      border-left-color: #ef4444;
+      background: #fef2f2;
+    }
+    .callout-success {
+      border-left-color: #10b981;
+      background: #f0fdf4;
+    }
+    .callout strong {
+      color: #3b0764;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0 16px;
+      font-size: 9pt;
+      page-break-inside: avoid;
+    }
+    th, td {
+      border: 1px solid #e2e8f0;
+      padding: 7px 9px;
+      text-align: left;
+    }
+    th {
+      background: #f3e8ff;
+      color: #4c1d95;
+      font-weight: 700;
+      font-size: 8.5pt;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    tr:nth-child(even) {
+      background: #fafafa;
+    }
+
+    .step-box {
+      border: 1px solid #e9d5ff;
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 10px;
+      background: #ffffff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    }
+    .step-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #7c3aed;
+      color: #ffffff;
+      font-size: 8.5pt;
+      font-weight: 800;
+      margin-right: 6px;
+    }
+    .step-title {
+      font-weight: 700;
+      color: #3b0764;
+      font-size: 10pt;
+    }
+    
+    .toc {
+      page-break-after: always;
+      padding-top: 10px;
+    }
+    .toc-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0;
+      border-bottom: 1px dotted #cbd5e1;
+      font-size: 10pt;
+    }
+    .toc-item a {
+      color: #4c1d95;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .page-break {
+      page-break-after: always;
+    }
+
+    ul, ol {
+      margin: 4px 0 10px 18px;
+      padding: 0;
+      font-size: 10pt;
+    }
+    li {
+      margin-bottom: 4px;
+    }
+    code {
+      font-family: 'Consolas', 'Courier New', monospace;
+      background: #f1f5f9;
+      color: #6d28d9;
+      padding: 1px 4px;
+      border-radius: 4px;
+      font-size: 9pt;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- COVER PAGE -->
+  <div class="cover">
+    <div class="cover-top">
+      <div class="brand-logo">★ RISING ESPORTS</div>
+      <div class="confidential-tag">Standard Operating Procedure</div>
+    </div>
+    
+    <div class="cover-center">
+      <div style="font-size: 36pt; margin-bottom: 10px;">🎮 🛡️ 🏆</div>
+      <div class="cover-title">ADMIN PANEL OPERATIONS MANUAL</div>
+      <div class="cover-sub">Tournament Scheduling, Dynamic Live Content, &amp; Esports Platform Management</div>
+      <p class="cover-desc">
+        Comprehensive master handbook for esports managers, tournament directors, and room coordinators. Covers slot creation, duplication, room credential security, UPI deposit verification, payout execution, and real-time points table synchronization.
+      </p>
+    </div>
+
+    <div class="cover-bottom">
+      <div><strong>Platform:</strong> Rising Esports BGMI v2.4</div>
+      <div><strong>Security Level:</strong> Internal Admin Use Only</div>
+      <div><strong>Updated:</strong> October 2026</div>
+    </div>
+  </div>
+
+  <!-- TABLE OF CONTENTS -->
+  <div class="toc">
+    <h2>TABLE OF CONTENTS</h2>
+    <div class="toc-item"><span><strong>1. Admin Portal Access &amp; Session Management</strong></span><span>Page 3</span></div>
+    <div class="toc-item"><span><strong>2. Tournament &amp; Slot Scheduling Architecture</strong></span><span>Page 3</span></div>
+    <div class="toc-item"><span><strong>3. Multi-Slot Rapid Scheduling (Duplicate Feature)</strong></span><span>Page 4</span></div>
+    <div class="toc-item"><span><strong>4. Visibility Lifecycle: Draft vs. Published</strong></span><span>Page 4</span></div>
+    <div class="toc-item"><span><strong>5. Registration Statuses &amp; Slot Capacity Control</strong></span><span>Page 5</span></div>
+    <div class="toc-item"><span><strong>6. Team Management &amp; Manual Slot Assignment</strong></span><span>Page 5</span></div>
+    <div class="toc-item"><span><strong>7. Map Rotations &amp; Drop Locations Management</strong></span><span>Page 6</span></div>
+    <div class="toc-item"><span><strong>8. Room Credentials Time-Lock &amp; Anti-Leak Protocol</strong></span><span>Page 6</span></div>
+    <div class="toc-item"><span><strong>9. Financial Operations: UPI Deposits &amp; UTR Verification</strong></span><span>Page 7</span></div>
+    <div class="toc-item"><span><strong>10. Financial Operations: User Withdrawals &amp; Wallet Adjustments</strong></span><span>Page 7</span></div>
+    <div class="toc-item"><span><strong>11. Match Results Entry &amp; Automatic Points Table Sync</strong></span><span>Page 8</span></div>
+    <div class="toc-item"><span><strong>12. Community WhatsApp Group &amp; Live Announcements</strong></span><span>Page 8</span></div>
+    <div class="toc-item"><span><strong>13. Emergency Escalation &amp; Troubleshooting Guide</strong></span><span>Page 9</span></div>
+  </div>
+
+  <!-- SECTION 1 & 2 -->
+  <div>
+    <h2>1. Admin Portal Access &amp; Session Management</h2>
+    <p>The Admin Dashboard is the central command center for the entire platform. Access is restricted to verified administrators.</p>
+    
+    <div class="step-box">
+      <span class="step-num">1</span>
+      <span class="step-title">Access Route:</span> Navigate to <code>/admin/login</code> via browser.
+    </div>
+    <div class="step-box">
+      <span class="step-num">2</span>
+      <span class="step-title">Authentication:</span> Enter the master admin credentials provided by the platform lead.
+    </div>
+    <div class="step-box">
+      <span class="step-num">3</span>
+      <span class="step-title">Session Token:</span> Sessions are secured using a JWT bearer token. If an action returns an unauthorized error, sign out and re-authenticate.
+    </div>
+
+    <div class="callout callout-warning">
+      <strong>Security Best Practice:</strong> Never share admin credentials. When managing tournaments from public or LAN devices, always sign out from the top-right menu after concluding your session.
+    </div>
+
+    <h2>2. Tournament &amp; Slot Scheduling Architecture</h2>
+    <p>Rising Esports features four core tournament tiers, each linked directly to dynamic frontend categories:</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Category Code</th>
+          <th>Display Name</th>
+          <th>Schedule Frequency</th>
+          <th>Default Entry Fee</th>
+          <th>Standard Prize Pool</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="badge badge-purple">SCRIMS</span></td>
+          <td>Daily Scrims</td>
+          <td>Multiple Slots Daily (2 PM, 4 PM, 6 PM, 8 PM)</td>
+          <td>₹60 / team</td>
+          <td>₹5,000 Total</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-red">WEEKLY WAR</span></td>
+          <td>Weekly War</td>
+          <td>Every Wednesday &amp; Saturday</td>
+          <td>₹100 / team</td>
+          <td>₹10,000 Total</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-amber">WEEKEND WAR</span></td>
+          <td>Weekend War</td>
+          <td>Saturdays &amp; Sundays</td>
+          <td>₹150 / team</td>
+          <td>₹15,000 Total</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-green">GRANDS</span></td>
+          <td>Grands Finals</td>
+          <td>Monthly Invitational Finals</td>
+          <td>Invite / Free</td>
+          <td>₹50,000+ Total</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Step-by-Step: Creating a New Tournament Slot</h3>
+    <ol>
+      <li>Click on the <strong>"Today Slots"</strong> tab or <strong>"Manage Slots"</strong> in Admin Dashboard.</li>
+      <li>Click the purple <strong>"+ Add New Slot"</strong> button at top right to open the master modal.</li>
+      <li>Fill out the mandatory schedule parameters:
+        <ul>
+          <li><strong>Tournament / Match Title:</strong> e.g., <code>RISING 1-3 GRIND SCRIMS</code></li>
+          <li><strong>Date:</strong> e.g., <code>10 Oct 2026</code> (or use calendar picker)</li>
+          <li><strong>Timing (IST):</strong> e.g., <code>02:00 PM</code></li>
+          <li><strong>Category:</strong> Select from <code>SCRIMS</code>, <code>WEEKLY WAR</code>, <code>WEEKEND WAR</code>, or <code>GRANDS</code></li>
+          <li><strong>Lobby Name:</strong> e.g., <code>LOBBY 1</code>, <code>LOBBY 2</code></li>
+          <li><strong>Entry Fee:</strong> Enter price per team (e.g. <code>60</code>)</li>
+          <li><strong>Total Prize Pool:</strong> Enter numeric total (e.g. <code>5000</code>)</li>
+          <li><strong>Max Teams:</strong> Default is <code>20</code> teams per BGMI custom match</li>
+          <li><strong>Map Rotation:</strong> Enter comma-separated maps, e.g., <code>ERANGEL, RONDO, MIRAMAR</code></li>
+        </ul>
+      </li>
+      <li>Upload a tournament banner/hero image (JPEG or PNG, recommended 1200x600px).</li>
+      <li>Set <strong>Visibility</strong> to <em>Published</em> (live immediately) or <em>Draft</em> (hidden for testing).</li>
+      <li>Click <strong>"Save Changes"</strong>. The new slot is instantly persisted to MongoDB and visible to all active clients.</li>
+    </ol>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- SECTION 3 & 4 -->
+  <div>
+    <h2>3. Multi-Slot Rapid Scheduling (Duplicate Feature)</h2>
+    <p>Organizing multiple scrim lobbies per day typically requires creating identical matches across different time slots (e.g., 2:00 PM, 3:30 PM, 5:00 PM, 7:00 PM). The <strong>Duplicate Slot</strong> engine eliminates manual re-entry.</p>
+
+    <div class="step-box">
+      <span class="step-num">1</span>
+      <span class="step-title">Locate Source Slot:</span> In the <strong>Manage Slots</strong> tab, find the template slot.
+    </div>
+    <div class="step-box">
+      <span class="step-num">2</span>
+      <span class="step-title">Click "Copy":</span> Click the purple <strong>"Copy"</strong> button on the slot card.
+    </div>
+    <div class="step-box">
+      <span class="step-num">3</span>
+      <span class="step-title">Automated Duplication:</span> The server clones the slot parameters (fee, prize pool, maps, distribution, rules, and image), clears old booked teams and room credentials, and marks the duplicate as <code>Draft</code> with <code>(Copy)</code> in the title.
+    </div>
+    <div class="step-box">
+      <span class="step-num">4</span>
+      <span class="step-title">Adjust Timing &amp; Publish:</span> Click <strong>"Edit Full"</strong> on the clone, update the timing (e.g., <code>04:00 PM</code>) and lobby (e.g., <code>LOBBY 2</code>), change Visibility to <em>Published</em>, and save.
+    </div>
+
+    <div class="callout callout-success">
+      <strong>Operator Tip:</strong> A full day's roster of 6 custom scrim lobbies can be scheduled and published in under 90 seconds using this workflow!
+    </div>
+
+    <h2>4. Visibility Lifecycle: Draft vs. Published</h2>
+    <p>To prevent incomplete schedules, preliminary testing, or pricing errors from reaching the player community, every tournament slot has a strict visibility state.</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>State</th>
+          <th>Admin Panel Visibility</th>
+          <th>Player Website Visibility</th>
+          <th>Bookings Allowed</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="badge badge-purple">● Published</span></td>
+          <td>Visible with green badge</td>
+          <td>Live on Homepage, Category Lists, and Today Slots</td>
+          <td>Yes (UPI &amp; Wallet checkout active)</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-amber">○ Draft</span></td>
+          <td>Visible with yellow badge</td>
+          <td><strong>Hidden</strong> (Filtered out by backend API)</td>
+          <td>No (Admin preview only)</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>One-Click Visibility Toggle:</h3>
+    <ul>
+      <li>On each slot card in the Admin Panel, an instant <strong>"Publish"</strong> / <strong>"Unpublish"</strong> button is available.</li>
+      <li>Clicking this button toggles the live status on the database via <code>PATCH /api/slots/:id/publish</code> without needing to open the full edit modal.</li>
+    </ul>
+
+    <h2>5. Registration Statuses &amp; Slot Capacity Control</h2>
+    <p>Admin can set custom registration states to reflect the real-time stage of the custom room:</p>
+    <ul>
+      <li><span class="badge badge-green">Open</span>: Registration is active and teams can register and pay.</li>
+      <li><span class="badge badge-purple">Upcoming</span>: Announced for future dates; countdown displayed.</li>
+      <li><span class="badge badge-red">Full</span>: All 20 team slots booked; automatically triggers when bookedCount = maxTeams.</li>
+      <li><span class="badge badge-amber">Ongoing / Live</span>: Match is currently in progress; ID &amp; Password locked.</li>
+      <li><span class="badge badge-purple">Completed</span>: Match concluded; ready for points table calculation.</li>
+      <li><span class="badge badge-red">Cancelled</span>: Match called off; all registered teams queued for automatic refunds.</li>
+    </ul>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- SECTION 6, 7 & 8 -->
+  <div>
+    <h2>6. Team Management &amp; Manual Slot Assignment</h2>
+    <p>While players can register and pay directly through the client app, admins can manually assign teams (e.g., VIP teams, invited roster, or offline payments).</p>
+
+    <h3>Assigning a Registered Team to a Slot:</h3>
+    <ol>
+      <li>In the <strong>Today Slots</strong> panel, find the target slot card and click <strong>"+ Add Team"</strong> in the Registered Teams section.</li>
+      <li>Select the team from the dropdown (displays Team Name, Team Tag, and Rising Registration ID).</li>
+      <li>(Optional) Enter their initial drop location (e.g., <code>Pochinki</code>).</li>
+      <li>Click <strong>"Assign Team to Slot"</strong>. A confirmed paid booking is created and the fill rate is incremented.</li>
+    </ol>
+
+    <h3>Removing a Team from a Slot:</h3>
+    <ul>
+      <li>Click the red <strong>"Remove"</strong> button next to any team in the Registered Teams list.</li>
+      <li>The booking is deleted and their drop locations are cleared.</li>
+    </ul>
+
+    <h2>7. Map Rotations &amp; Drop Locations Management</h2>
+    <p>Custom lobbies feature 3-match rotations across standard competitive maps (Erangel, Miramar, Rondo, Sanhok, Vikendi). Ensuring teams have designated drop locations prevents drop clashes and disputes.</p>
+
+    <div class="step-box">
+      <span class="step-num">1</span>
+      <span class="step-title">Access Drop Details Tab:</span> In Admin Dashboard, click the <strong>"Drop Details"</strong> tab.
+    </div>
+    <div class="step-box">
+      <span class="step-num">2</span>
+      <span class="step-title">Select Active Slot:</span> Choose the relevant tournament slot from the top dropdown.
+    </div>
+    <div class="step-box">
+      <span class="step-num">3</span>
+      <span class="step-title">Assign Match &amp; Location:</span>
+      Select Match Number (Match 1, Match 2, or Match 3), Map (e.g., ERANGEL), Registered Team, and enter Drop Location (e.g., <code>School</code>, <code>Pochinki</code>, <code>Rozhok</code>, <code>Georgopol</code>).
+    </div>
+    <div class="step-box">
+      <span class="step-num">4</span>
+      <span class="step-title">Publish:</span> Click <strong>"Save Drop Detail"</strong>. The drop detail is immediately published to Screen 5 on the frontend.
+    </div>
+
+    <h2>8. Room ID &amp; Password Security &amp; Anti-Leak Protocol</h2>
+    <p>Protecting custom room credentials is vital to prevent unregistered infiltrators from joining.</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Parameter</th>
+          <th>Admin Action</th>
+          <th>Backend Protection</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Room ID</strong></td>
+          <td>Entered in Slot Editor or Quick Creds bar</td>
+          <td>Hidden from all public slot listings and unverified requests</td>
+        </tr>
+        <tr>
+          <td><strong>Room Password</strong></td>
+          <td>Entered in Slot Editor or Quick Creds bar</td>
+          <td>Hidden from all public slot listings and unverified requests</td>
+        </tr>
+        <tr>
+          <td><strong>Time-Lock Window</strong></td>
+          <td>Configured via Match Timing</td>
+          <td><strong>Unlocked strictly 30 minutes before match time</strong>. Accessing earlier returns a 403 Too Early response.</td>
+        </tr>
+        <tr>
+          <td><strong>Payment Gating</strong></td>
+          <td>Automatic</td>
+          <td>User must have a confirmed <code>paid</code> booking record to reveal credentials.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout callout-warning">
+      <strong>Protocol Note:</strong> Always enter the Room ID and Password at least 35 minutes before match start. The system automatically handles time-based release to confirmed players at T-30 minutes.
+    </div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- SECTION 9 & 10 -->
+  <div>
+    <h2>9. Financial Operations: UPI Deposits &amp; UTR Verification</h2>
+    <p>When players deposit funds into their Rising Wallet or pay directly via UPI QR code, they submit their 12-digit bank UTR reference number.</p>
+
+    <h3>Verification Workflow:</h3>
+    <ol>
+      <li>Navigate to the <strong>"UPI Deposits"</strong> or <strong>"Bookings"</strong> tab.</li>
+      <li>Filter by <strong>"Pending Verification"</strong> to view pending submissions.</li>
+      <li>Copy the 12-digit UTR number using the <strong>"Copy"</strong> button.</li>
+      <li>Cross-check the UTR and amount on your business UPI app (PhonePe, Paytm, Google Pay, or Bank Portal).</li>
+      <li><strong>If Payment Received:</strong> Click the green <strong>"Approve"</strong> button. The user's wallet is credited instantly or their tournament slot booking is confirmed.</li>
+      <li><strong>If Payment Not Received:</strong> Click the red <strong>"Reject"</strong> button. Enter an optional reason (e.g., <em>"UTR not found in bank statement"</em>).</li>
+    </ol>
+
+    <div class="callout callout-warning">
+      <strong>Fraud Prevention:</strong> Never approve a UTR without matching the exact transaction ID and amount in your receiving bank account statement. Duplicate UTR submissions are automatically flagged by the database.
+    </div>
+
+    <h2>10. Financial Operations: User Withdrawals &amp; Wallet Adjustments</h2>
+    <p>Players request payouts from their tournament winnings through the Wallet section.</p>
+
+    <h3>Processing Payout Requests:</h3>
+    <ol>
+      <li>Click on the <strong>"Wallet / Withdrawals"</strong> tab in Admin Dashboard.</li>
+      <li>View the pending requests table showing: Player Team Name, Phone, Registered UPI ID, and Requested Amount.</li>
+      <li>Open your business banking portal and initiate a UPI transfer to the player's UPI ID for the exact amount.</li>
+      <li>Upon successful bank transfer, click <strong>"Approve Payout"</strong>. The transaction is logged to the ledger as completed.</li>
+      <li><strong>Rejecting Invalid Withdrawals:</strong> If the UPI ID is invalid or fraudulent, click <strong>"Reject &amp; Refund"</strong>. The full withdrawal amount is automatically refunded back to the player's Rising Wallet balance.</li>
+    </ol>
+
+    <h3>Manual Wallet Balance Adjustment:</h3>
+    <ul>
+      <li>Under <strong>Wallet &gt; Adjust Balance</strong>, select any player by Registration ID or Phone.</li>
+      <li>Select <code>Credit</code> (add funds) or <code>Debit</code> (deduct funds).</li>
+      <li>Enter Amount and Reason (e.g., <em>"Tournament #1 First Place Prize Money"</em>).</li>
+      <li>Click <strong>"Apply Adjustment"</strong>. Changes reflect immediately in the player's account.</li>
+    </ul>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- SECTION 11, 12 & 13 -->
+  <div>
+    <h2>11. Match Results Entry &amp; Automatic Points Table Sync</h2>
+    <p>After a tournament concludes, entering match statistics immediately syncs the leaderboard and Points Table on Screen 6.</p>
+
+    <div class="step-box">
+      <span class="step-num">1</span>
+      <span class="step-title">Open Results Builder:</span> Click <strong>"Enter Match Results"</strong> in the Results tab.
+    </div>
+    <div class="step-box">
+      <span class="step-num">2</span>
+      <span class="step-title">Enter Match Details:</span> Input Match Name, Match Date, Timing, and Mode (Squad TPP).
+    </div>
+    <div class="step-box">
+      <span class="step-num">3</span>
+      <span class="step-title">Enter Placement &amp; Finishes:</span>
+      Enter Team Names in order of finish (Position 1 to 16) and their finish/kill counts.
+      The system automatically computes:
+      <ul>
+        <li><strong>Placement Points:</strong> #1 = 10 pts, #2 = 6 pts, #3 = 5 pts, #4 = 4 pts, #5 = 3 pts, #6 = 2 pts, #7-8 = 1 pt.</li>
+        <li><strong>Kill Points:</strong> 1 point per kill/finish.</li>
+        <li><strong>Total Points:</strong> Placement Points + Kill Points.</li>
+      </ul>
+    </div>
+    <div class="step-box">
+      <span class="step-num">4</span>
+      <span class="step-title">Publish &amp; Recalculate:</span> Click <strong>"Save &amp; Publish Results"</strong>. The system saves the match record and recalculates cumulative team standings across the entire platform.
+    </div>
+
+    <h2>12. Community WhatsApp Group &amp; Live Announcements</h2>
+    <ul>
+      <li><strong>Official WhatsApp Community Link:</strong> In the top dashboard banner, click <strong>"Edit Community Link"</strong>, enter your latest invite URL, and save. This updates the "Join Now" CTA button on the Homepage and the Navigation Drawer across all devices.</li>
+      <li><strong>Live Admin Broadcasts:</strong> Under the <strong>Announcements</strong> tab, click <strong>"+ New Announcement"</strong>. Published broadcasts appear instantly in the marquee ticker and the rules popup for all players.</li>
+    </ul>
+
+    <h2>13. Emergency Escalation &amp; Troubleshooting Guide</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Issue / Incident</th>
+          <th>Root Cause</th>
+          <th>Action Procedure</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Slot cannot be deleted</td>
+          <td>Active paid bookings exist</td>
+          <td>The server blocks accidental deletion to protect paid players. Refund or remove booked teams first, or pass <code>?force=true</code> if authorized.</td>
+        </tr>
+        <tr>
+          <td>Players cannot see Room Credentials</td>
+          <td>Time-lock active (T &gt; 30 mins) or unpaid booking</td>
+          <td>Confirm match start time is set correctly. Check if player payment is approved (<code>paid</code> status).</td>
+        </tr>
+        <tr>
+          <td>Disputed UTR / Double Claim</td>
+          <td>Two players entered the same reference</td>
+          <td>Search the UTR in <strong>All Transactions Ledger</strong> to identify the original claimant. Contact bank if unverified.</td>
+        </tr>
+        <tr>
+          <td>Match Cancelled due to BGMI Server Maintenance</td>
+          <td>Server downtime</td>
+          <td>Set slot status to <code>Cancelled</code>. Issue full wallet credits to all registered teams using the Adjustment tool.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</body>
+</html>
+`;
+
+fs.writeFileSync(htmlPath, htmlContent, 'utf8');
+console.log('HTML Manual written to:', htmlPath);
+
+// Execute Edge Headless to generate PDF
+console.log('Spawning Edge headless to compile PDF...');
+const result = spawnSync(edgePath, [
+  '--headless',
+  '--disable-gpu',
+  '--run-all-compositor-stages-before-draw',
+  '--no-pdf-header-footer',
+  `--print-to-pdf=${pdfPath}`,
+  htmlPath
+], { stdio: 'inherit' });
+
+console.log('Edge exit code:', result.status);
+if (fs.existsSync(pdfPath)) {
+  const size = fs.statSync(pdfPath).size;
+  console.log(`PDF successfully created at: ${pdfPath} (${size} bytes)`);
+
+  // Copy to artifact directory
+  try {
+    if (!fs.existsSync(artifactDir)) {
+      fs.mkdirSync(artifactDir, { recursive: true });
+    }
+    fs.copyFileSync(pdfPath, artifactPdfPath);
+    console.log(`PDF copied to artifact directory at: ${artifactPdfPath}`);
+  } catch (err) {
+    console.warn('Could not copy to artifact directory:', err.message);
+  }
+} else {
+  console.error('PDF was not generated!');
+  process.exit(1);
+}

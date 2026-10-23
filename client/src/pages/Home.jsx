@@ -18,11 +18,17 @@ import {
   Send,
   Trophy,
   Award,
-  AlertTriangle
+  AlertTriangle,
+  User,
+  Clock,
+  Calendar
 } from 'lucide-react';
-import walletSoldierImg from '../assets/wallet_soldier.jpg';
 import scrimBannerImg from '../assets/scrim_banner.jpg';
+import soldierBgImg from '../assets/droplist_bg_soldier.jpg';
+import helmetImg from '../assets/droplist_soldier_helmet.jpg';
+import walletSoldierImg from '../assets/wallet_soldier.jpg';
 import paymentQR from '../assets/payment_qr.png';
+import WithdrawalSuccessModal from '../components/WithdrawalSuccessModal';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -60,6 +66,7 @@ export default function Home() {
   const navigate = useNavigate();
   const [walletBalance, setWalletBalance] = useState(0.0);
   const [featuredSlot, setFeaturedSlot] = useState(null);
+  const [allSlots, setAllSlots] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
   const [showRulesModal, setShowRulesModal] = useState(false);
   const [showDepositModal, setShowDepositModal] = useState(false);
@@ -80,6 +87,8 @@ export default function Home() {
   const [withdrawUpi, setWithdrawUpi] = useState('');
   const [withdrawNotes, setWithdrawNotes] = useState('');
   const [withdrawMsg, setWithdrawMsg] = useState(null);
+  const [showWithdrawalSuccessModal, setShowWithdrawalSuccessModal] = useState(false);
+  const [withdrawalSuccessData, setWithdrawalSuccessData] = useState(null);
 
   const userInfo = useMemo(() => {
     try {
@@ -114,6 +123,7 @@ export default function Home() {
     axios.get(`${API_URL}/api/slots`)
       .then((res) => {
         if (isMounted && Array.isArray(res.data) && res.data.length > 0) {
+          setAllSlots(res.data);
           const active = res.data.find((s) => !s.isSoldOut) || res.data[0];
           setFeaturedSlot(active);
         }
@@ -260,7 +270,7 @@ export default function Home() {
 
     setIsProcessing(true);
     try {
-      await axios.post(
+      const { data } = await axios.post(
         `${API_URL}/api/wallet/withdraw`,
         {
           amount: amt,
@@ -269,9 +279,18 @@ export default function Home() {
         },
         { headers: { Authorization: `Bearer ${userInfo.token}` } }
       );
-      setWithdrawMsg({ type: 'success', text: `Withdrawal request of ₹${amt} submitted! Processing shortly.` });
       setWalletBalance((prev) => Math.max(0, prev - amt));
-      setTimeout(() => setShowWithdrawModal(false), 2000);
+      setShowWithdrawModal(false);
+      setWithdrawalSuccessData({
+        amount: amt,
+        upiId: withdrawUpi.trim(),
+        transactionId: data?.transaction?.transactionId || `WAL_WTH_${Date.now()}`,
+      });
+      setShowWithdrawalSuccessModal(true);
+      setWithdrawAmount('');
+      setWithdrawUpi('');
+      setWithdrawNotes('');
+      setWithdrawMsg(null);
     } catch (err) {
       setWithdrawMsg({ type: 'error', text: err.response?.data?.message || 'Withdrawal failed. Try again.' });
     } finally {
@@ -285,6 +304,19 @@ export default function Home() {
   return (
     <div className="home-page-wrapper fade-in">
       <div className="home-container">
+        {/* ── WELCOME BACK HEADER (Screen 1) ───────────────── */}
+        <div className="home-welcome-header">
+          <div className="home-welcome-avatar">
+            <User size={19} />
+          </div>
+          <div>
+            <div className="home-welcome-sub">Welcome Back,</div>
+            <div className="home-welcome-name">
+              {userInfo?.name || userInfo?.username || 'Arun Katiyar'}
+            </div>
+          </div>
+        </div>
+
         {/* ── 1. WALLET BALANCE CARD ──────────────────────────── */}
         <section className="home-wallet-card" aria-label="Wallet Overview">
           <div className="wallet-card-top">
@@ -300,20 +332,6 @@ export default function Home() {
                   <span className="wallet-digits-main">{balanceParts[0]}</span>
                   <span className="wallet-digits-cents">.{balanceParts[1]}</span>
                 </div>
-              </div>
-            </div>
-
-            {/* Right Soldier Graphic & Slanted Neon Text */}
-            <div className="wallet-soldier-art-wrap" aria-hidden="true">
-              <img
-                src={walletSoldierImg}
-                alt="BGMI Esports Warrior"
-                className="wallet-soldier-img"
-              />
-              <div className="wallet-graffiti-text">
-                <span>PLAY</span>
-                <span>COMPETE</span>
-                <span>RISE</span>
               </div>
             </div>
           </div>
@@ -342,185 +360,216 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ── 2. ANNOUNCEMENT CARD ────────────────────────────── */}
-        <section className="home-announcement-card" aria-label="Official Announcements">
-          <div className="announcement-header-row">
-            <div className="announcement-title-wrap">
-              <div className="announcement-icon-bubble">
-                <Megaphone size={21} strokeWidth={2.2} />
-              </div>
-              <h2 className="announcement-heading">ANNOUNCEMENT</h2>
-            </div>
-            <button
-              type="button"
-              className="announcement-view-all"
-              onClick={() => setShowRulesModal(true)}
-              id="view-all-announcements-btn"
-            >
-              <span>View All</span>
-              <ArrowRight size={14} />
-            </button>
-          </div>
-
-          <div className="announcement-inner-box">
-            {announcements && announcements.length > 0 ? (
-              announcements.map((item, idx) => (
-                <div key={item._id || idx} className="announcement-rule-item">
-                  <div className="announcement-num-badge">{idx + 1}</div>
-                  <div className="announcement-rule-text" style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', marginBottom: '2px' }}>
-                      <span style={{ fontWeight: 800, color: '#f3e8ff', fontSize: '0.74rem' }}>
-                        {item.title}
-                      </span>
-                      {item.author && (
-                        <span style={{ fontSize: '0.62rem', color: '#c084fc', background: 'rgba(167, 139, 250, 0.15)', padding: '1px 5px', borderRadius: '4px', flexShrink: 0 }}>
-                          {item.author}
-                        </span>
-                      )}
-                    </div>
-                    <p style={{ margin: 0, color: '#d1d5db', fontSize: '0.7rem', lineHeight: 1.35, wordBreak: 'break-word' }}>
-                      {item.content}
-                    </p>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <>
-                <div className="announcement-rule-item">
-                  <div className="announcement-num-badge">1</div>
-                  <p className="announcement-rule-text">
-                    Emulators / iPads / Hacks are strictly prohibited (Permanent Blacklist).
-                  </p>
-                </div>
-
-                <div className="announcement-rule-item">
-                  <div className="announcement-num-badge">2</div>
-                  <p className="announcement-rule-text">
-                    Match starts strictly on time. Ensure full squad joins respective slots.
-                  </p>
-                </div>
-
-                <div className="announcement-rule-item">
-                  <div className="announcement-num-badge">3</div>
-                  <p className="announcement-rule-text">
-                    Points table will be updated within 15 minutes after match finish.
-                  </p>
-                </div>
-              </>
-            )}
-          </div>
-        </section>
-
-        {/* ── 3. MATCH RESULTS & POINTS BANNER ────────────────── */}
-        <section
-          className="home-results-banner"
-          onClick={() => navigate('/rankings')}
-          role="button"
-          tabIndex={0}
-          aria-label="View Match Results and Rankings"
-          id="match-results-banner"
-        >
-          <div className="results-left-wrap">
-            <div className="results-icon-box">
-              <BarChart3 size={22} strokeWidth={2.4} />
-            </div>
-            <div className="results-text-col">
-              <h3 className="results-title">
-                <span>MATCH RESULTS</span>
-                <span className="highlight">&amp; POINTS</span>
-              </h3>
-              <p className="results-subtitle">
-                View daily results &amp; standings of live scrims
-              </p>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            className="results-view-btn"
-            onClick={(e) => {
-              e.stopPropagation();
-              navigate('/rankings');
-            }}
-          >
-            <span>VIEW</span>
-            <ArrowRight size={14} />
-          </button>
-        </section>
-
-        {/* ── 4. FEATURED SCRIMS SECTION ──────────────────────── */}
-        <section className="home-scrims-section" aria-label="Featured Scrims">
-          <div className="scrims-section-header">
-            <div className="scrims-heading-wrap">
-              <Zap size={20} className="scrims-lightning-icon" fill="#a855f7" />
-              <h3 className="scrims-section-title">
-                FEATURED <span className="purple">SCRIMS</span>
-              </h3>
-            </div>
-            <button
-              type="button"
-              className="scrims-view-all"
-              onClick={() => navigate('/slots')}
-              id="view-all-scrims-btn"
-            >
-              <span>View all</span>
-              <ArrowRight size={14} />
-            </button>
-          </div>
-
-          {/* Featured Scrim Card */}
+        {/* ── 2. FEATURED HERO SCRIM CARD (Screen 1) ─────────── */}
+        <section className="home-featured-hero-wrap" aria-label="Featured Tournament">
           <div
-            className="featured-scrim-card"
-            onClick={() => navigate('/slots')}
+            className="featured-scrim-hero"
+            onClick={() => {
+              if (featuredSlot) {
+                navigate(`/slots?category=${encodeURIComponent(featuredSlot.category || 'Daily Scrims')}&slotId=${featuredSlot._id}`);
+              } else {
+                navigate('/slots?category=Daily%20Scrims');
+              }
+            }}
             role="button"
             tabIndex={0}
-            id="featured-scrim-card-1"
           >
-            {/* Background Soldier Art & R Watermark */}
-            <div className="scrim-card-bg-wrap" aria-hidden="true">
-              <img
-                src={scrimBannerImg}
-                alt="Cyber BGMI Esports"
-                className="scrim-card-bg-img"
-              />
-              <span className="scrim-watermark-r">R</span>
-            </div>
+            <div className="featured-hero-left">
+              <span className="featured-hero-badge">
+                {featuredSlot?.category === 'Daily Scrims' ? 'BGMI' : (featuredSlot?.category || 'BGMI')}
+              </span>
+              <h2 className="featured-hero-title">
+                {featuredSlot?.matchName || 'RISING 1-3 GRIND SCRIMS'}
+              </h2>
 
-            <div className="scrim-card-content">
-              <div className="scrim-top-status-row">
-                <span className="scrim-brand-tag">RISING ESPORTS</span>
-                <div className="scrim-live-badge">
-                  <span className="scrim-live-dot" />
-                  <span>LIVE</span>
+              <div className="featured-hero-stats">
+                <div className="featured-hero-stat-item">
+                  <Shield size={14} color="#38bdf8" />
+                  <span>Entry Fee: <strong className="featured-hero-stat-val">₹{featuredSlot?.entryFee != null ? featuredSlot.entryFee : 60}</strong></span>
+                </div>
+                <div className="featured-hero-stat-item">
+                  <Trophy size={14} color="#fbbf24" />
+                  <span>Prize Pool: <strong className="featured-hero-stat-val">₹{(featuredSlot?.prizePoolTotal || (featuredSlot?.prizePool ? Number(String(featuredSlot.prizePool).replace(/[^0-9]/g, '')) : 5000)).toLocaleString('en-IN')}</strong></span>
                 </div>
               </div>
 
-              <h4 className="scrim-card-title">
-                RISING 1-3 GRIND SCRIMS
-              </h4>
+              <div className="featured-hero-timing">
+                <Clock size={13} />
+                <span>{featuredSlot?.date || '10 Oct 2026'} • {featuredSlot?.timing || '02:00 PM'}</span>
+              </div>
 
-              <div className="scrim-meta-badges">
-                <div className="scrim-badge-squad">
-                  <Users size={15} />
-                  <span>SQUAD</span>
-                </div>
+              <button
+                type="button"
+                className="featured-hero-cta"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (featuredSlot) {
+                    navigate(`/slots?category=${encodeURIComponent(featuredSlot.category || 'Daily Scrims')}&slotId=${featuredSlot._id}`);
+                  } else {
+                    navigate('/slots?category=Daily%20Scrims');
+                  }
+                }}
+              >
+                View Details
+              </button>
+            </div>
 
-                <span className="scrim-badge-divider">|</span>
+            <div className="featured-hero-art" aria-hidden="true">
+              <img
+                src={featuredSlot?.heroImage || soldierBgImg}
+                alt="Tournament Soldier"
+              />
+            </div>
+          </div>
 
-                <div className="scrim-badge-lobby">
-                  <BgmiHelmetIcon size={14} color="#c084fc" />
-                  <span>LOBBY 2</span>
-                </div>
+          <div className="featured-hero-dots">
+            <span className="featured-dot active"></span>
+            <span className="featured-dot"></span>
+            <span className="featured-dot"></span>
+          </div>
+        </section>
+
+        {/* ── 3. EXPLORE WHAT WE OFFER (Screen 1 2x2 Grid) ────── */}
+        <section className="home-explore-section" aria-label="Explore Categories">
+          <div className="home-explore-title">EXPLORE WHAT WE OFFER</div>
+          <div className="explore-grid-2x2">
+            <div
+              className="explore-cat-card scrims"
+              onClick={() => navigate('/slots?category=Daily%20Scrims')}
+              role="button"
+              tabIndex={0}
+            >
+              <div className="explore-cat-bg" style={{ backgroundImage: `url(${soldierBgImg})` }} />
+              <div className="explore-cat-badge">DAILY GRIND</div>
+              <div className="explore-cat-bottom">
+                <div className="explore-cat-name">SCRIMS</div>
+                <div className="explore-cat-sub">Daily Grind</div>
+              </div>
+            </div>
+
+            <div
+              className="explore-cat-card weekly"
+              onClick={() => navigate('/slots?category=Weekly%20War')}
+              role="button"
+              tabIndex={0}
+            >
+              <div className="explore-cat-bg" style={{ backgroundImage: `url(${soldierBgImg})`, filter: 'hue-rotate(320deg)' }} />
+              <div className="explore-cat-badge">COMPETITIVE</div>
+              <div className="explore-cat-bottom">
+                <div className="explore-cat-name">WEEKLY WAR</div>
+                <div className="explore-cat-sub">Competitive Battles</div>
+              </div>
+            </div>
+
+            <div
+              className="explore-cat-card weekend"
+              onClick={() => navigate('/slots?category=Weekend%20War')}
+              role="button"
+              tabIndex={0}
+            >
+              <div className="explore-cat-bg" style={{ backgroundImage: `url(${soldierBgImg})`, filter: 'hue-rotate(45deg)' }} />
+              <div className="explore-cat-badge">BIG REWARDS</div>
+              <div className="explore-cat-bottom">
+                <div className="explore-cat-name">WEEKEND WAR</div>
+                <div className="explore-cat-sub">Big Rewards</div>
+              </div>
+            </div>
+
+            <div
+              className="explore-cat-card grands"
+              onClick={() => navigate('/slots?category=Grands')}
+              role="button"
+              tabIndex={0}
+            >
+              <div className="explore-cat-bg" style={{ backgroundImage: `url(${soldierBgImg})`, filter: 'hue-rotate(180deg)' }} />
+              <div className="explore-cat-badge">ELITE FINALS</div>
+              <div className="explore-cat-bottom">
+                <div className="explore-cat-name">GRANDS</div>
+                <div className="explore-cat-sub">Elite Tournaments</div>
               </div>
             </div>
           </div>
         </section>
+
+        {/* ── 4. TODAY'S SLOTS (Mobile-First Vertical Cards) ─────────── */}
+        {allSlots && allSlots.length > 0 && (
+          <section className="home-featured-slots-section" aria-label="Today's Slots">
+            <div className="home-explore-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span>TODAY'S FEATURED SLOTS</span>
+              <button
+                type="button"
+                onClick={() => navigate('/slots')}
+                style={{ background: 'none', border: 'none', color: '#c084fc', fontSize: '0.74rem', fontWeight: 700, cursor: 'pointer' }}
+              >
+                View All &gt;
+              </button>
+            </div>
+            <div className="home-vertical-slots-list">
+              {allSlots.slice(0, 3).map((slot) => {
+                const booked = Number(slot.bookedCount) || 0;
+                const total = Number(slot.maxTeams) || 20;
+                const pct = Math.min(100, Math.round((booked / total) * 100));
+                return (
+                  <div
+                    key={slot._id}
+                    className="home-slot-vertical-card"
+                    onClick={() => navigate(`/slots?category=${encodeURIComponent(slot.category || 'Daily Scrims')}&slotId=${slot._id}`)}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    <div className="home-slot-v-header">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span className="home-slot-v-cat">{slot.category || 'SCRIMS'}</span>
+                        <span className="home-slot-v-lobby">{slot.lobby || 'LOBBY 1'}</span>
+                      </div>
+                      <span className="home-slot-v-fill">{booked}/{total} Teams</span>
+                    </div>
+
+                    <h3 className="home-slot-v-title">{slot.matchName || 'RISING 1-3 GRIND SCRIMS'}</h3>
+
+                    <div className="home-slot-v-bar-wrap">
+                      <div className="home-slot-v-bar" style={{ width: `${pct}%` }} />
+                    </div>
+
+                    <div className="home-slot-v-meta">
+                      <div className="home-slot-v-item">
+                        <Shield size={13} color="#38bdf8" />
+                        <span>Fee: <strong>₹{slot.entryFee != null ? slot.entryFee : 60}</strong></span>
+                      </div>
+                      <div className="home-slot-v-item">
+                        <Trophy size={13} color="#fbbf24" />
+                        <span>Prize: <strong>₹{(slot.prizePoolTotal || 5000).toLocaleString('en-IN')}</strong></span>
+                      </div>
+                      <div className="home-slot-v-item">
+                        <Clock size={13} color="#a78bfa" />
+                        <span>{slot.timing || '02:00 PM'}</span>
+                      </div>
+                    </div>
+
+                    <div className="home-slot-v-footer">
+                      <div className="home-slot-v-date">📅 {slot.date || 'Today'}</div>
+                      <button
+                        type="button"
+                        className="home-slot-v-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/slots?category=${encodeURIComponent(slot.category || 'Daily Scrims')}&slotId=${slot._id}`);
+                        }}
+                      >
+                        View Details
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
         {/* ── 5. OFFICIAL COMMUNITY WHATSAPP CTA ───────────────── */}
         <section className="home-community-cta">
           <div className="community-cta-text">
-            <h4>Official WhatsApp Group</h4>
-            <p>Join for instant Room ID, Password &amp; updates</p>
+            <h4>Official Group Link</h4>
           </div>
           <a
             href={officialWhatsAppUrl}
@@ -962,6 +1011,13 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      {/* ── MODAL: WITHDRAWAL SUCCESS POPUP ── */}
+      <WithdrawalSuccessModal
+        isOpen={showWithdrawalSuccessModal}
+        onClose={() => setShowWithdrawalSuccessModal(false)}
+        data={withdrawalSuccessData}
+      />
     </div>
   );
 }

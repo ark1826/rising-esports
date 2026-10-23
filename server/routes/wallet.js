@@ -5,6 +5,7 @@ import { Transaction } from '../models/Transaction.js';
 import { Slot } from '../models/Slot.js';
 import { Tournament } from '../models/Tournament.js';
 import { Booking } from '../models/Booking.js';
+import { Notification } from '../models/Notification.js';
 import { protect, userProtect } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -611,6 +612,24 @@ router.put('/admin/deposits/:id/verify', protect, async (req, res) => {
 
       await transaction.save();
 
+      // Create user notification
+      try {
+        await Notification.create({
+          userId: transaction.userId,
+          title: 'Money Added Successfully 💰',
+          message: `Your deposit request for ₹${transaction.amount} has been approved! ₹${transaction.amount} is added to your wallet.`,
+          type: 'deposit_approved',
+          amount: transaction.amount,
+          status: 'approved',
+          metadata: {
+            transactionId: transaction.transactionId,
+            utrNumber: transaction.utrNumber,
+          },
+        });
+      } catch (notifErr) {
+        console.error('Failed to create deposit approval notification:', notifErr);
+      }
+
       console.log(`[Deposit Approved] Admin ${adminUsername} credited ₹${transaction.amount} to User ${transaction.userId}`);
 
       return res.json({
@@ -623,6 +642,25 @@ router.put('/admin/deposits/:id/verify', protect, async (req, res) => {
       // Payment rejected -> ZERO BALANCE ADDED
       transaction.rejectionReason = notes || 'Payment rejected by admin';
       await transaction.save();
+
+      // Create user notification
+      try {
+        await Notification.create({
+          userId: transaction.userId,
+          title: 'Deposit Request Rejected ❌',
+          message: `Your deposit request for ₹${transaction.amount} (UTR: ${transaction.utrNumber || 'N/A'}) was rejected by admin${notes ? ': ' + notes : '.'}`,
+          type: 'deposit_rejected',
+          amount: transaction.amount,
+          status: 'rejected',
+          metadata: {
+            transactionId: transaction.transactionId,
+            utrNumber: transaction.utrNumber,
+            reason: notes,
+          },
+        });
+      } catch (notifErr) {
+        console.error('Failed to create deposit rejection notification:', notifErr);
+      }
 
       console.log(`[Deposit Rejected] Admin ${adminUsername} rejected deposit ${transaction._id}`);
 
@@ -674,6 +712,26 @@ router.put('/admin/withdrawals/:id', protect, async (req, res) => {
     if (notes) transaction.notes = notes;
     await transaction.save();
 
+    // If approved, notify user of payout
+    if (status === 'success') {
+      try {
+        await Notification.create({
+          userId: transaction.userId,
+          title: 'Withdrawal Approved ✅',
+          message: `Your withdrawal request of ₹${transaction.amount} has been approved by admin! Transferred to ${transaction.upiId || 'your UPI ID'}.`,
+          type: 'withdrawal_approved',
+          amount: transaction.amount,
+          status: 'approved',
+          metadata: {
+            transactionId: transaction.transactionId,
+            upiId: transaction.upiId,
+          },
+        });
+      } catch (notifErr) {
+        console.error('Failed to create withdrawal approval notification:', notifErr);
+      }
+    }
+
     // If rejected, refund the money back to the user's wallet!
     if (status === 'rejected') {
       await User.findByIdAndUpdate(transaction.userId, {
@@ -692,6 +750,24 @@ router.put('/admin/withdrawals/:id', protect, async (req, res) => {
         verifiedBy: adminUsername,
         verifiedAt: new Date(),
       });
+
+      // Notify user of rejection and refund
+      try {
+        await Notification.create({
+          userId: transaction.userId,
+          title: 'Withdrawal Rejected ❌',
+          message: `Your withdrawal request of ₹${transaction.amount} was rejected${notes ? ': ' + notes : '.'} ₹${transaction.amount} has been refunded back to your wallet.`,
+          type: 'withdrawal_rejected',
+          amount: transaction.amount,
+          status: 'rejected',
+          metadata: {
+            transactionId: transaction.transactionId,
+            reason: notes,
+          },
+        });
+      } catch (notifErr) {
+        console.error('Failed to create withdrawal rejection notification:', notifErr);
+      }
     }
 
     res.json({ message: `Withdrawal marked as ${status}`, transaction });
@@ -747,6 +823,22 @@ router.post('/admin/adjust-balance', protect, async (req, res) => {
       verifiedBy: adminUsername,
       verifiedAt: new Date(),
     });
+
+    try {
+      await Notification.create({
+        userId,
+        title: type === 'credit' ? 'Wallet Credited 🎁' : 'Wallet Debited ℹ️',
+        message: type === 'credit'
+          ? `Admin credited ₹${numAmount} to your wallet${reason ? ' (' + reason + ')' : '.'}`
+          : `Admin debited ₹${numAmount} from your wallet${reason ? ' (' + reason + ')' : '.'}`,
+        type: type === 'credit' ? 'wallet_credit' : 'wallet_debit',
+        amount: numAmount,
+        status: type === 'credit' ? 'credited' : 'debited',
+        metadata: { reason },
+      });
+    } catch (notifErr) {
+      console.error('Failed to create adjust balance notification:', notifErr);
+    }
 
     res.json({
       success: true,

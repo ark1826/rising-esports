@@ -4,7 +4,7 @@ import { Admin } from '../models/Admin.js';
 
 const router = express.Router();
 
-router.post('/login', async (req, res) => {
+const handleLogin = async (req, res) => {
   const { username, password } = req.body;
 
   try {
@@ -46,6 +46,9 @@ router.post('/login', async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
-});
+};
+
+router.post('/login', handleLogin);
+router.post('/admin/login', handleLogin);
 
 export default router;

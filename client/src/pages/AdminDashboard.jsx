@@ -32,6 +32,12 @@ import {
   ArrowUpRight,
   Search,
   Filter,
+  MapPin,
+  Grid,
+  Clock,
+  Copy,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 
 const AdminDashboard = () => {
@@ -40,6 +46,12 @@ const AdminDashboard = () => {
   const [slots, setSlots] = useState([]);
   const [tournaments, setTournaments] = useState([]);
   const [bookings, setBookings] = useState([]);
+
+  // ── Manage Slots scheduling & filter states ──
+  const [slotSearch, setSlotSearch] = useState('');
+  const [slotCategoryFilter, setSlotCategoryFilter] = useState('ALL');
+  const [slotStatusFilter, setSlotStatusFilter] = useState('ALL');
+  const [slotDateFilter, setSlotDateFilter] = useState('');
   const [announcements, setAnnouncements] = useState([]);
   const [matches, setMatches] = useState([]);
   const [matchResults, setMatchResults] = useState([]);
@@ -89,6 +101,25 @@ const AdminDashboard = () => {
   const [savingOfficialWa, setSavingOfficialWa] = useState(false);
   const [officialWaSavedMsg, setOfficialWaSavedMsg] = useState(null);
 
+  // ── Team Assignment & Multiple Teams state ──
+  const [availableTeams, setAvailableTeams] = useState([]);
+  const [teamAssignModal, setTeamAssignModal] = useState({ open: false, slot: null });
+  const [assignTeamForm, setAssignTeamForm] = useState({ userId: '', dropLocation: '' });
+  const [assigningTeam, setAssigningTeam] = useState(false);
+
+  // ── Drop Details management state ──
+  const [selectedDropSlotId, setSelectedDropSlotId] = useState('');
+  const [dropDetailForm, setDropDetailForm] = useState({
+    matchNumber: 1,
+    matchLabel: 'MATCH 1',
+    map: 'ERANGEL',
+    teamId: '',
+    teamName: '',
+    dropLocation: ''
+  });
+  const [editingDropDetailId, setEditingDropDetailId] = useState(null);
+  const [savingDropDetail, setSavingDropDetail] = useState(false);
+
   const tabsRef = useRef(null);
 
   useEffect(() => {
@@ -112,7 +143,7 @@ const AdminDashboard = () => {
 
   const fetchData = async () => {
     try {
-      const [rankRes, slotRes, bookingRes, tourRes, annRes, matchRes, resultsRes, wthRes, depRes, allTxnRes, usersRes] = await Promise.all([
+      const [rankRes, slotRes, bookingRes, tourRes, annRes, matchRes, resultsRes, wthRes, depRes, allTxnRes, usersRes, teamsRes] = await Promise.all([
         axios.get(`${apiUrl}/api/rankings`),
         axios.get(`${apiUrl}/api/slots/admin`, config).catch(() => axios.get(`${apiUrl}/api/slots`)),
         axios.get(`${apiUrl}/api/bookings`, config),
@@ -124,9 +155,14 @@ const AdminDashboard = () => {
         axios.get(`${apiUrl}/api/wallet/admin/deposits`, config).catch(() => ({ data: [] })),
         axios.get(`${apiUrl}/api/wallet/admin/all`, config).catch(() => ({ data: { transactions: [] } })),
         axios.get(`${apiUrl}/api/users/admin/all`, config).catch(() => ({ data: [] })),
+        axios.get(`${apiUrl}/api/slots/available-teams`, config).catch(() => ({ data: [] })),
       ]);
       setRankings(rankRes.data || []);
-      setSlots(slotRes.data || []);
+      const loadedSlots = slotRes.data || [];
+      setSlots(loadedSlots);
+      if (loadedSlots.length > 0 && !selectedDropSlotId) {
+        setSelectedDropSlotId(loadedSlots[0]._id);
+      }
       setTournaments(tourRes.data || []);
       setBookings(bookingRes.data || []);
       setAnnouncements(annRes.data || []);
@@ -136,6 +172,7 @@ const AdminDashboard = () => {
       setDeposits(depRes.data || []);
       setAllTransactions(allTxnRes.data?.transactions || allTxnRes.data || []);
       setAllUsers(usersRes.data || []);
+      setAvailableTeams(teamsRes.data || []);
 
       axios.get(`${apiUrl}/api/config/official-whatsapp`)
         .then(r => { if (r.data?.url) setOfficialWaLink(r.data.url); })
@@ -147,17 +184,149 @@ const AdminDashboard = () => {
     }
   };
 
+  const fetchAvailableTeams = async () => {
+    try {
+      const res = await axios.get(`${apiUrl}/api/slots/available-teams`, config);
+      setAvailableTeams(res.data || []);
+    } catch (err) {
+      console.error('Failed to fetch available teams', err);
+    }
+  };
+
+  const handleOpenTeamAssignModal = (slot) => {
+    setTeamAssignModal({ open: true, slot });
+    setAssignTeamForm({ userId: '', dropLocation: '' });
+    fetchAvailableTeams();
+  };
+
+  const handleAssignTeamToSlot = async (e) => {
+    if (e) e.preventDefault();
+    if (!teamAssignModal.slot?._id || !assignTeamForm.userId) {
+      alert('Please select a team to assign.');
+      return;
+    }
+    setAssigningTeam(true);
+    try {
+      await axios.post(
+        `${apiUrl}/api/slots/${teamAssignModal.slot._id}/teams`,
+        {
+          userId: assignTeamForm.userId,
+          dropLocation: assignTeamForm.dropLocation.trim()
+        },
+        config
+      );
+      alert('Team successfully assigned to slot!');
+      setTeamAssignModal({ open: false, slot: null });
+      setAssignTeamForm({ userId: '', dropLocation: '' });
+      await fetchData();
+    } catch (err) {
+      alert('Failed to assign team: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setAssigningTeam(false);
+    }
+  };
+
+  const handleRemoveTeamFromSlot = async (slotId, bookingId, teamName) => {
+    if (!window.confirm(`Are you sure you want to remove team "${teamName || 'this team'}" from this slot?`)) {
+      return;
+    }
+    try {
+      await axios.delete(`${apiUrl}/api/slots/${slotId}/teams/${bookingId}`, config);
+      alert('Team removed successfully!');
+      await fetchData();
+    } catch (err) {
+      alert('Failed to remove team: ' + (err.response?.data?.message || err.message));
+    }
+  };
+
+  const handleTogglePublish = async (slotId, currentPublished) => {
+    try {
+      const { data } = await axios.patch(`${apiUrl}/api/slots/${slotId}/publish`, { isPublished: !currentPublished }, config);
+      await fetchData();
+      alert(data?.message || (currentPublished ? 'Unpublished (draft)' : 'Published to public'));
+    } catch (err) {
+      alert('Failed to update visibility: ' + (err.response?.data?.message || err.message));
+    }
+  };
+
+  const handleDuplicateSlot = async (slotId) => {
+    try {
+      const { data } = await axios.post(`${apiUrl}/api/slots/${slotId}/duplicate`, {}, config);
+      await fetchData();
+      alert('Slot duplicated successfully as draft! You can now adjust its timing, lobby, and publish it.');
+    } catch (err) {
+      alert('Duplicate failed: ' + (err.response?.data?.message || err.message));
+    }
+  };
+
+  const handleSaveDropDetail = async (e) => {
+    if (e) e.preventDefault();
+    if (!selectedDropSlotId) {
+      alert('Please select a slot.');
+      return;
+    }
+    if (!dropDetailForm.teamId) {
+      alert('Please select a team.');
+      return;
+    }
+    if (!dropDetailForm.dropLocation || !dropDetailForm.dropLocation.trim()) {
+      alert('Please enter a drop location.');
+      return;
+    }
+
+    setSavingDropDetail(true);
+    try {
+      const teamObj = availableTeams.find(t => String(t._id) === String(dropDetailForm.teamId));
+      await axios.put(
+        `${apiUrl}/api/slots/${selectedDropSlotId}/drop-details`,
+        {
+          detailId: editingDropDetailId,
+          matchNumber: Number(dropDetailForm.matchNumber) || 1,
+          matchLabel: dropDetailForm.matchLabel || `MATCH ${dropDetailForm.matchNumber || 1}`,
+          map: dropDetailForm.map || 'ERANGEL',
+          teamId: dropDetailForm.teamId,
+          teamName: teamObj?.teamName || dropDetailForm.teamName || '',
+          teamTag: teamObj?.teamTag || '',
+          teamLogo: teamObj?.teamLogo || '',
+          registrationNumber: teamObj?.registrationNumber || null,
+          dropLocation: dropDetailForm.dropLocation.trim()
+        },
+        config
+      );
+      alert('Drop detail saved and published successfully!');
+      setEditingDropDetailId(null);
+      setDropDetailForm(prev => ({
+        ...prev,
+        teamId: '',
+        teamName: '',
+        dropLocation: ''
+      }));
+      await fetchData();
+    } catch (err) {
+      alert('Failed to save drop detail: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setSavingDropDetail(false);
+    }
+  };
+
+  const handleDeleteDropDetail = async (slotId, detailId) => {
+    if (!window.confirm('Are you sure you want to delete this published drop detail?')) return;
+    try {
+      await axios.delete(`${apiUrl}/api/slots/${slotId}/drop-details/${detailId}`, config);
+      alert('Drop detail deleted.');
+      await fetchData();
+    } catch (err) {
+      alert('Failed to delete drop detail: ' + (err.response?.data?.message || err.message));
+    }
+  };
+
   useEffect(() => {
     if (slots.length > 0) {
       const map = {};
       slots.forEach((s) => {
         const matches = Array.isArray(s.scheduleMatches) && s.scheduleMatches.length > 0
           ? s.scheduleMatches
-          : (s.timing ? [{ matchNumber: 1, label: 'MATCH 1', time: s.timing }] : [
-              { matchNumber: 1, label: 'MATCH 1', time: '1:42 PM' },
-              { matchNumber: 2, label: 'MATCH 2', time: '2:22 PM' },
-              { matchNumber: 3, label: 'MATCH 3', time: '3:02 PM' }
-            ]);
+          : (s.timing ? [{ matchNumber: 1, label: 'MATCH 1', time: s.timing }] : []);
 
         const pDist = Array.isArray(s.prizeDistribution) && s.prizeDistribution.length > 0
           ? s.prizeDistribution
@@ -214,11 +383,7 @@ const AdminDashboard = () => {
       if (activeTab === 'slots') {
         const matches = Array.isArray(item.scheduleMatches) && item.scheduleMatches.length > 0
           ? item.scheduleMatches
-          : (item.timing ? [{ matchNumber: 1, label: 'MATCH 1', time: item.timing }] : [
-              { matchNumber: 1, label: 'MATCH 1', time: '1:42 PM' },
-              { matchNumber: 2, label: 'MATCH 2', time: '2:22 PM' },
-              { matchNumber: 3, label: 'MATCH 3', time: '3:02 PM' }
-            ]);
+          : (item.timing ? [{ matchNumber: 1, label: 'MATCH 1', time: item.timing }] : []);
 
         const pDist = Array.isArray(item.prizeDistribution) && item.prizeDistribution.length > 0
           ? item.prizeDistribution
@@ -306,28 +471,34 @@ const AdminDashboard = () => {
           lobby: 'LOBBY 1',
           matchName: 'RISING 1-3 GRIND SCRIMS',
           date: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
-          timing: '1:42 PM',
+          timing: '02:00 PM',
           mode: 'Squad TPP',
           entryFee: 60,
           price: 60,
-          maxTeams: 19,
+          prizePoolTotal: 5000,
+          maxTeams: 20,
+          isPublished: true,
+          registrationStatus: 'Open',
+          registrationOpenTime: '',
+          registrationCloseTime: '',
+          description: 'Daily grind scrims for all the passionate BGMI players. Compete, showcase your skills and win exciting rewards!',
+          rules: '1. Emulators / iPads / Hacks are strictly prohibited.\n2. Match starts strictly on time.\n3. Points table will be updated after match finish.',
           maps: 'ERANGEL, RONDO, MIRAMAR',
           scheduleMatches: [
-            { matchNumber: 1, label: 'MATCH 1', time: '1:42 PM' },
-            { matchNumber: 2, label: 'MATCH 2', time: '2:22 PM' },
-            { matchNumber: 3, label: 'MATCH 3', time: '3:02 PM' }
+            { matchNumber: 1, label: 'MATCH 1', time: '02:00 PM', map: 'ERANGEL' },
+            { matchNumber: 2, label: 'MATCH 2', time: '02:45 PM', map: 'MIRAMAR' },
+            { matchNumber: 3, label: 'MATCH 3', time: '03:30 PM', map: 'RONDO' },
           ],
           prizeDistribution: [
-            { rank: '#1', prize: '₹400' },
-            { rank: '#2', prize: '₹150' },
-            { rank: '#3', prize: '₹100' },
-            { rank: '#4', prize: '₹70' },
-            { rank: '#5', prize: 'FREE' }
+            { rank: '#1', prize: '₹2,500' },
+            { rank: '#2', prize: '₹1,500' },
+            { rank: '#3', prize: '₹1,000' }
           ],
           roomId: '',
           roomPassword: '',
           note: 'ID / Pass will be provided 30 min before match',
           whatsappLink: '',
+          heroImage: '',
         });
       } else {
         setFormData({
@@ -540,17 +711,35 @@ const AdminDashboard = () => {
     try {
       let payload;
       if (activeTab === 'slots') {
+        const slotTiming = (formData.timing || formData.scheduleMatches?.[0]?.time || '').trim();
+        if (!slotTiming) {
+          alert('Slot Timing is required (e.g. 2:00 PM)');
+          setIsSubmitting(false);
+          return;
+        }
+        const updatedMatches = (formData.scheduleMatches && formData.scheduleMatches.length > 0)
+          ? formData.scheduleMatches.map((m, idx) => (idx === 0 ? { ...m, time: slotTiming } : m))
+          : [{ matchNumber: 1, label: 'MATCH 1', time: slotTiming }];
+
         payload = {
           ...formData,
           category: formData.category || 'SCRIMS',
           lobby: formData.lobby || 'LOBBY 1',
+          timing: slotTiming,
           price: Number(formData.price ?? formData.entryFee ?? 0),
           entryFee: Number(formData.entryFee ?? formData.price ?? 0),
-          maxTeams: Number(formData.maxTeams ?? 19),
+          prizePoolTotal: Number(formData.prizePoolTotal || 0),
+          maxTeams: Number(formData.maxTeams ?? 20),
+          isPublished: formData.isPublished !== false,
+          registrationStatus: formData.registrationStatus || 'Open',
+          registrationOpenTime: formData.registrationOpenTime || '',
+          registrationCloseTime: formData.registrationCloseTime || '',
+          description: formData.description || '',
+          rules: formData.rules || '',
           maps: typeof formData.maps === 'string'
             ? formData.maps.split(',').map(map => map.trim().toUpperCase()).filter(Boolean)
             : formData.maps || ['ERANGEL', 'RONDO', 'MIRAMAR'],
-          scheduleMatches: formData.scheduleMatches || [],
+          scheduleMatches: updatedMatches,
           prizeDistribution: formData.prizeDistribution || [],
           customLink: formData.customLink || formData.whatsappLink || '',
           whatsappLink: formData.whatsappLink || formData.customLink || '',
@@ -571,6 +760,7 @@ const AdminDashboard = () => {
         payload = formData;
       }
       delete payload.heroImageFile;
+      delete payload.heroImagePreview;
 
       let savedId;
       if (editingItem) {
@@ -579,6 +769,18 @@ const AdminDashboard = () => {
       } else {
         const res = await axios.post(`${apiUrl}/api/${activeTab}`, payload, config);
         savedId = res.data._id;
+      }
+
+      if (activeTab === 'slots' && formData.heroImageFile && savedId) {
+        try {
+          const fd = new FormData();
+          fd.append('heroImage', formData.heroImageFile);
+          await axios.post(`${apiUrl}/api/slots/${savedId}/upload-image`, fd, {
+            headers: { Authorization: `Bearer ${adminInfo?.token}`, 'Content-Type': 'multipart/form-data' },
+          });
+        } catch (imgErr) {
+          console.warn('Slot hero image upload failed:', imgErr.message);
+        }
       }
 
       if (activeTab === 'tournaments' && formData.posterFile && savedId) {
@@ -839,18 +1041,24 @@ const AdminDashboard = () => {
   const handleEditorSave = async (slotId) => {
     setEditorSaving(prev => ({ ...prev, [slotId]: true }));
     try {
-      const data = editorData[slotId];
+      const data = editorData[slotId] || {};
+      const slotTiming = (data.timing || data.scheduleMatches?.[0]?.time || '').trim();
+      const updatedMatches = (data.scheduleMatches && data.scheduleMatches.length > 0)
+        ? data.scheduleMatches.map((m, idx) => (idx === 0 && slotTiming ? { ...m, time: slotTiming } : m))
+        : (slotTiming ? [{ matchNumber: 1, label: 'MATCH 1', time: slotTiming }] : []);
+
       const payload = {
         ...data,
         category: data.category || 'SCRIMS',
         lobby: data.lobby || 'LOBBY 1',
+        timing: slotTiming,
         entryFee: Number(data.entryFee ?? data.price ?? 0),
         price: Number(data.price ?? data.entryFee ?? 0),
         maxTeams: Number(data.maxTeams ?? 19),
         maps: typeof data.maps === 'string'
           ? data.maps.split(',').map(s => s.trim().toUpperCase()).filter(Boolean)
           : data.maps,
-        scheduleMatches: data.scheduleMatches || [],
+        scheduleMatches: updatedMatches,
         prizeDistribution: data.prizeDistribution || [],
         customLink: data.customLink || data.whatsappLink || '',
         whatsappLink: data.whatsappLink || data.customLink || '',
@@ -954,6 +1162,8 @@ const AdminDashboard = () => {
             className="admin-mobile-tab-select"
           >
             <option value="todayslots">📅 Today Slots ({slots.filter(s => s.date && String(s.date).includes(new Date().toISOString().split('T')[0])).length})</option>
+            <option value="dropdetails">📍 Drop Details</option>
+            <option value="slots">🎰 All Slots Editor ({slots.length})</option>
             <option value="official_wa">💬 Official WhatsApp Group Link</option>
             <option value="announcements">📢 Announcements ({announcements.length})</option>
             <option value="matches">⚔️ Matches ({matches.length})</option>
@@ -986,6 +1196,19 @@ const AdminDashboard = () => {
               <span className="tab-counter-badge" style={{ background: '#10b981' }}>{todayCount}</span>
             ) : null;
           })()}
+        </button>
+        <button
+          className={`tab-btn ${activeTab === 'dropdetails' ? 'active' : ''}`}
+          onClick={() => setActiveTab('dropdetails')}
+          style={{ background: activeTab === 'dropdetails' ? 'rgba(59,130,246,0.15)' : '', borderColor: activeTab === 'dropdetails' ? '#3b82f6' : '' }}
+        >
+          <MapPin size={18} style={{ marginRight: '8px', color: '#60a5fa' }} /> Drop Details
+        </button>
+        <button
+          className={`tab-btn ${activeTab === 'slots' ? 'active' : ''}`}
+          onClick={() => setActiveTab('slots')}
+        >
+          <LayoutList size={18} style={{ marginRight: '8px' }} /> Manage Slots
         </button>
         <button
           className={`tab-btn ${activeTab === 'announcements' ? 'active' : ''}`}
@@ -1053,6 +1276,7 @@ const AdminDashboard = () => {
             {activeTab === 'rankings' ? 'Manage Team Rankings'
               : activeTab === 'slots' ? 'Manage Slots'
               : activeTab === 'todayslots' ? `Today Slots — ${new Date(todaySlotsDate + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}`
+              : activeTab === 'dropdetails' ? 'Manage Drop Details'
               : activeTab === 'announcements' ? 'Manage Announcements'
               : activeTab === 'matches' ? 'Manage Scrims & Matches'
               : activeTab === 'results' ? 'Manage Scrim Results'
@@ -1148,7 +1372,7 @@ const AdminDashboard = () => {
               <button className="action-btn" style={{ fontSize: '0.8rem', padding: '0.35rem 0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }} onClick={() => {
                 const todayStr = todaySlotsDate;
                 setSlotEditTarget(null);
-                setSlotFormData({ category: 'SCRIMS', lobby: 'LOBBY 1', matchName: 'RISING 1-3 GRIND SCRIMS', date: todayStr, timing: '1:42 PM', mode: 'Squad TPP', entryFee: 60, price: 60, maxTeams: 19, maps: 'ERANGEL, RONDO, MIRAMAR', scheduleMatches: [{ matchNumber: 1, label: 'MATCH 1', time: '1:42 PM' }, { matchNumber: 2, label: 'MATCH 2', time: '2:22 PM' }, { matchNumber: 3, label: 'MATCH 3', time: '3:02 PM' }], prizeDistribution: [{ rank: '#1', prize: '₹400' }, { rank: '#2', prize: '₹150' }, { rank: '#3', prize: '₹100' }, { rank: '#4', prize: '₹70' }, { rank: '#5', prize: 'FREE' }], roomId: '', roomPassword: '', note: 'ID / Pass will be provided 30 min before match', whatsappLink: '' });
+                setSlotFormData({ category: 'SCRIMS', lobby: 'LOBBY 1', matchName: 'RISING 1-3 GRIND SCRIMS', date: todayStr, timing: '', mode: 'Squad TPP', entryFee: 60, price: 60, maxTeams: 19, maps: 'ERANGEL, RONDO, MIRAMAR', scheduleMatches: [], prizeDistribution: [{ rank: '#1', prize: '₹400' }, { rank: '#2', prize: '₹150' }, { rank: '#3', prize: '₹100' }, { rank: '#4', prize: '₹70' }, { rank: '#5', prize: 'FREE' }], roomId: '', roomPassword: '', note: 'ID / Pass will be provided 30 min before match', whatsappLink: '' });
                 setShowSlotModal(true);
               }}>
                 <Plus size={15} /> Create Slot
@@ -2564,8 +2788,8 @@ const AdminDashboard = () => {
                           <input type="text" value={slotFormData.lobby || ''} onChange={e => setSlotFormData(p => ({ ...p, lobby: e.target.value }))} placeholder="e.g. LOBBY 1" style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(139,92,246,0.3)', borderRadius: '8px', color: '#fff', padding: '0.55rem 0.75rem', fontSize: '0.88rem' }} />
                         </div>
                         <div>
-                          <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '0.3rem' }}>Timing</label>
-                          <input type="text" value={slotFormData.timing || ''} onChange={e => setSlotFormData(p => ({ ...p, timing: e.target.value }))} placeholder="e.g. 1:42 PM" style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(139,92,246,0.3)', borderRadius: '8px', color: '#fff', padding: '0.55rem 0.75rem', fontSize: '0.88rem' }} />
+                          <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '0.3rem' }}>Timing *</label>
+                          <input type="text" value={slotFormData.timing || ''} onChange={e => setSlotFormData(p => ({ ...p, timing: e.target.value }))} placeholder="e.g. 2:00 PM" style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(139,92,246,0.3)', borderRadius: '8px', color: '#fff', padding: '0.55rem 0.75rem', fontSize: '0.88rem' }} />
                         </div>
                         <div>
                           <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '0.3rem' }}>Entry Fee (Rs.)</label>
@@ -2743,19 +2967,29 @@ const AdminDashboard = () => {
                           onClick={async () => {
                             if (!slotFormData.matchName) { alert('Match title is required'); return; }
                             if (!slotFormData.date) { alert('Date is required'); return; }
+                            const slotTiming = (slotFormData.timing || slotFormData.scheduleMatches?.[0]?.time || '').trim();
+                            if (!slotTiming) {
+                              alert('Slot Timing is required (e.g. 2:00 PM)');
+                              return;
+                            }
                             setIsSubmitting(true);
                             try {
+                              const updatedMatches = (slotFormData.scheduleMatches && slotFormData.scheduleMatches.length > 0)
+                                ? slotFormData.scheduleMatches.map((m, idx) => (idx === 0 ? { ...m, time: slotTiming } : m))
+                                : [{ matchNumber: 1, label: 'MATCH 1', time: slotTiming }];
+
                               const payload = {
                                 ...slotFormData,
                                 category: slotFormData.category || 'SCRIMS',
                                 lobby: slotFormData.lobby || 'LOBBY 1',
+                                timing: slotTiming,
                                 price: Number(slotFormData.price ?? slotFormData.entryFee ?? 0),
                                 entryFee: Number(slotFormData.entryFee ?? slotFormData.price ?? 0),
                                 maxTeams: Number(slotFormData.maxTeams ?? 19),
                                 maps: typeof slotFormData.maps === 'string'
                                   ? slotFormData.maps.split(',').map(m => m.trim().toUpperCase()).filter(Boolean)
                                   : (slotFormData.maps || ['ERANGEL', 'RONDO', 'MIRAMAR']),
-                                scheduleMatches: slotFormData.scheduleMatches || [],
+                                scheduleMatches: updatedMatches,
                                 prizeDistribution: slotFormData.prizeDistribution || [],
                                 customLink: slotFormData.customLink || slotFormData.whatsappLink || '',
                                 whatsappLink: slotFormData.whatsappLink || slotFormData.customLink || '',
@@ -2789,7 +3023,7 @@ const AdminDashboard = () => {
                     <button
                       className="action-btn"
                       style={{ marginTop: '1.25rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
-                      onClick={() => { setSlotEditTarget(null); setSlotFormData({ category: 'SCRIMS', lobby: 'LOBBY 1', matchName: 'RISING 1-3 GRIND SCRIMS', date: todaySlotsDate, timing: '1:42 PM', mode: 'Squad TPP', entryFee: 60, price: 60, maxTeams: 19, maps: 'ERANGEL, RONDO, MIRAMAR', scheduleMatches: [], prizeDistribution: [{ rank: '#1', prize: 'Rs.400' }, { rank: '#2', prize: 'Rs.150' }, { rank: '#3', prize: 'Rs.100' }], roomId: '', roomPassword: '', note: 'ID/Pass 30 min before match', whatsappLink: '', customLink: '' }); setShowSlotModal(true); }}
+                      onClick={() => { setSlotEditTarget(null); setSlotFormData({ category: 'SCRIMS', lobby: 'LOBBY 1', matchName: 'RISING 1-3 GRIND SCRIMS', date: todaySlotsDate, timing: '', mode: 'Squad TPP', entryFee: 60, price: 60, maxTeams: 19, maps: 'ERANGEL, RONDO, MIRAMAR', scheduleMatches: [], prizeDistribution: [{ rank: '#1', prize: 'Rs.400' }, { rank: '#2', prize: 'Rs.150' }, { rank: '#3', prize: 'Rs.100' }], roomId: '', roomPassword: '', note: 'ID/Pass 30 min before match', whatsappLink: '', customLink: '' }); setShowSlotModal(true); }}
                     >
                       <Plus size={16} /> Create First Slot
                     </button>
@@ -2932,6 +3166,129 @@ const AdminDashboard = () => {
                                       </button>
                                     </div>
                                   </div>
+
+                                  {/* ── Registered Teams Section ── */}
+                                  <div style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(139,92,246,0.22)', borderRadius: '10px', padding: '0.85rem 0.95rem' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: '#c084fc', fontWeight: '800', fontSize: '0.82rem', letterSpacing: '0.5px' }}>
+                                        <Users size={16} /> REGISTERED TEAMS ({paidB.length} / {totalTeams})
+                                      </div>
+                                      <button
+                                        type="button"
+                                        className="action-btn"
+                                        onClick={() => handleOpenTeamAssignModal(slot)}
+                                        style={{
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: '0.35rem',
+                                          padding: '0.28rem 0.7rem',
+                                          fontSize: '0.75rem',
+                                          background: 'rgba(139,92,246,0.25)',
+                                          border: '1px solid #8b5cf6',
+                                          color: '#c084fc',
+                                          fontWeight: '700',
+                                          borderRadius: '6px'
+                                        }}
+                                      >
+                                        <Plus size={13} /> Add Team
+                                      </button>
+                                    </div>
+
+                                    {paidB.length === 0 ? (
+                                      <div style={{ textAlign: 'center', padding: '1rem', color: '#64748b', fontSize: '0.8rem' }}>
+                                        No confirmed teams assigned yet. Click <strong>"+ Add Team"</strong> to assign registered teams to this slot.
+                                      </div>
+                                    ) : (
+                                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: '0.65rem' }}>
+                                        {paidB.map((b, bIdx) => {
+                                          const userObj = b.userId || {};
+                                          const teamName = userObj.teamName || b.teamName || `Team #${bIdx + 1}`;
+                                          const risingId = userObj.registrationNumber ? `#${userObj.registrationNumber}` : `#${bIdx + 1}`;
+                                          const teamLogo = userObj.teamLogo;
+                                          const teamDrops = Array.isArray(slot.dropDetails)
+                                            ? slot.dropDetails.filter(d => String(d.teamId) === String(userObj._id) || d.teamName?.toLowerCase() === teamName.toLowerCase())
+                                            : [];
+
+                                          return (
+                                            <div
+                                              key={b._id}
+                                              style={{
+                                                background: 'rgba(15,12,30,0.7)',
+                                                border: '1px solid rgba(139,92,246,0.25)',
+                                                borderRadius: '8px',
+                                                padding: '0.65rem 0.8rem',
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                gap: '0.45rem',
+                                                position: 'relative'
+                                              }}
+                                            >
+                                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
+                                                  {teamLogo ? (
+                                                    <img
+                                                      src={teamLogo}
+                                                      alt={teamName}
+                                                      style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover', border: '1px solid rgba(139,92,246,0.4)' }}
+                                                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                                    />
+                                                  ) : (
+                                                    <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'linear-gradient(135deg, #7c3aed, #4f46e5)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '0.75rem', color: '#fff' }}>
+                                                      {teamName.charAt(0).toUpperCase()}
+                                                    </div>
+                                                  )}
+                                                  <div>
+                                                    <div style={{ fontWeight: '700', fontSize: '0.82rem', color: '#fff' }}>{teamName}</div>
+                                                    <div style={{ fontSize: '0.68rem', color: '#c084fc', fontFamily: 'monospace' }}>
+                                                      Rising ID: <strong>{risingId}</strong>
+                                                    </div>
+                                                  </div>
+                                                </div>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => handleRemoveTeamFromSlot(slot._id, b._id, teamName)}
+                                                  style={{
+                                                    background: 'rgba(239,68,68,0.15)',
+                                                    border: '1px solid rgba(239,68,68,0.3)',
+                                                    borderRadius: '4px',
+                                                    color: '#f87171',
+                                                    padding: '0.2rem 0.45rem',
+                                                    fontSize: '0.68rem',
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '2px'
+                                                  }}
+                                                  title="Remove team from slot"
+                                                >
+                                                  <Trash2 size={11} /> Remove
+                                                </button>
+                                              </div>
+
+                                              {/* Drop Locations Preview */}
+                                              <div style={{ fontSize: '0.7rem', color: '#94a3b8', background: 'rgba(0,0,0,0.3)', borderRadius: '5px', padding: '0.3rem 0.5rem' }}>
+                                                <div style={{ fontSize: '0.62rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '2px' }}>Drop Locations:</div>
+                                                {teamDrops.length > 0 ? (
+                                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
+                                                    {teamDrops.map((td, tdIdx) => (
+                                                      <span key={tdIdx} style={{ background: 'rgba(59,130,246,0.18)', border: '1px solid rgba(59,130,246,0.35)', color: '#93c5fd', borderRadius: '3px', padding: '0.05rem 0.35rem', fontSize: '0.65rem' }}>
+                                                        {td.matchLabel || `M${td.matchNumber}`}: {td.dropLocation}
+                                                      </span>
+                                                    ))}
+                                                  </div>
+                                                ) : (
+                                                  <span style={{ color: '#64748b', fontStyle: 'italic' }}>
+                                                    {b.dropLocations ? Object.entries(b.dropLocations).filter(([k,v]) => v && !k.startsWith('_')).map(([k,v]) => `${k.toUpperCase()}: ${v}`).join(' | ') : 'No drop assigned'}
+                                                  </span>
+                                                )}
+                                              </div>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    )}
+                                  </div>
+
                                   {sb.length > 0 && (
                                     <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '10px', overflow: 'hidden' }}>
                                       <div style={{ padding: '0.55rem 0.95rem', borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: '0.68rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.7px' }}>Bookings ({sb.length})</div>
@@ -2977,52 +3334,690 @@ const AdminDashboard = () => {
               </div>
             )}
 
+            {/* ── DROP DETAILS MANAGEMENT ── */}
+            {activeTab === 'dropdetails' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                <div style={{ background: 'linear-gradient(135deg,rgba(15,12,30,0.97),rgba(22,17,46,0.97))', border: '1px solid rgba(139,92,246,0.3)', borderRadius: '16px', padding: '1.25rem 1.5rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+                    <div>
+                      <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '800', color: '#fff', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <MapPin size={20} style={{ color: '#60a5fa' }} /> Match &amp; Team Drop Details
+                      </h3>
+                      <p style={{ margin: '0.25rem 0 0', fontSize: '0.8rem', color: '#94a3b8' }}>
+                        Publish and update match-wise maps and team drop locations for each slot. Published details are visible immediately on the public website.
+                      </p>
+                    </div>
 
-            {/* ── SLOT EDITOR ── */}
-            {activeTab === 'slots' && (
-              <div className="slot-editor-grid">
-                {slots.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
-                    <Calendar size={48} style={{ opacity: 0.3, marginBottom: '1rem' }} />
-                    <p>No slots yet. Create slots by clicking "Add New Slot" above.</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <label style={{ fontSize: '0.78rem', color: '#c084fc', fontWeight: '700' }}>Select Slot:</label>
+                      <select
+                        value={selectedDropSlotId}
+                        onChange={(e) => {
+                          setSelectedDropSlotId(e.target.value);
+                          setEditingDropDetailId(null);
+                        }}
+                        style={{
+                          background: 'rgba(255,255,255,0.08)',
+                          border: '1px solid rgba(139,92,246,0.4)',
+                          borderRadius: '8px',
+                          color: '#fff',
+                          padding: '0.5rem 0.85rem',
+                          fontSize: '0.84rem',
+                          maxWidth: '360px',
+                          outline: 'none'
+                        }}
+                      >
+                        {slots.map(s => (
+                          <option key={s._id} value={s._id}>
+                            {s.date || 'No Date'} — {s.matchName || 'Match'} [{s.lobby || 'LOBBY 1'}] ({s.timing || 'TBA'})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
-                ) : (
-                  slots.map((slot) => {
-                    const ed = editorData[slot._id] || {};
-                    const isSaving = editorSaving[slot._id];
-                    const isSaved = editorSaved[slot._id];
+
+                  {(() => {
+                    const currentSlot = slots.find(s => s._id === selectedDropSlotId);
+                    if (!currentSlot) {
+                      return (
+                        <div style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>
+                          Please select a slot to manage drop details.
+                        </div>
+                      );
+                    }
+
+                    const slotMatches = Array.isArray(currentSlot.scheduleMatches) && currentSlot.scheduleMatches.length > 0
+                      ? currentSlot.scheduleMatches
+                      : [
+                          { matchNumber: 1, label: 'MATCH 1', map: 'ERANGEL' },
+                          { matchNumber: 2, label: 'MATCH 2', map: 'RONDO' },
+                          { matchNumber: 3, label: 'MATCH 3', map: 'MIRAMAR' },
+                        ];
+
+                    const slotBookings = bookings.filter(b => {
+                      const bid = b.slotId && b.slotId._id ? b.slotId._id : b.slotId;
+                      return bid === currentSlot._id && b.paymentStatus === 'paid';
+                    });
+
+                    const publishedDrops = Array.isArray(currentSlot.dropDetails) ? currentSlot.dropDetails : [];
 
                     return (
-                      <div key={slot._id} className="slot-editor-card slot-editor-modern">
-                        {/* Card Header */}
-                        <div className="slot-editor-card-header">
+                      <>
+                        {/* Slot Summary Banner */}
+                        <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '0.85rem 1rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', flexWrap: 'wrap' }}>
-                            <div className="slot-editor-card-title">
-                              {ed.matchName || slot.matchName || 'Unnamed Slot'}
+                            <span style={{ fontSize: '0.9rem', fontWeight: '800', color: '#fff' }}>{currentSlot.matchName}</span>
+                            <span style={{ background: 'rgba(139,92,246,0.2)', border: '1px solid rgba(139,92,246,0.4)', borderRadius: '5px', padding: '0.1rem 0.5rem', fontSize: '0.7rem', color: '#c084fc', fontWeight: '700' }}>{currentSlot.category || 'SCRIMS'}</span>
+                            <span style={{ background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '5px', padding: '0.1rem 0.5rem', fontSize: '0.7rem', color: '#10b981', fontWeight: '700' }}>{currentSlot.lobby || 'LOBBY 1'}</span>
+                            <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>📅 {currentSlot.date || 'TBA'}</span>
+                            <span style={{ fontSize: '0.8rem', color: '#fbbf24', fontWeight: '700' }}>⏰ {currentSlot.timing || 'TBA'}</span>
+                            <span style={{ fontSize: '0.8rem', color: '#60a5fa' }}>👥 {slotBookings.length} confirmed teams</span>
+                          </div>
+                          <a
+                            href={`/drop-list?slotId=${currentSlot._id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ fontSize: '0.78rem', color: '#60a5fa', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.3rem', fontWeight: '700' }}
+                          >
+                            Public Drop Details Page →
+                          </a>
+                        </div>
+
+                        {/* Add / Edit Drop Detail Form */}
+                        <form onSubmit={handleSaveDropDetail} style={{ background: 'rgba(59,130,246,0.04)', border: '1px solid rgba(59,130,246,0.25)', borderRadius: '12px', padding: '1.25rem', marginBottom: '1.5rem' }}>
+                          <div style={{ fontSize: '0.85rem', fontWeight: '800', color: '#93c5fd', marginBottom: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <Edit2 size={15} /> {editingDropDetailId ? 'Edit Drop Detail' : 'Add / Publish Team Drop Detail'}
+                          </div>
+
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.9rem', marginBottom: '1rem' }}>
+                            <div>
+                              <label style={{ fontSize: '0.74rem', color: '#cbd5e1', display: 'block', marginBottom: '0.35rem', fontWeight: '600' }}>
+                                Select Match *
+                              </label>
+                              <select
+                                value={dropDetailForm.matchNumber}
+                                onChange={(e) => {
+                                  const num = Number(e.target.value);
+                                  const mObj = slotMatches.find(m => m.matchNumber === num);
+                                  setDropDetailForm(p => ({
+                                    ...p,
+                                    matchNumber: num,
+                                    matchLabel: mObj?.label || `MATCH ${num}`,
+                                    map: mObj?.map || p.map || 'ERANGEL'
+                                  }));
+                                }}
+                                style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(139,92,246,0.3)', borderRadius: '8px', color: '#fff', padding: '0.55rem 0.7rem', fontSize: '0.84rem' }}
+                              >
+                                {slotMatches.map(m => (
+                                  <option key={m.matchNumber} value={m.matchNumber}>
+                                    {m.label || `MATCH ${m.matchNumber}`} {m.time ? `(${m.time})` : ''}
+                                  </option>
+                                ))}
+                              </select>
                             </div>
-                            <span className="se-category-pill">{ed.category || 'SCRIMS'}</span>
-                            <span className="se-lobby-pill">{ed.lobby || 'LOBBY 1'}</span>
-                            <div className="slot-editor-card-subtitle">
-                              ID: <code>{slot._id}</code>
+
+                            <div>
+                              <label style={{ fontSize: '0.74rem', color: '#cbd5e1', display: 'block', marginBottom: '0.35rem', fontWeight: '600' }}>
+                                Map *
+                              </label>
+                              <select
+                                value={dropDetailForm.map}
+                                onChange={(e) => setDropDetailForm(p => ({ ...p, map: e.target.value }))}
+                                style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(139,92,246,0.3)', borderRadius: '8px', color: '#fff', padding: '0.55rem 0.7rem', fontSize: '0.84rem' }}
+                              >
+                                <option value="ERANGEL">ERANGEL</option>
+                                <option value="MIRAMAR">MIRAMAR</option>
+                                <option value="RONDO">RONDO</option>
+                                <option value="SANHOK">SANHOK</option>
+                                <option value="VIKENDI">VIKENDI</option>
+                              </select>
+                            </div>
+
+                            <div>
+                              <label style={{ fontSize: '0.74rem', color: '#cbd5e1', display: 'block', marginBottom: '0.35rem', fontWeight: '600' }}>
+                                Registered Team *
+                              </label>
+                              <select
+                                value={dropDetailForm.teamId}
+                                onChange={(e) => {
+                                  const tId = e.target.value;
+                                  const teamObj = availableTeams.find(t => String(t._id) === String(tId));
+                                  setDropDetailForm(p => ({
+                                    ...p,
+                                    teamId: tId,
+                                    teamName: teamObj?.teamName || '',
+                                    dropLocation: p.dropLocation || (teamObj?.dropLocations?.erangel || '')
+                                  }));
+                                }}
+                                required
+                                style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(139,92,246,0.3)', borderRadius: '8px', color: '#fff', padding: '0.55rem 0.7rem', fontSize: '0.84rem' }}
+                              >
+                                <option value="">-- Select Registered Team --</option>
+                                {availableTeams.map(t => (
+                                  <option key={t._id} value={t._id}>
+                                    {t.teamName} (Rising ID: #{t.registrationNumber || 'N/A'})
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+
+                            <div>
+                              <label style={{ fontSize: '0.74rem', color: '#cbd5e1', display: 'block', marginBottom: '0.35rem', fontWeight: '600' }}>
+                                Drop Location *
+                              </label>
+                              <input
+                                type="text"
+                                value={dropDetailForm.dropLocation}
+                                onChange={(e) => setDropDetailForm(p => ({ ...p, dropLocation: e.target.value }))}
+                                placeholder="e.g. Pochinki, Pecado, School"
+                                required
+                                style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(139,92,246,0.3)', borderRadius: '8px', color: '#fff', padding: '0.55rem 0.7rem', fontSize: '0.84rem' }}
+                              />
                             </div>
                           </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
-                            {isSaved && (
-                              <div className="slot-editor-saved-badge">
-                                <CheckCircle size={14} /> Saved!
-                              </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+                            <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Quick suggestions:</span>
+                            {['Pochinki', 'School', 'Military Base', 'Rozhok', 'Yasnaya', 'Georgopol', 'Pecado', 'Hacienda', 'Bootcamp'].map(loc => (
+                              <button
+                                key={loc}
+                                type="button"
+                                onClick={() => setDropDetailForm(p => ({ ...p, dropLocation: loc }))}
+                                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '4px', color: '#e2e8f0', fontSize: '0.68rem', padding: '0.15rem 0.45rem', cursor: 'pointer' }}
+                              >
+                                {loc}
+                              </button>
+                            ))}
+                          </div>
+
+                          <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'flex-end' }}>
+                            {editingDropDetailId && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingDropDetailId(null);
+                                  setDropDetailForm(p => ({ ...p, teamId: '', teamName: '', dropLocation: '' }));
+                                }}
+                                style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '8px', color: '#94a3b8', padding: '0.5rem 1rem', fontSize: '0.82rem', cursor: 'pointer' }}
+                              >
+                                Cancel
+                              </button>
                             )}
                             <button
-                              type="button"
-                              className="action-btn delete-btn"
-                              onClick={() => handleDelete(slot._id)}
-                              style={{ padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #ef4444', color: '#ef4444', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
-                              title="Delete Slot"
+                              type="submit"
+                              disabled={savingDropDetail}
+                              style={{ background: savingDropDetail ? 'rgba(59,130,246,0.4)' : 'linear-gradient(135deg,#3b82f6,#2563eb)', border: 'none', borderRadius: '8px', color: '#fff', padding: '0.5rem 1.3rem', fontSize: '0.82rem', fontWeight: '700', cursor: savingDropDetail ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
                             >
-                              <Trash2 size={15} /> Delete
+                              <Save size={14} /> {savingDropDetail ? 'Saving...' : (editingDropDetailId ? 'Update Drop Detail' : 'Save & Publish Drop Detail')}
                             </button>
                           </div>
+                        </form>
+
+                        {/* Published Drop Details List */}
+                        <div>
+                          <div style={{ fontSize: '0.88rem', fontWeight: '800', color: '#fff', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <span>Published Drop Details ({publishedDrops.length})</span>
+                            <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Live synchronized with website</span>
+                          </div>
+
+                          {publishedDrops.length === 0 ? (
+                            <div style={{ textAlign: 'center', padding: '2.5rem', background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.1)', borderRadius: '12px', color: '#64748b' }}>
+                              <MapPin size={36} style={{ opacity: 0.3, display: 'block', margin: '0 auto 0.75rem' }} />
+                              <p style={{ margin: 0, fontSize: '0.88rem' }}>No drop details published yet for this slot.</p>
+                              <p style={{ margin: '0.3rem 0 0', fontSize: '0.75rem' }}>Use the form above to select a match, map, registered team, and drop location.</p>
+                            </div>
+                          ) : (
+                            <div style={{ overflowX: 'auto', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px' }}>
+                              <table className="rankings-table" style={{ margin: 0 }}>
+                                <thead>
+                                  <tr>
+                                    <th>Match &amp; Map</th>
+                                    <th>Team Details</th>
+                                    <th>Rising ID</th>
+                                    <th>Drop Location</th>
+                                    <th style={{ textAlign: 'right' }}>Actions</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {publishedDrops.map((detail) => (
+                                    <tr key={detail._id}>
+                                      <td>
+                                        <span style={{ background: 'rgba(59,130,246,0.18)', border: '1px solid rgba(59,130,246,0.4)', borderRadius: '5px', padding: '0.15rem 0.5rem', fontSize: '0.72rem', fontWeight: '700', color: '#93c5fd' }}>
+                                          {detail.matchLabel || `MATCH ${detail.matchNumber}`}
+                                        </span>
+                                        <span style={{ marginLeft: '0.4rem', fontSize: '0.75rem', color: '#a78bfa', fontWeight: '600' }}>
+                                          ({detail.map || 'ERANGEL'})
+                                        </span>
+                                      </td>
+                                      <td>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                          {detail.teamLogo ? (
+                                            <img
+                                              src={detail.teamLogo}
+                                              alt={detail.teamName}
+                                              style={{ width: '26px', height: '26px', borderRadius: '50%', objectFit: 'cover' }}
+                                              onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                            />
+                                          ) : (
+                                            <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: 'linear-gradient(135deg, #7c3aed, #4f46e5)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '0.72rem', color: '#fff' }}>
+                                              {(detail.teamName || 'T').charAt(0).toUpperCase()}
+                                            </div>
+                                          )}
+                                          <div>
+                                            <div style={{ fontWeight: '700', fontSize: '0.84rem', color: '#fff' }}>{detail.teamName}</div>
+                                            {detail.teamTag && <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>[{detail.teamTag}]</span>}
+                                          </div>
+                                        </div>
+                                      </td>
+                                      <td>
+                                        <span style={{ fontFamily: 'monospace', fontWeight: 'bold', color: '#c084fc', fontSize: '0.82rem' }}>
+                                          {detail.registrationNumber ? `#${detail.registrationNumber}` : '—'}
+                                        </span>
+                                      </td>
+                                      <td>
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '5px', padding: '0.18rem 0.55rem', fontSize: '0.78rem', color: '#6ee7b7', fontWeight: '700' }}>
+                                          <MapPin size={12} /> {detail.dropLocation}
+                                        </span>
+                                      </td>
+                                      <td style={{ textAlign: 'right' }}>
+                                        <div style={{ display: 'inline-flex', gap: '0.35rem' }}>
+                                          <button
+                                            type="button"
+                                            className="action-btn edit-btn"
+                                            style={{ padding: '0.25rem 0.55rem', fontSize: '0.72rem' }}
+                                            onClick={() => {
+                                              setEditingDropDetailId(detail._id);
+                                              setDropDetailForm({
+                                                matchNumber: detail.matchNumber || 1,
+                                                matchLabel: detail.matchLabel || `MATCH ${detail.matchNumber || 1}`,
+                                                map: detail.map || 'ERANGEL',
+                                                teamId: detail.teamId || '',
+                                                teamName: detail.teamName || '',
+                                                dropLocation: detail.dropLocation || ''
+                                              });
+                                            }}
+                                          >
+                                            <Edit2 size={11} /> Edit
+                                          </button>
+                                          <button
+                                            type="button"
+                                            className="action-btn delete-btn"
+                                            style={{ padding: '0.25rem 0.55rem', fontSize: '0.72rem' }}
+                                            onClick={() => handleDeleteDropDetail(currentSlot._id, detail._id)}
+                                          >
+                                            <Trash2 size={11} /> Delete
+                                          </button>
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
                         </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+            )}
+
+            {/* ── Assign Team to Slot Modal ── */}
+            {teamAssignModal.open && (
+              <div style={{ position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+                <div style={{ width: '100%', maxWidth: '520px', background: 'linear-gradient(160deg,#13131f,#0e0e1a)', border: '1px solid rgba(139,92,246,0.3)', borderRadius: '20px', padding: '1.75rem', boxShadow: '0 20px 40px rgba(0,0,0,0.6)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                    <div>
+                      <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#fff', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                        <Users size={18} style={{ color: '#c084fc' }} /> Add Team to Slot
+                      </h3>
+                      <p style={{ margin: '0.25rem 0 0', fontSize: '0.78rem', color: '#94a3b8' }}>
+                        {teamAssignModal.slot?.matchName} ({teamAssignModal.slot?.lobby || 'LOBBY 1'}) — {teamAssignModal.slot?.timing || ''}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setTeamAssignModal({ open: false, slot: null })}
+                      style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '50%', width: '32px', height: '32px', color: '#94a3b8', fontSize: '1.2rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+
+                  <form onSubmit={handleAssignTeamToSlot}>
+                    <div style={{ marginBottom: '1rem' }}>
+                      <label style={{ fontSize: '0.78rem', color: '#cbd5e1', display: 'block', marginBottom: '0.4rem', fontWeight: '600' }}>
+                        Select Team from Registered Database *
+                      </label>
+                      <select
+                        value={assignTeamForm.userId}
+                        onChange={(e) => {
+                          const uId = e.target.value;
+                          const selTeam = availableTeams.find(t => String(t._id) === String(uId));
+                          const defaultDrop = selTeam?.dropLocations?.erangel || '';
+                          setAssignTeamForm(p => ({ ...p, userId: uId, dropLocation: p.dropLocation || defaultDrop }));
+                        }}
+                        required
+                        style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(139,92,246,0.35)', borderRadius: '8px', color: '#fff', padding: '0.65rem 0.75rem', fontSize: '0.88rem', outline: 'none' }}
+                      >
+                        <option value="">-- Choose a registered team --</option>
+                        {availableTeams.map(team => (
+                          <option key={team._id} value={team._id}>
+                            {team.teamName} {team.teamTag ? `[${team.teamTag}]` : ''} — Rising ID: #{team.registrationNumber || 'N/A'} {team.phone ? `(${team.phone})` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div style={{ marginBottom: '1.25rem' }}>
+                      <label style={{ fontSize: '0.78rem', color: '#cbd5e1', display: 'block', marginBottom: '0.4rem', fontWeight: '600' }}>
+                        Initial Drop Location (Optional)
+                      </label>
+                      <input
+                        type="text"
+                        value={assignTeamForm.dropLocation}
+                        onChange={(e) => setAssignTeamForm(p => ({ ...p, dropLocation: e.target.value }))}
+                        placeholder="e.g. Pochinki, School, Pecado"
+                        style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(139,92,246,0.35)', borderRadius: '8px', color: '#fff', padding: '0.65rem 0.75rem', fontSize: '0.88rem', outline: 'none' }}
+                      />
+                      <span style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '0.25rem', display: 'block' }}>
+                        Assigning a team adds a confirmed paid booking record and updates the slot's registered team count automatically.
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+                      <button
+                        type="button"
+                        onClick={() => setTeamAssignModal({ open: false, slot: null })}
+                        style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '8px', color: '#94a3b8', padding: '0.6rem 1.25rem', cursor: 'pointer', fontSize: '0.88rem' }}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={assigningTeam}
+                        style={{ background: assigningTeam ? 'rgba(124,58,237,0.4)' : 'linear-gradient(135deg,#7c3aed,#6d28d9)', border: 'none', borderRadius: '8px', color: '#fff', padding: '0.6rem 1.4rem', cursor: assigningTeam ? 'not-allowed' : 'pointer', fontSize: '0.88rem', fontWeight: '700' }}
+                      >
+                        {assigningTeam ? 'Assigning...' : 'Assign Team to Slot'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
+
+            {/* ── SLOT EDITOR ── */}
+            {activeTab === 'slots' && (() => {
+              const filteredSlotsList = slots.filter(slot => {
+                if (slotCategoryFilter !== 'ALL') {
+                  const sCat = (slot.category || 'SCRIMS').toUpperCase();
+                  if (sCat !== slotCategoryFilter.toUpperCase()) return false;
+                }
+                if (slotStatusFilter !== 'ALL') {
+                  if (slotStatusFilter === 'published' && slot.isPublished === false) return false;
+                  if (slotStatusFilter === 'draft' && slot.isPublished !== false) return false;
+                  if (['Open', 'Upcoming', 'Closed', 'Full', 'Ongoing', 'Completed', 'Cancelled'].includes(slotStatusFilter)) {
+                    if ((slot.registrationStatus || 'Open').toLowerCase() !== slotStatusFilter.toLowerCase()) return false;
+                  }
+                }
+                if (slotDateFilter && slotDateFilter.trim()) {
+                  const q = slotDateFilter.trim().toLowerCase();
+                  const dStr = (slot.date || '').toLowerCase();
+                  if (!dStr.includes(q)) return false;
+                }
+                if (slotSearch && slotSearch.trim()) {
+                  const q = slotSearch.trim().toLowerCase();
+                  const mName = (slot.matchName || '').toLowerCase();
+                  const lobby = (slot.lobby || '').toLowerCase();
+                  if (!mName.includes(q) && !lobby.includes(q)) return false;
+                }
+                return true;
+              });
+
+              return (
+                <div className="manage-slots-scheduling-wrap">
+                  {/* ── Scheduling Filter Toolbar ── */}
+                  <div style={{
+                    display: 'flex',
+                    gap: '0.75rem',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    marginBottom: '1.25rem',
+                    background: 'rgba(255,255,255,0.03)',
+                    border: '1px solid rgba(139,92,246,0.2)',
+                    borderRadius: '12px',
+                    padding: '0.75rem 1rem'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flex: 1, minWidth: '200px' }}>
+                      <Search size={16} style={{ color: '#a855f7' }} />
+                      <input
+                        type="text"
+                        value={slotSearch}
+                        onChange={e => setSlotSearch(e.target.value)}
+                        placeholder="Search tournament title or lobby..."
+                        style={{
+                          width: '100%',
+                          background: 'rgba(255,255,255,0.06)',
+                          border: '1px solid rgba(255,255,255,0.1)',
+                          borderRadius: '6px',
+                          color: '#fff',
+                          padding: '0.45rem 0.65rem',
+                          fontSize: '0.82rem'
+                        }}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <Filter size={15} style={{ color: '#c084fc' }} />
+                      <select
+                        value={slotCategoryFilter}
+                        onChange={e => setSlotCategoryFilter(e.target.value)}
+                        style={{
+                          background: '#15102a',
+                          border: '1px solid rgba(139,92,246,0.3)',
+                          borderRadius: '6px',
+                          color: '#fff',
+                          padding: '0.45rem 0.65rem',
+                          fontSize: '0.82rem'
+                        }}
+                      >
+                        <option value="ALL">All Categories</option>
+                        <option value="SCRIMS">Daily Scrims (SCRIMS)</option>
+                        <option value="WEEKLY WAR">Weekly War</option>
+                        <option value="WEEKEND WAR">Weekend War</option>
+                        <option value="GRANDS">Grands</option>
+                      </select>
+                    </div>
+                    <div>
+                      <select
+                        value={slotStatusFilter}
+                        onChange={e => setSlotStatusFilter(e.target.value)}
+                        style={{
+                          background: '#15102a',
+                          border: '1px solid rgba(139,92,246,0.3)',
+                          borderRadius: '6px',
+                          color: '#fff',
+                          padding: '0.45rem 0.65rem',
+                          fontSize: '0.82rem'
+                        }}
+                      >
+                        <option value="ALL">All Statuses</option>
+                        <option value="published">Published Only</option>
+                        <option value="draft">Drafts Only</option>
+                        <option value="Open">Open</option>
+                        <option value="Full">Full</option>
+                        <option value="Completed">Completed</option>
+                      </select>
+                    </div>
+                    <div>
+                      <input
+                        type="text"
+                        value={slotDateFilter}
+                        onChange={e => setSlotDateFilter(e.target.value)}
+                        placeholder="Filter date e.g. 10 Oct"
+                        style={{
+                          background: 'rgba(255,255,255,0.06)',
+                          border: '1px solid rgba(255,255,255,0.1)',
+                          borderRadius: '6px',
+                          color: '#fff',
+                          padding: '0.45rem 0.65rem',
+                          fontSize: '0.82rem',
+                          width: '140px'
+                        }}
+                      />
+                    </div>
+                    {(slotSearch || slotCategoryFilter !== 'ALL' || slotStatusFilter !== 'ALL' || slotDateFilter) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSlotSearch('');
+                          setSlotCategoryFilter('ALL');
+                          setSlotStatusFilter('ALL');
+                          setSlotDateFilter('');
+                        }}
+                        style={{
+                          background: 'rgba(239,68,68,0.15)',
+                          border: '1px solid rgba(239,68,68,0.4)',
+                          color: '#f87171',
+                          borderRadius: '6px',
+                          padding: '0.45rem 0.75rem',
+                          fontSize: '0.78rem',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Reset Filters
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="slot-editor-grid">
+                    {filteredSlotsList.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
+                        <Calendar size={48} style={{ opacity: 0.3, marginBottom: '1rem' }} />
+                        <p>No slots found matching the selected filters. Click "Add New Slot" above to schedule a new tournament.</p>
+                      </div>
+                    ) : (
+                      filteredSlotsList.map((slot) => {
+                        const ed = editorData[slot._id] || {};
+                        const isSaving = editorSaving[slot._id];
+                        const isSaved = editorSaved[slot._id];
+
+                        return (
+                          <div key={slot._id} className="slot-editor-card slot-editor-modern">
+                            {/* Card Header */}
+                            <div className="slot-editor-card-header">
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                                <div className="slot-editor-card-title">
+                                  {ed.matchName || slot.matchName || 'Unnamed Slot'}
+                                </div>
+                                <span className="se-category-pill">{ed.category || 'SCRIMS'}</span>
+                                <span className="se-lobby-pill">{ed.lobby || 'LOBBY 1'}</span>
+                                <span style={{
+                                  fontSize: '0.7rem',
+                                  fontWeight: 700,
+                                  padding: '2px 8px',
+                                  borderRadius: '4px',
+                                  background: slot.isPublished !== false ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                                  border: `1px solid ${slot.isPublished !== false ? 'rgba(16, 185, 129, 0.4)' : 'rgba(245, 158, 11, 0.4)'}`,
+                                  color: slot.isPublished !== false ? '#34d399' : '#fbbf24',
+                                }}>
+                                  {slot.isPublished !== false ? '● Published' : '○ Draft'}
+                                </span>
+                                <span style={{
+                                  fontSize: '0.7rem',
+                                  fontWeight: 700,
+                                  padding: '2px 8px',
+                                  borderRadius: '4px',
+                                  background: 'rgba(192, 132, 252, 0.12)',
+                                  border: '1px solid rgba(192, 132, 252, 0.3)',
+                                  color: '#c084fc',
+                                }}>
+                                  {slot.registrationStatus || 'Open'}
+                                </span>
+                                <span style={{
+                                  fontSize: '0.72rem',
+                                  color: '#94a3b8',
+                                  fontWeight: 600,
+                                }}>
+                                  Teams: {slot.bookedCount || 0}/{slot.maxTeams || 20}
+                                </span>
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                {isSaved && (
+                                  <div className="slot-editor-saved-badge">
+                                    <CheckCircle size={14} /> Saved!
+                                  </div>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => handleTogglePublish(slot._id, slot.isPublished !== false)}
+                                  style={{
+                                    padding: '0.35rem 0.65rem',
+                                    borderRadius: '6px',
+                                    border: slot.isPublished !== false ? '1px solid #f59e0b' : '1px solid #10b981',
+                                    color: slot.isPublished !== false ? '#f59e0b' : '#10b981',
+                                    background: 'transparent',
+                                    cursor: 'pointer',
+                                    fontSize: '0.78rem',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.3rem'
+                                  }}
+                                  title={slot.isPublished !== false ? 'Unpublish (make draft)' : 'Publish to public'}
+                                >
+                                  {slot.isPublished !== false ? <EyeOff size={14} /> : <Eye size={14} />}
+                                  {slot.isPublished !== false ? 'Unpublish' : 'Publish'}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDuplicateSlot(slot._id)}
+                                  style={{
+                                    padding: '0.35rem 0.65rem',
+                                    borderRadius: '6px',
+                                    border: '1px solid #8b5cf6',
+                                    color: '#a78bfa',
+                                    background: 'transparent',
+                                    cursor: 'pointer',
+                                    fontSize: '0.78rem',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.3rem'
+                                  }}
+                                  title="Duplicate / Copy Schedule"
+                                >
+                                  <Copy size={14} /> Copy
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenModal(slot)}
+                                  style={{
+                                    padding: '0.35rem 0.65rem',
+                                    borderRadius: '6px',
+                                    border: '1px solid #38bdf8',
+                                    color: '#38bdf8',
+                                    background: 'transparent',
+                                    cursor: 'pointer',
+                                    fontSize: '0.78rem',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.3rem'
+                                  }}
+                                  title="Edit in full modal"
+                                >
+                                  <Edit2 size={14} /> Edit Full
+                                </button>
+                                <button
+                                  type="button"
+                                  className="action-btn delete-btn"
+                                  onClick={() => handleDelete(slot._id)}
+                                  style={{ padding: '0.35rem 0.65rem', borderRadius: '6px', border: '1px solid #ef4444', color: '#ef4444', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem' }}
+                                  title="Delete Slot"
+                                >
+                                  <Trash2 size={14} /> Delete
+                                </button>
+                              </div>
+                            </div>
 
                         <div className="slot-editor-body-full">
                           {/* ── Basic Info ── */}
@@ -3065,6 +4060,21 @@ const AdminDashboard = () => {
                                 value={ed.date || ''}
                                 onChange={(e) => handleEditorFieldChange(slot._id, 'date', e.target.value)}
                                 placeholder="e.g. 23 Sep 2026"
+                              />
+                            </div>
+                            <div className="se-field">
+                              <label>Slot Timing</label>
+                              <input
+                                type="text"
+                                value={ed.timing || ''}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  handleEditorFieldChange(slot._id, 'timing', val);
+                                  if (ed.scheduleMatches && ed.scheduleMatches.length > 0) {
+                                    handleEditorScheduleChange(slot._id, 0, 'time', val);
+                                  }
+                                }}
+                                placeholder="e.g. 2:00 PM"
                               />
                             </div>
                           </div>
@@ -3137,7 +4147,7 @@ const AdminDashboard = () => {
                                     value={match.time || ''}
                                     onChange={(e) => handleEditorScheduleChange(slot._id, mIdx, 'time', e.target.value)}
                                     className="se-match-time-input"
-                                    placeholder="1:42 PM"
+                                    placeholder="e.g. 2:00 PM"
                                   />
                                   {(ed.scheduleMatches || []).length > 1 && (
                                     <button
@@ -3277,10 +4287,12 @@ const AdminDashboard = () => {
                         </div>
                       </div>
                     );
-                  })
-                )}
-              </div>
-            )}
+                      })
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
           </>
         )}
       </div>
@@ -3487,7 +4499,7 @@ const AdminDashboard = () => {
                 <div className="new-slot-modern-modal">
                   <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                     <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                      <label>Match Title</label>
+                      <label>Match / Tournament Title *</label>
                       <input
                         type="text"
                         value={formData.matchName || ''}
@@ -3497,40 +4509,57 @@ const AdminDashboard = () => {
                       />
                     </div>
                     <div className="form-group">
-                      <label>Category Tab</label>
+                      <label>Category *</label>
                       <select
                         value={formData.category || 'SCRIMS'}
                         onChange={e => setFormData({ ...formData, category: e.target.value })}
                         className="se-select"
                       >
-                        <option value="SCRIMS">SCRIMS</option>
-                        <option value="GRANDS">GRANDS</option>
-                        <option value="WEEKLY WAR">WEEKLY WAR</option>
-                        <option value="WEEKEND WAR">WEEKEND WAR</option>
+                        <option value="SCRIMS">Daily Scrims (SCRIMS)</option>
+                        <option value="WEEKLY WAR">Weekly War</option>
+                        <option value="WEEKEND WAR">Weekend War</option>
+                        <option value="GRANDS">Grands</option>
                       </select>
                     </div>
                     <div className="form-group">
-                      <label>Lobby Name</label>
+                      <label>Lobby Name *</label>
                       <input
                         type="text"
                         value={formData.lobby || 'LOBBY 1'}
                         onChange={e => setFormData({ ...formData, lobby: e.target.value })}
-                        placeholder="e.g. LOBBY 1, LOBBY 2"
+                        placeholder="e.g. LOBBY 01, LOBBY 02"
                         required
                       />
                     </div>
                     <div className="form-group">
-                      <label>Date</label>
+                      <label>Scheduled Date *</label>
                       <input
                         type="text"
                         value={formData.date || ''}
                         onChange={e => setFormData({ ...formData, date: e.target.value })}
-                        placeholder="e.g. 23 Sep 2026"
+                        placeholder="e.g. 10 Oct 2026"
                         required
                       />
                     </div>
                     <div className="form-group">
-                      <label>Entry Fee (₹)</label>
+                      <label>Slot Timing * (Asia/Kolkata IST)</label>
+                      <input
+                        type="text"
+                        value={formData.timing || ''}
+                        onChange={e => {
+                          const val = e.target.value;
+                          setFormData(prev => {
+                            const sm = [...(prev.scheduleMatches || [])];
+                            if (sm.length > 0) sm[0] = { ...sm[0], time: val };
+                            return { ...prev, timing: val, scheduleMatches: sm };
+                          });
+                        }}
+                        placeholder="e.g. 02:00 PM"
+                        required
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Entry Fee (₹) *</label>
                       <input
                         type="number"
                         min="0"
@@ -3540,14 +4569,52 @@ const AdminDashboard = () => {
                       />
                     </div>
                     <div className="form-group">
-                      <label>Total Slots / Max Teams</label>
+                      <label>Total Prize Pool (₹) *</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={formData.prizePoolTotal ?? 5000}
+                        onChange={e => setFormData({ ...formData, prizePoolTotal: Number(e.target.value) })}
+                        placeholder="e.g. 5000"
+                        required
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Total Slots / Max Teams *</label>
                       <input
                         type="number"
                         min="1"
-                        value={formData.maxTeams ?? 19}
+                        value={formData.maxTeams ?? 20}
                         onChange={e => setFormData({ ...formData, maxTeams: Number(e.target.value) })}
                         required
                       />
+                    </div>
+                    <div className="form-group">
+                      <label>Registration Status</label>
+                      <select
+                        value={formData.registrationStatus || 'Open'}
+                        onChange={e => setFormData({ ...formData, registrationStatus: e.target.value })}
+                        className="se-select"
+                      >
+                        <option value="Open">Registration Open</option>
+                        <option value="Upcoming">Upcoming</option>
+                        <option value="Closed">Registration Closed</option>
+                        <option value="Full">Lobby Full</option>
+                        <option value="Ongoing">Ongoing / Live</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Cancelled">Cancelled</option>
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label>Tournament Visibility</label>
+                      <select
+                        value={formData.isPublished !== false ? 'published' : 'draft'}
+                        onChange={e => setFormData({ ...formData, isPublished: e.target.value === 'published' })}
+                        className="se-select"
+                      >
+                        <option value="published">Published (Visible to Players)</option>
+                        <option value="draft">Draft (Hidden from Public)</option>
+                      </select>
                     </div>
                     <div className="form-group">
                       <label>Map Rotation (comma separated)</label>
@@ -3556,6 +4623,71 @@ const AdminDashboard = () => {
                         value={Array.isArray(formData.maps) ? formData.maps.join(', ') : (formData.maps || '')}
                         onChange={e => setFormData({ ...formData, maps: e.target.value })}
                         placeholder="ERANGEL, RONDO, MIRAMAR"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Registration Opens At (Optional)</label>
+                      <input
+                        type="text"
+                        value={formData.registrationOpenTime || ''}
+                        onChange={e => setFormData({ ...formData, registrationOpenTime: e.target.value })}
+                        placeholder="e.g. 10:00 AM 10 Oct 2026"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Registration Closes At (Optional)</label>
+                      <input
+                        type="text"
+                        value={formData.registrationCloseTime || ''}
+                        onChange={e => setFormData({ ...formData, registrationCloseTime: e.target.value })}
+                        placeholder="e.g. 01:30 PM 10 Oct 2026"
+                      />
+                    </div>
+                    <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                      <label>Tournament Poster / Banner Image</label>
+                      <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                        {(formData.heroImage || formData.heroImagePreview) && (
+                          <img
+                            src={formData.heroImagePreview || formData.heroImage}
+                            alt="Preview"
+                            style={{ width: '80px', height: '50px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #a855f7' }}
+                          />
+                        )}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={e => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              setFormData({
+                                ...formData,
+                                heroImageFile: file,
+                                heroImagePreview: URL.createObjectURL(file),
+                              });
+                            }
+                          }}
+                          style={{ flex: 1, padding: '0.4rem', background: 'rgba(255,255,255,0.05)', borderRadius: '6px' }}
+                        />
+                      </div>
+                    </div>
+                    <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                      <label>Tournament Overview / Description (shown on details page)</label>
+                      <textarea
+                        rows={3}
+                        value={formData.description || ''}
+                        onChange={e => setFormData({ ...formData, description: e.target.value })}
+                        placeholder="Daily grind scrims for all the passionate BGMI players. Compete, showcase your skills and win exciting rewards!"
+                        style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(139,92,246,0.3)', borderRadius: '8px', color: '#fff', padding: '0.65rem' }}
+                      />
+                    </div>
+                    <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                      <label>Optional Rules &amp; Instructions</label>
+                      <textarea
+                        rows={2}
+                        value={formData.rules || ''}
+                        onChange={e => setFormData({ ...formData, rules: e.target.value })}
+                        placeholder="1. Emulators/iPads strictly prohibited. 2. Match starts on time. 3. Respect lobby slots."
+                        style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(139,92,246,0.3)', borderRadius: '8px', color: '#fff', padding: '0.65rem' }}
                       />
                     </div>
                   </div>
@@ -3589,7 +4721,7 @@ const AdminDashboard = () => {
                             value={m.time || ''}
                             onChange={e => handleModalScheduleChange(mIdx, 'time', e.target.value)}
                             className="se-match-time-input"
-                            placeholder="1:42 PM"
+                            placeholder="e.g. 2:00 PM"
                           />
                           {(formData.scheduleMatches || []).length > 1 && (
                             <button

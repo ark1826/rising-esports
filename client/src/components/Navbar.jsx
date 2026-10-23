@@ -1,12 +1,35 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
-import { Bell, X, LogOut } from 'lucide-react'
+import axios from 'axios'
+import {
+  Bell,
+  X,
+  LogOut,
+  CheckCircle,
+  XCircle,
+  Wallet,
+  ArrowDownLeft,
+  ArrowUpRight,
+  Trophy,
+  Sparkles,
+  Check,
+  Trash2,
+  Send,
+  ChevronRight
+} from 'lucide-react'
 import RisingLogo from './RisingLogo'
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
 function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
   const [showNotifications, setShowNotifications] = useState(false)
+  const [notifications, setNotifications] = useState([])
+  const [unreadCount, setUnreadCount] = useState(0)
+  const [loadingNotifs, setLoadingNotifs] = useState(false)
   const navigate = useNavigate()
+
+  const userInfo = JSON.parse(localStorage.getItem('userInfo') || 'null')
 
   const toggleMenu = () => {
     setIsOpen(!isOpen)
@@ -14,7 +37,102 @@ function Navbar() {
   }
   const closeMenu = () => setIsOpen(false)
 
-  const userInfo = JSON.parse(localStorage.getItem('userInfo') || 'null')
+  // ── Fetch Notifications ──
+  const fetchNotifications = useCallback(async () => {
+    if (!userInfo || !userInfo.token) {
+      setNotifications([])
+      setUnreadCount(0)
+      return
+    }
+
+    try {
+      const { data } = await axios.get(`${API_URL}/api/notifications`, {
+        headers: { Authorization: `Bearer ${userInfo.token}` },
+      })
+      if (data?.notifications) {
+        setNotifications(data.notifications)
+        setUnreadCount(data.unreadCount || 0)
+      }
+    } catch (err) {
+      // ignore in background
+    }
+  }, [userInfo?.token])
+
+  useEffect(() => {
+    fetchNotifications()
+    const interval = setInterval(fetchNotifications, 15000)
+    return () => clearInterval(interval)
+  }, [fetchNotifications])
+
+  // Mark all as read
+  const handleMarkAllRead = async () => {
+    if (!userInfo?.token) return
+    try {
+      await axios.put(
+        `${API_URL}/api/notifications/mark-all-read`,
+        {},
+        { headers: { Authorization: `Bearer ${userInfo.token}` } }
+      )
+      setUnreadCount(0)
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
+    } catch {
+      // ignore
+    }
+  }
+
+  // Clear all notifications
+  const handleClearAllNotifs = async () => {
+    if (!userInfo?.token) return
+    try {
+      await axios.delete(`${API_URL}/api/notifications`, {
+        headers: { Authorization: `Bearer ${userInfo.token}` },
+      })
+      setNotifications([])
+      setUnreadCount(0)
+    } catch {
+      // ignore
+    }
+  }
+
+  // Handle individual notification click
+  const handleNotificationClick = async (notif) => {
+    if (!notif.read && !notif.isSystem && userInfo?.token) {
+      try {
+        await axios.put(
+          `${API_URL}/api/notifications/${notif._id}/read`,
+          {},
+          { headers: { Authorization: `Bearer ${userInfo.token}` } }
+        )
+        setNotifications((prev) =>
+          prev.map((n) => (n._id === notif._id ? { ...n, read: true } : n))
+        )
+        setUnreadCount((c) => Math.max(0, c - 1))
+      } catch {
+        // ignore
+      }
+    }
+
+    setShowNotifications(false)
+    closeMenu()
+
+    // Smart route navigation
+    if (notif.type?.includes('withdraw') || notif.type?.includes('deposit') || notif.type?.includes('wallet')) {
+      navigate('/profile')
+    } else if (notif.type?.includes('booking')) {
+      navigate('/slots?tab=my')
+    }
+  }
+
+  // Format relative time
+  const formatTime = (dateStr) => {
+    if (!dateStr) return ''
+    const diff = (Date.now() - new Date(dateStr).getTime()) / 1000
+    if (diff < 60) return 'Just now'
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
+    if (diff < 172800) return 'Yesterday'
+    return new Date(dateStr).toLocaleDateString([], { month: 'short', day: 'numeric' })
+  }
 
   const handleUserLogout = () => {
     localStorage.removeItem('userInfo')
@@ -24,19 +142,19 @@ function Navbar() {
 
   // Calculate user initials from real logged in user data
   const getInitials = () => {
-    const name = userInfo?.teamName || userInfo?.name || userInfo?.username || '';
+    const name = userInfo?.teamName || userInfo?.name || userInfo?.username || ''
     if (name) {
-      const parts = name.trim().split(/\s+/);
+      const parts = name.trim().split(/\s+/)
       if (parts.length >= 2) {
-        return (parts[0][0] + parts[1][0]).toUpperCase();
+        return (parts[0][0] + parts[1][0]).toUpperCase()
       }
-      return name.slice(0, 2).toUpperCase();
+      return name.slice(0, 2).toUpperCase()
     }
     if (userInfo?.phone) {
-      return userInfo.phone.slice(-2);
+      return userInfo.phone.slice(-2)
     }
-    return '';
-  };
+    return ''
+  }
 
   return (
     <>
@@ -166,6 +284,42 @@ function Navbar() {
             <span className="drawer-item-label">Profile &amp; Wallet</span>
           </NavLink>
 
+          {userInfo && (
+            <button
+              type="button"
+              onClick={() => {
+                closeMenu()
+                setShowNotifications(true)
+                fetchNotifications()
+              }}
+              className="drawer-nav-item"
+              style={{
+                width: '100%',
+                background: 'none',
+                border: 'none',
+                textAlign: 'left',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                padding: '0.75rem 1rem',
+                color: '#e2e8f0',
+                fontFamily: 'inherit',
+                fontSize: '0.9rem'
+              }}
+            >
+              <span className="drawer-item-icon" style={{ display: 'flex', alignItems: 'center', color: '#c084fc' }}>
+                <Bell size={18} />
+              </span>
+              <span className="drawer-item-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', fontWeight: 600 }}>
+                <span>Notifications</span>
+                {unreadCount > 0 && (
+                  <span className="notif-badge-count">{unreadCount} New</span>
+                )}
+              </span>
+            </button>
+          )}
+
           {!userInfo && (
             <NavLink
               to="/user/login"
@@ -192,6 +346,47 @@ function Navbar() {
               </button>
             </>
           )}
+
+          {/* Official Group Link Card (Screen 8) */}
+          <a
+            href="https://chat.whatsapp.com/FLX8eM2APOFCyiK8ReWER6?mode=gi_t"
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={closeMenu}
+            className="drawer-official-link-card"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: 'linear-gradient(135deg, rgba(24, 18, 50, 0.95), rgba(16, 12, 34, 0.98))',
+              border: '1px solid rgba(139, 92, 246, 0.35)',
+              borderRadius: '14px',
+              padding: '0.85rem 1rem',
+              marginTop: '1.25rem',
+              textDecoration: 'none',
+              boxShadow: '0 4px 18px rgba(124, 58, 237, 0.2)'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div style={{
+                width: '34px',
+                height: '34px',
+                borderRadius: '50%',
+                background: '#0284c7',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#fff',
+                boxShadow: '0 0 10px rgba(2, 132, 199, 0.5)'
+              }}>
+                <Send size={16} />
+              </div>
+              <span style={{ color: '#fff', fontWeight: 800, fontSize: '0.88rem' }}>
+                Official Group Link
+              </span>
+            </div>
+            <ChevronRight size={18} color="#94a3b8" />
+          </a>
         </nav>
       </aside>
 
@@ -243,32 +438,158 @@ function Navbar() {
             <div className="navbar-notif-wrap" style={{ position: 'relative' }}>
               <button
                 className="header-icon-btn notif-btn"
-                onClick={() => setShowNotifications(!showNotifications)}
+                onClick={() => {
+                  setShowNotifications(!showNotifications)
+                  if (!showNotifications) fetchNotifications()
+                }}
                 aria-label="Notifications"
                 type="button"
               >
                 <Bell size={21} />
-                <span className="notif-pulse-dot" />
+                {unreadCount > 0 ? (
+                  <span className="notif-badge-bubble">{unreadCount > 9 ? '9+' : unreadCount}</span>
+                ) : (
+                  <span className="notif-pulse-dot" />
+                )}
               </button>
 
               {/* Notification Popover Dropdown */}
               {showNotifications && (
                 <div className="notif-dropdown-menu fade-in">
                   <div className="notif-header">
-                    <h4>Notifications</h4>
-                    <span className="notif-badge-count">Live</span>
-                  </div>
-                  <div className="notif-items-list">
-                    <div className="notif-item">
-                      <div className="notif-item-dot" />
-                      <div className="notif-item-body">
-                        <p className="notif-title">Official BGMI Scrims</p>
-                        <p className="notif-desc">Room ID &amp; Password will be published in your registered slot details 15 mins prior to match start.</p>
-                        <span className="notif-time">Official</span>
-                      </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <h4>Notifications</h4>
+                      {unreadCount > 0 && (
+                        <span className="notif-badge-count">{unreadCount} New</span>
+                      )}
+                    </div>
+                    <div className="notif-header-actions">
+                      {unreadCount > 0 && (
+                        <button
+                          type="button"
+                          className="notif-mark-read-btn"
+                          onClick={handleMarkAllRead}
+                          title="Mark all as read"
+                        >
+                          Mark Read
+                        </button>
+                      )}
                     </div>
                   </div>
+
+                  <div className="notif-items-list">
+                    {notifications.length === 0 ? (
+                      <div className="notif-empty-state">
+                        <Sparkles size={28} color="#a855f7" style={{ margin: '0 auto 8px', opacity: 0.7 }} />
+                        <p>No notifications yet</p>
+                        <span style={{ fontSize: '0.7rem', color: '#64748b' }}>
+                          Withdrawal and deposit updates will appear here.
+                        </span>
+                      </div>
+                    ) : (
+                      notifications.map((notif) => {
+                        const isApproved =
+                          notif.type?.includes('approved') || notif.status === 'approved'
+                        const isRejected =
+                          notif.type?.includes('rejected') || notif.status === 'rejected'
+                        const isCredit = notif.type === 'wallet_credit'
+                        const isDebit = notif.type === 'wallet_debit'
+
+                        return (
+                          <div
+                            key={notif._id}
+                            className={`notif-item ${!notif.read ? 'unread' : ''}`}
+                            onClick={() => handleNotificationClick(notif)}
+                          >
+                            <div
+                              className="notif-icon-box"
+                              style={{
+                                background: isApproved
+                                  ? 'rgba(16, 185, 129, 0.15)'
+                                  : isRejected
+                                  ? 'rgba(239, 68, 68, 0.15)'
+                                  : isCredit
+                                  ? 'rgba(168, 85, 247, 0.15)'
+                                  : isDebit
+                                  ? 'rgba(245, 158, 11, 0.15)'
+                                  : 'rgba(56, 189, 248, 0.15)',
+                                border: `1px solid ${
+                                  isApproved
+                                    ? 'rgba(16, 185, 129, 0.35)'
+                                    : isRejected
+                                    ? 'rgba(239, 68, 68, 0.35)'
+                                    : isCredit
+                                    ? 'rgba(168, 85, 247, 0.35)'
+                                    : isDebit
+                                    ? 'rgba(245, 158, 11, 0.35)'
+                                    : 'rgba(56, 189, 248, 0.35)'
+                                }`,
+                              }}
+                            >
+                              {isApproved ? (
+                                <CheckCircle size={18} color="#10b981" />
+                              ) : isRejected ? (
+                                <XCircle size={18} color="#ef4444" />
+                              ) : isCredit ? (
+                                <ArrowDownLeft size={18} color="#a855f7" />
+                              ) : isDebit ? (
+                                <ArrowUpRight size={18} color="#f59e0b" />
+                              ) : notif.type?.includes('booking') ? (
+                                <Trophy size={18} color="#38bdf8" />
+                              ) : (
+                                <Sparkles size={18} color="#c084fc" />
+                              )}
+                            </div>
+
+                            <div className="notif-item-body">
+                              <div className="notif-title-row">
+                                <span className="notif-title">{notif.title}</span>
+                                {isApproved && (
+                                  <span className="notif-status-badge notif-status-approved">
+                                    Approved
+                                  </span>
+                                )}
+                                {isRejected && (
+                                  <span className="notif-status-badge notif-status-rejected">
+                                    Rejected
+                                  </span>
+                                )}
+                                {isCredit && (
+                                  <span className="notif-status-badge notif-status-approved">
+                                    Credited
+                                  </span>
+                                )}
+                                {isDebit && (
+                                  <span className="notif-status-badge notif-status-info">
+                                    Debited
+                                  </span>
+                                )}
+                                {notif.isSystem && (
+                                  <span className="notif-status-badge notif-status-info">
+                                    Notice
+                                  </span>
+                                )}
+                              </div>
+                              <p className="notif-desc">{notif.message}</p>
+                              <span className="notif-time">{formatTime(notif.createdAt)}</span>
+                            </div>
+                          </div>
+                        )
+                      })
+                    )}
+                  </div>
+
                   <div className="notif-footer">
+                    {notifications.length > 0 && (
+                      <button
+                        className="notif-close-action"
+                        onClick={handleClearAllNotifs}
+                        type="button"
+                        style={{ color: '#94a3b8', fontSize: '0.72rem' }}
+                      >
+                        Clear All
+                      </button>
+                    )}
                     <button
                       className="notif-close-action"
                       onClick={() => setShowNotifications(false)}

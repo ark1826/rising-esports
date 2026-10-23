@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import paymentQR from '../assets/payment_qr.png';
+import WithdrawalSuccessModal from '../components/WithdrawalSuccessModal';
 import {
   User,
   Shield,
@@ -172,6 +173,8 @@ function Profile() {
   const [upiId, setUpiId] = useState('');
   const [withdrawNotes, setWithdrawNotes] = useState('');
   const [processing, setProcessing] = useState(false);
+  const [showWithdrawalSuccessModal, setShowWithdrawalSuccessModal] = useState(false);
+  const [withdrawalSuccessData, setWithdrawalSuccessData] = useState(null);
 
   // WinZO-style Deposit flow state
   const [depositStep, setDepositStep] = useState(1); // 1: Select Amount, 2: Pay & Enter UTR, 3: Success Pending Verification
@@ -486,11 +489,13 @@ function Profile() {
         ...prev,
         walletBalance: data.balance ?? (prev.walletBalance - amountNum),
       }));
-      setNotification({
-        type: 'success',
-        message: data.message || `Withdrawal request for ₹${amountNum} submitted!`,
-      });
       setShowWithdrawModal(false);
+      setWithdrawalSuccessData({
+        amount: amountNum,
+        upiId: upiId.trim(),
+        transactionId: data?.transaction?.transactionId || `WAL_WTH_${Date.now()}`,
+      });
+      setShowWithdrawalSuccessModal(true);
       setWithdrawAmount('50');
       setUpiId('');
       setWithdrawNotes('');
@@ -1198,6 +1203,13 @@ function Profile() {
           </div>
         </div>
       )}
+
+      {/* ── MODAL: WITHDRAWAL SUCCESS POPUP ── */}
+      <WithdrawalSuccessModal
+        isOpen={showWithdrawalSuccessModal}
+        onClose={() => setShowWithdrawalSuccessModal(false)}
+        data={withdrawalSuccessData}
+      />
     </div>
   );
 }

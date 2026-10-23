@@ -4,11 +4,13 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import {
   Users, MapPin, Search, AlertTriangle, Check, RefreshCw, X,
-  ChevronRight, Crosshair, Copy, CheckCheck, Grid, Columns, Shield, Sparkles
+  ChevronRight, Crosshair, Copy, CheckCheck, Grid, Columns, Shield, Sparkles, Calendar,
+  ArrowLeft, Trophy, Clock
 } from 'lucide-react';
 import PaymentModal from '../components/PaymentModal';
 import DropListView from '../components/DropListView';
 import bannerImg from '../assets/slots_banner.jpg';
+import soldierBgImg from '../assets/droplist_bg_soldier.jpg';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -356,6 +358,11 @@ function TodaySlots() {
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [selectedCategory, setSelectedCategory] = useState('SCRIMS');
 
+  // Sub-navigation state for Screens 2, 3, 4, 5
+  const [subPage, setSubPage] = useState('list'); // 'list' | 'details' | 'registered_teams' | 'drop_details'
+  const [activeTournament, setActiveTournament] = useState(null);
+  const [tourneyTab, setTourneyTab] = useState('overview'); // 'overview' | 'prizepool' | 'schedule' | 'map'
+
   const navigate = useNavigate();
   const location = useLocation();
   const isMyMatchesTab = new URLSearchParams(location.search).get('tab') === 'my';
@@ -367,6 +374,28 @@ function TodaySlots() {
     }
   }, []);
   const userInfo = getUserInfo();
+
+  // Sync category and slotId from query params
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const cat = params.get('category');
+    if (cat) {
+      const c = cat.toUpperCase();
+      if (c.includes('SCRIM')) setSelectedCategory('SCRIMS');
+      else if (c.includes('WEEKLY')) setSelectedCategory('WEEKLY WAR');
+      else if (c.includes('WEEKEND')) setSelectedCategory('WEEKEND WAR');
+      else if (c.includes('GRAND')) setSelectedCategory('GRANDS');
+      else setSelectedCategory(cat.toUpperCase());
+    }
+    const slotIdParam = params.get('slotId');
+    if (slotIdParam && slots.length > 0) {
+      const found = slots.find((s) => s._id === slotIdParam);
+      if (found) {
+        setActiveTournament(found);
+        setSubPage('details');
+      }
+    }
+  }, [location.search, slots]);
 
   // ── Fetch slots ──
   const fetchSlots = useCallback(async () => {
@@ -708,12 +737,30 @@ function TodaySlots() {
       // 1. Filter by category
       if (selectedCategory !== 'ALL') {
         const slotCat = (slot.category || 'SCRIMS').toUpperCase();
-        if (slotCat !== selectedCategory.toUpperCase()) {
+        const selCat = selectedCategory.toUpperCase();
+        const matchesCat =
+          (selCat.includes('SCRIM') && slotCat.includes('SCRIM')) ||
+          (selCat.includes('WEEKLY') && slotCat.includes('WEEKLY')) ||
+          (selCat.includes('WEEKEND') && slotCat.includes('WEEKEND')) ||
+          (selCat.includes('GRAND') && slotCat.includes('GRAND')) ||
+          slotCat === selCat;
+        if (!matchesCat) {
           return false;
         }
       }
 
-      // 2. Filter by date if slot has a date specified
+      // 2. Filter by slotTime or date
+      if (slot.slotTime) {
+        const d = new Date(slot.slotTime);
+        if (!isNaN(d.getTime())) {
+          const sYear = d.getFullYear();
+          const sMonth = String(d.getMonth() + 1).padStart(2, '0');
+          const sDay = String(d.getDate()).padStart(2, '0');
+          const sIso = `${sYear}-${sMonth}-${sDay}`;
+          return sIso === localIso;
+        }
+      }
+
       if (slot.date) {
         const slotDateStr = String(slot.date).trim();
         // Check ISO format YYYY-MM-DD
@@ -726,13 +773,12 @@ function TodaySlots() {
         // If today is selected and slot is marked today, allow
         if (isTodaySelected && slotDateStr.toLowerCase().includes('today')) return true;
 
-        // If the slot has a specific ISO date that differs from selected date, exclude
-        if (/^\d{4}-\d{2}-\d{2}$/.test(slotDateStr) && slotDateStr !== localIso) {
-          return false;
-        }
+        // Slot date does not match selected date
+        return false;
       }
 
-      return true;
+      // If slot has neither slotTime nor date, only allow on today
+      return isTodaySelected;
     });
   }, [slots, selectedCategory, selectedDate, isTodaySelected, isMyMatchesTab, myBookings]);
 
@@ -892,10 +938,27 @@ function TodaySlots() {
       return [{ matchNumber: 1, label: 'MATCH 1', time: slot.timing }];
     }
     return [
-      { matchNumber: 1, label: 'MATCH 1', time: '1:42 PM' },
-      { matchNumber: 2, label: 'MATCH 2', time: '2:22 PM' },
-      { matchNumber: 3, label: 'MATCH 3', time: '3:02 PM' },
+      { matchNumber: 1, label: 'MATCH 1', time: 'TBA' },
     ];
+  };
+
+  // Helper to format scheduled date for slot
+  const formatSlotScheduledDate = (slot) => {
+    if (!slot) return '';
+    if (slot.slotTime) {
+      const d = new Date(slot.slotTime);
+      if (!isNaN(d.getTime())) {
+        return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+      }
+    }
+    if (slot.date) {
+      const parsed = new Date(slot.date);
+      if (!isNaN(parsed.getTime()) && String(slot.date).includes('-')) {
+        return parsed.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+      }
+      return String(slot.date);
+    }
+    return 'Today';
   };
 
   // Avatar color helper
@@ -920,156 +983,626 @@ function TodaySlots() {
         </div>
       )}
 
-      {/* ── Hero Banner (Matching Screenshot) ── */}
-      <div className="ts-hero-banner">
-        <div
-          className="ts-hero-bg"
-          style={{ backgroundImage: `url(${bannerImg})` }}
-        />
-        <div className="ts-hero-overlay" />
-        <div className="ts-hero-content">
-          <div className="ts-hero-left">
-            <div className="ts-calendar-icon-box">
-              <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                <line x1="16" y1="2" x2="16" y2="6"/>
-                <line x1="8" y1="2" x2="8" y2="6"/>
-                <line x1="3" y1="10" x2="21" y2="10"/>
-                <path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01" />
-              </svg>
-            </div>
-            <div className="ts-hero-titles">
-              <h4>TODAY'S</h4>
-              <h1>SLOTS</h1>
-              <p>Book your slot, participate in tournaments and climb the rankings!</p>
-            </div>
-          </div>
-          <div className="ts-hero-badge">
-            <div className="ts-hero-crest">
-              <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#c084fc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-              </svg>
-              <span>RISING</span>
-              <span style={{ color: '#fff', fontWeight: 900 }}>TOGETHER</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Main Tab Switcher (Available Slots vs My Registered Matches) ── */}
-      <div style={{
-        display: 'flex',
-        gap: '0.5rem',
-        margin: '1.25rem 0 1rem',
-        background: 'rgba(255, 255, 255, 0.04)',
-        padding: '5px',
-        borderRadius: '14px',
-        border: '1px solid rgba(139, 92, 246, 0.25)'
-      }}>
-        <button
-          type="button"
-          onClick={() => navigate('/slots')}
-          style={{
-            flex: 1,
-            padding: '0.65rem 0.75rem',
-            borderRadius: '10px',
-            border: 'none',
-            background: !isMyMatchesTab ? 'linear-gradient(135deg, #7c3aed, #6d28d9)' : 'transparent',
-            color: '#fff',
-            fontWeight: 800,
-            fontSize: '0.85rem',
-            letterSpacing: '0.5px',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
-            boxShadow: !isMyMatchesTab ? '0 4px 14px rgba(124, 58, 237, 0.35)' : 'none'
-          }}
-        >
-          AVAILABLE SLOTS
-        </button>
-        <button
-          type="button"
-          onClick={() => navigate('/slots?tab=my')}
-          style={{
-            flex: 1,
-            padding: '0.65rem 0.75rem',
-            borderRadius: '10px',
-            border: 'none',
-            background: isMyMatchesTab ? 'linear-gradient(135deg, #7c3aed, #6d28d9)' : 'transparent',
-            color: '#fff',
-            fontWeight: 800,
-            fontSize: '0.85rem',
-            letterSpacing: '0.5px',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '0.4rem',
-            boxShadow: isMyMatchesTab ? '0 4px 14px rgba(124, 58, 237, 0.35)' : 'none'
-          }}
-        >
-          <span>MY MATCHES</span>
-          {Object.keys(myBookings).length > 0 && (
-            <span style={{
-              background: isMyMatchesTab ? 'rgba(255,255,255,0.25)' : '#7c3aed',
-              padding: '1px 7px',
-              borderRadius: '999px',
-              fontSize: '0.72rem',
-              fontWeight: 800
-            }}>
-              {Object.keys(myBookings).length}
-            </span>
-          )}
-        </button>
-      </div>
-
-      {!isMyMatchesTab && (
-        <>
-          {/* ── Date Navigator Bar ── */}
-          <div className="ts-date-bar">
+      {/* ── Subpage: Tournament Details (Screen 3) ── */}
+      {subPage === 'details' && activeTournament ? (
+        <div className="tourney-details-view fade-in">
+          {/* Header */}
+          <div className="category-screen-header">
             <button
               type="button"
-              className="ts-date-arrow-btn"
-              onClick={() => changeDate(-1)}
-              aria-label="Previous day"
+              className="category-back-btn"
+              onClick={() => {
+                setSubPage('list');
+                setActiveTournament(null);
+              }}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="15 18 9 12 15 6" />
-              </svg>
+              <ArrowLeft size={18} />
             </button>
-
-            <div className="ts-date-info" onClick={resetToToday} title="Click to reset to today">
-              <div className="ts-date-sub">{isTodaySelected ? 'TODAY' : 'SELECTED DATE'}</div>
-              <div className="ts-date-main">{formatDateDisplay(selectedDate)}</div>
-            </div>
-
-            <button
-              type="button"
-              className="ts-date-arrow-btn"
-              onClick={() => changeDate(1)}
-              aria-label="Next day"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
-            </button>
+            <h2 className="category-screen-title">Tournament Details</h2>
           </div>
 
-          {/* ── Category Filter Tabs ── */}
-          <div className="ts-tabs-row">
-            {CATEGORIES.map((cat) => (
+          {/* Hero Banner */}
+          <div className="tourney-hero-card">
+            <div style={{ position: 'relative', zIndex: 2 }}>
+              <span className="cat-hero-badge">BGMI</span>
+              <h1 className="tourney-hero-title">{activeTournament.matchName || 'RISING 1-3 GRIND SCRIMS'}</h1>
+            </div>
+            <div className="cat-hero-art" aria-hidden="true">
+              <img src={activeTournament.heroImage || soldierBgImg} alt="Tournament Artwork" />
+            </div>
+          </div>
+
+          {/* Tabs row: Overview | Prize Pool | Schedule | Map */}
+          <div className="tourney-tabs-row">
+            {['overview', 'prizepool', 'schedule', 'map'].map((tab) => (
               <button
-                key={cat}
+                key={tab}
                 type="button"
-                className={`ts-tab-pill ${selectedCategory === cat ? 'active' : ''}`}
-                onClick={() => setSelectedCategory(cat)}
+                className={`tourney-tab-btn ${tourneyTab === tab ? 'active' : ''}`}
+                onClick={() => setTourneyTab(tab)}
               >
-                {cat}
+                {tab === 'overview' ? 'Overview' : tab === 'prizepool' ? 'Prize Pool' : tab === 'schedule' ? 'Schedule' : 'Map'}
               </button>
             ))}
           </div>
-        </>
-      )}
+
+          {/* Tab 1: Overview */}
+          {tourneyTab === 'overview' && (
+            <div>
+              <div className="tourney-section-heading">Tournament Overview</div>
+              <p className="tourney-overview-text">
+                {activeTournament.description ||
+                  'Daily grind scrims for all the passionate BGMI players. Compete, showcase your skills and win exciting rewards!'}
+              </p>
+
+              {/* 2x2 Stats Grid */}
+              <div className="tourney-stats-grid">
+                <div className="tourney-stat-card">
+                  <div className="tourney-stat-icon"><Shield size={16} /></div>
+                  <div>
+                    <div className="tourney-stat-label">Entry Fee</div>
+                    <div className="tourney-stat-value">₹{activeTournament.entryFee != null ? activeTournament.entryFee : 60}</div>
+                  </div>
+                </div>
+
+                <div className="tourney-stat-card">
+                  <div className="tourney-stat-icon"><Trophy size={16} /></div>
+                  <div>
+                    <div className="tourney-stat-label">Prize Pool</div>
+                    <div className="tourney-stat-value">₹{(activeTournament.prizePoolTotal || (activeTournament.prizePool ? Number(String(activeTournament.prizePool).replace(/[^0-9]/g, '')) : 5000)).toLocaleString('en-IN')}</div>
+                  </div>
+                </div>
+
+                <div className="tourney-stat-card">
+                  <div className="tourney-stat-icon"><Users size={16} /></div>
+                  <div>
+                    <div className="tourney-stat-label">Teams</div>
+                    <div className="tourney-stat-value">{activeTournament.bookedCount || 0} / {activeTournament.maxTeams || 20}</div>
+                  </div>
+                </div>
+
+                <div className="tourney-stat-card">
+                  <div className="tourney-stat-icon"><Crosshair size={16} /></div>
+                  <div>
+                    <div className="tourney-stat-label">Lobby</div>
+                    <div className="tourney-stat-value">{activeTournament.lobby || '01'}</div>
+                  </div>
+                </div>
+
+                <div className="tourney-stat-card" style={{ gridColumn: 'span 2' }}>
+                  <div className="tourney-stat-icon"><Clock size={16} /></div>
+                  <div>
+                    <div className="tourney-stat-label">Start Time</div>
+                    <div className="tourney-stat-value">{activeTournament.date || '10 Oct 2026'} • {activeTournament.timing || '02:00 PM'}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Register CTA Button */}
+              {myBookings[activeTournament._id]?.paymentStatus === 'paid' ? (
+                <button
+                  type="button"
+                  className="tourney-register-cta-btn"
+                  onClick={() => handleGetCredentials(activeTournament)}
+                >
+                  Room Credentials
+                </button>
+              ) : activeTournament.isSoldOut || (Number(activeTournament.maxTeams || 20) - Number(activeTournament.bookedCount || 0)) <= 0 ? (
+                <button
+                  type="button"
+                  className="tourney-register-cta-btn"
+                  style={{ opacity: 0.6, cursor: 'not-allowed', background: '#374151' }}
+                  disabled
+                >
+                  Registration Closed
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="tourney-register-cta-btn"
+                  onClick={() => openPaymentModal(activeTournament)}
+                >
+                  Register Now
+                </button>
+              )}
+
+              {/* Registered Teams Preview */}
+              <div className="tourney-reg-teams-header">
+                <div className="tourney-section-heading" style={{ margin: 0 }}>Registered Teams</div>
+                <button
+                  type="button"
+                  className="tourney-view-all-link"
+                  onClick={() => setSubPage('registered_teams')}
+                >
+                  View All &gt;
+                </button>
+              </div>
+
+              <div className="tourney-teams-list-wrap">
+                {(activeTournament.bookedTeams && activeTournament.bookedTeams.length > 0
+                  ? activeTournament.bookedTeams.slice(0, 3)
+                  : [
+                      { teamName: 'Team Apex', teamTag: 'RISING-1023' },
+                      { teamName: 'Future Masters', teamTag: 'RISING-1042' },
+                      { teamName: 'Rising Warriors', teamTag: 'RISING-1081' }
+                    ]
+                ).map((t, idx) => (
+                  <div
+                    key={idx}
+                    className="tourney-team-row"
+                    onClick={() => setSubPage('registered_teams')}
+                  >
+                    <div className="tourney-team-left">
+                      <div
+                        className="tourney-team-crest"
+                        style={{ background: STICKER_PALETTES[idx % STICKER_PALETTES.length].bg }}
+                      >
+                        {getTeamMonogram(t.teamName, t.teamTag)}
+                      </div>
+                      <div>
+                        <div className="tourney-team-name">{t.teamName}</div>
+                        <div className="tourney-team-tag">{t.teamTag || `RISING-${1023 + idx * 19}`}</div>
+                      </div>
+                    </div>
+                    <ChevronRight size={16} color="#94a3b8" />
+                  </div>
+                ))}
+              </div>
+
+              {/* Drop Details link card */}
+              <div
+                className="tourney-drop-card-btn"
+                onClick={() => setSubPage('drop_details')}
+              >
+                <div className="tourney-drop-card-left">
+                  <MapPin size={22} color="#a855f7" />
+                  <div>
+                    <div className="tourney-drop-card-title">Drop Details</div>
+                    <div className="tourney-drop-card-sub">View team-wise drop locations</div>
+                  </div>
+                </div>
+                <ChevronRight size={18} color="#94a3b8" />
+              </div>
+            </div>
+          )}
+
+          {/* Tab 2: Prize Pool */}
+          {tourneyTab === 'prizepool' && (
+            <div style={{ marginTop: '0.5rem' }}>
+              <div className="ts-panel-label" style={{ marginBottom: '0.75rem' }}>PRIZE POOL BREAKDOWN</div>
+              <div className="ts-prize-grid">
+                {resolvePrizes(activeTournament).map((p, idx) => {
+                  const isGold = p.rank === '#1' || String(p.rank).includes('1') || idx === 0;
+                  const isFree = String(p.prize).toUpperCase().includes('FREE');
+                  return (
+                    <div key={idx} className="ts-prize-card">
+                      <div className="ts-prize-rank">{p.rank}</div>
+                      <div className={`ts-prize-val ${isGold ? 'gold' : isFree ? 'free' : ''}`}>
+                        {p.prize}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Tab 3: Schedule */}
+          {tourneyTab === 'schedule' && (
+            <div style={{ marginTop: '0.5rem' }}>
+              <div className="ts-panel-label" style={{ marginBottom: '0.75rem' }}>MATCH SCHEDULE</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                {resolveSchedule(activeTournament).map((s, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      background: 'rgba(22, 16, 44, 0.8)',
+                      padding: '0.75rem 1rem',
+                      borderRadius: '10px',
+                      border: '1px solid rgba(139, 92, 246, 0.2)'
+                    }}
+                  >
+                    <span style={{ fontWeight: 800, color: '#fff', fontSize: '0.85rem' }}>
+                      {s.label || `MATCH ${s.matchNumber || idx + 1}`}
+                    </span>
+                    <span style={{ color: '#a78bfa', fontWeight: 700, fontSize: '0.8rem' }}>
+                      {s.time}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Tab 4: Map */}
+          {tourneyTab === 'map' && (
+            <div style={{ marginTop: '0.5rem' }}>
+              <div className="ts-panel-label" style={{ marginBottom: '0.75rem' }}>MAP ROTATION</div>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                {resolveMaps(activeTournament).map((mapName, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      flex: '1 1 45%',
+                      background: 'rgba(22, 16, 44, 0.8)',
+                      padding: '1rem',
+                      borderRadius: '12px',
+                      border: '1px solid rgba(139, 92, 246, 0.25)',
+                      textAlign: 'center'
+                    }}
+                  >
+                    <div style={{ fontSize: '1.25rem', marginBottom: '0.25rem' }}>🗺️</div>
+                    <div style={{ fontWeight: 900, color: '#fff', fontSize: '0.9rem' }}>{mapName}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      ) : subPage === 'registered_teams' && activeTournament ? (
+        /* ── Subpage: Registered Teams (Screen 4) ── */
+        <div className="fade-in">
+          <div className="category-screen-header">
+            <button
+              type="button"
+              className="category-back-btn"
+              onClick={() => setSubPage('details')}
+            >
+              <ArrowLeft size={18} />
+            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h2 className="category-screen-title">Registered Teams</h2>
+              <span
+                style={{
+                  fontSize: '0.72rem',
+                  color: '#c084fc',
+                  background: 'rgba(139, 92, 246, 0.2)',
+                  padding: '2px 8px',
+                  borderRadius: '12px',
+                  fontWeight: 800
+                }}
+              >
+                {(activeTournament.bookedTeams?.length || 0)}/{activeTournament.maxTeams || 20} Teams
+              </span>
+            </div>
+          </div>
+
+          <div className="tourney-teams-list-wrap">
+            {(activeTournament.bookedTeams && activeTournament.bookedTeams.length > 0
+              ? activeTournament.bookedTeams
+              : [
+                  { teamName: 'Team Apex', teamTag: 'RISING-1023' },
+                  { teamName: 'Future Masters', teamTag: 'RISING-1042' },
+                  { teamName: 'Rising Warriors', teamTag: 'RISING-1081' },
+                  { teamName: 'Gods Reign', teamTag: 'RISING-1105' },
+                  { teamName: 'Toxic Esports', teamTag: 'RISING-1148' },
+                  { teamName: 'Blaze Gaming', teamTag: 'RISING-1176' },
+                  { teamName: 'Shadow Squad', teamTag: 'RISING-1203' },
+                  { teamName: 'Nova Esports', teamTag: 'RISING-1230' }
+                ]
+            ).map((t, idx) => (
+              <div key={idx} className="tourney-team-row">
+                <div className="tourney-team-left">
+                  <div
+                    className="tourney-team-crest"
+                    style={{ background: STICKER_PALETTES[idx % STICKER_PALETTES.length].bg }}
+                  >
+                    {getTeamMonogram(t.teamName, t.teamTag)}
+                  </div>
+                  <div>
+                    <div className="tourney-team-name">{t.teamName}</div>
+                    <div className="tourney-team-tag">{t.teamTag || `RISING-${1023 + idx * 19}`}</div>
+                  </div>
+                </div>
+                <ChevronRight size={16} color="#94a3b8" />
+              </div>
+            ))}
+          </div>
+
+          {/* Drop details link card */}
+          <div
+            className="tourney-drop-card-btn"
+            onClick={() => setSubPage('drop_details')}
+            style={{ marginTop: '1rem' }}
+          >
+            <div className="tourney-drop-card-left">
+              <MapPin size={22} color="#a855f7" />
+              <div>
+                <div className="tourney-drop-card-title">Drop Details</div>
+                <div className="tourney-drop-card-sub">View team-wise drop locations</div>
+              </div>
+            </div>
+            <ChevronRight size={18} color="#94a3b8" />
+          </div>
+        </div>
+      ) : subPage === 'drop_details' && activeTournament ? (
+        /* ── Subpage: Drop Details (Screen 5) ── */
+        <div className="fade-in">
+          <div className="category-screen-header">
+            <button
+              type="button"
+              className="category-back-btn"
+              onClick={() => setSubPage('details')}
+            >
+              <ArrowLeft size={18} />
+            </button>
+            <h2 className="category-screen-title">Drop Details</h2>
+          </div>
+
+          {/* Mini map banner */}
+          <div className="drop-details-map-hero">
+            <div className="drop-details-map-thumb">
+              <img src={soldierBgImg} alt="Map preview" />
+            </div>
+            <div>
+              <div className="drop-details-match-label">Match 1</div>
+              <div className="drop-details-map-name">{resolveMaps(activeTournament)[0] || 'Erangel'}</div>
+            </div>
+          </div>
+
+          <div className="tourney-section-heading" style={{ marginBottom: '0.65rem' }}>Team Drop Locations</div>
+
+          <table className="drop-details-table">
+            <thead>
+              <tr>
+                <th style={{ width: '32px' }}>#</th>
+                <th>Team</th>
+                <th>Drop Location</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(activeTournament.bookedTeams && activeTournament.bookedTeams.length > 0
+                ? activeTournament.bookedTeams
+                : [
+                    { teamName: 'Team Apex', teamTag: 'R1023', drop: 'Pochinki' },
+                    { teamName: 'Future Masters', teamTag: 'R1042', drop: 'School' },
+                    { teamName: 'Rising Warriors', teamTag: 'R1081', drop: 'Rozhok' },
+                    { teamName: 'Gods Reign', teamTag: 'R1105', drop: 'Georgopol' },
+                    { teamName: 'Toxic Esports', teamTag: 'R1148', drop: 'Yasnaya' },
+                    { teamName: 'Blaze Gaming', teamTag: 'R1176', drop: 'Prison' },
+                    { teamName: 'Shadow Squad', teamTag: 'R1203', drop: 'Shooting Range' },
+                    { teamName: 'Nova Esports', teamTag: 'R1230', drop: 'Novorepnoye' },
+                    { teamName: 'Vortex Gaming', teamTag: 'R1255', drop: 'Lipovka' }
+                  ]
+              ).map((t, idx) => {
+                const mapKey = (resolveMaps(activeTournament)[0] || 'ERANGEL');
+                const dropLoc = t.drop || getTeamDrop(t, mapKey) || 'TBD';
+                return (
+                  <tr key={idx} className="drop-row">
+                    <td style={{ color: '#c084fc', fontWeight: 900 }}>{idx + 1}</td>
+                    <td className="team-col">
+                      <div
+                        className="tourney-team-crest"
+                        style={{ width: '26px', height: '26px', fontSize: '0.65rem', background: STICKER_PALETTES[idx % STICKER_PALETTES.length].bg }}
+                      >
+                        {getTeamMonogram(t.teamName, t.teamTag)}
+                      </div>
+                      <span>{t.teamName}</span>
+                    </td>
+                    <td className="drop-col">{dropLoc}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        /* ── Subpage: Category List (Screens 2 & 7) ── */
+        <>
+          {/* Category Screen Header with Back Arrow */}
+          <div className="category-screen-header">
+            <button type="button" className="category-back-btn" onClick={() => navigate('/')}>
+              <ArrowLeft size={18} />
+            </button>
+            <h2 className="category-screen-title">
+              {selectedCategory === 'ALL' ? "Today's Slots" : selectedCategory}
+            </h2>
+          </div>
+
+          {/* Category Hero Banner */}
+          {selectedCategory !== 'ALL' ? (
+            <div
+              className={`cat-hero-banner ${
+                selectedCategory === 'WEEKLY WAR'
+                  ? 'weekly'
+                  : selectedCategory === 'WEEKEND WAR'
+                  ? 'weekend'
+                  : selectedCategory === 'GRANDS'
+                  ? 'grands'
+                  : ''
+              }`}
+            >
+              <div style={{ position: 'relative', zIndex: 2 }}>
+                <span className="cat-hero-badge">BGMI</span>
+                <h1 className="cat-hero-title">
+                  {selectedCategory === 'SCRIMS' ? 'DAILY GRIND SCRIMS' : selectedCategory}
+                </h1>
+                <div className="cat-hero-sub">
+                  {selectedCategory === 'SCRIMS'
+                    ? 'Play • Compete • Win'
+                    : selectedCategory === 'WEEKLY WAR'
+                    ? 'Competitive Battles'
+                    : selectedCategory === 'WEEKEND WAR'
+                    ? 'Big Rewards'
+                    : 'Elite Tournaments'}
+                </div>
+              </div>
+              <div className="cat-hero-art" aria-hidden="true">
+                <img
+                  src={soldierBgImg}
+                  alt="Soldier Banner"
+                  style={
+                    selectedCategory === 'WEEKLY WAR'
+                      ? { filter: 'hue-rotate(320deg)' }
+                      : selectedCategory === 'WEEKEND WAR'
+                      ? { filter: 'hue-rotate(45deg)' }
+                      : selectedCategory === 'GRANDS'
+                      ? { filter: 'hue-rotate(180deg)' }
+                      : {}
+                  }
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="ts-hero-banner">
+              <div className="ts-hero-bg" style={{ backgroundImage: `url(${bannerImg})` }} />
+              <div className="ts-hero-overlay" />
+              <div className="ts-hero-content">
+                <div className="ts-hero-left">
+                  <div className="ts-calendar-icon-box">
+                    <Calendar size={28} />
+                  </div>
+                  <div className="ts-hero-titles">
+                    <h4>TODAY'S</h4>
+                    <h1>SLOTS</h1>
+                    <p>Book your slot, participate in tournaments and climb the rankings!</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── Main Tab Switcher (Available Slots vs My Registered Matches) ── */}
+          <div
+            style={{
+              display: 'flex',
+              gap: '0.5rem',
+              margin: '0.5rem 0 0.85rem',
+              background: 'rgba(255, 255, 255, 0.04)',
+              padding: '4px',
+              borderRadius: '12px',
+              border: '1px solid rgba(139, 92, 246, 0.22)'
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => navigate('/slots')}
+              style={{
+                flex: 1,
+                padding: '0.55rem 0.75rem',
+                borderRadius: '9px',
+                border: 'none',
+                background: !isMyMatchesTab ? 'linear-gradient(135deg, #7c3aed, #6d28d9)' : 'transparent',
+                color: '#fff',
+                fontWeight: 800,
+                fontSize: '0.8rem',
+                letterSpacing: '0.5px',
+                cursor: 'pointer',
+                boxShadow: !isMyMatchesTab ? '0 4px 14px rgba(124, 58, 237, 0.35)' : 'none'
+              }}
+            >
+              AVAILABLE SLOTS
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/slots?tab=my')}
+              style={{
+                flex: 1,
+                padding: '0.55rem 0.75rem',
+                borderRadius: '9px',
+                border: 'none',
+                background: isMyMatchesTab ? 'linear-gradient(135deg, #7c3aed, #6d28d9)' : 'transparent',
+                color: '#fff',
+                fontWeight: 800,
+                fontSize: '0.8rem',
+                letterSpacing: '0.5px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.4rem',
+                boxShadow: isMyMatchesTab ? '0 4px 14px rgba(124, 58, 237, 0.35)' : 'none'
+              }}
+            >
+              <span>MY MATCHES</span>
+              {Object.keys(myBookings).length > 0 && (
+                <span
+                  style={{
+                    background: isMyMatchesTab ? 'rgba(255,255,255,0.25)' : '#7c3aed',
+                    padding: '1px 6px',
+                    borderRadius: '999px',
+                    fontSize: '0.7rem',
+                    fontWeight: 800
+                  }}
+                >
+                  {Object.keys(myBookings).length}
+                </span>
+              )}
+            </button>
+          </div>
+
+          {!isMyMatchesTab && (
+            <>
+              {/* Date Pills: [ Today ] [ Tomorrow ] */}
+              <div className="cat-date-pills">
+                <button
+                  type="button"
+                  className={`cat-date-pill ${isTodaySelected ? 'active' : ''}`}
+                  onClick={resetToToday}
+                >
+                  Today
+                </button>
+                <button
+                  type="button"
+                  className={`cat-date-pill ${!isTodaySelected ? 'active' : ''}`}
+                  onClick={() => {
+                    const tom = new Date();
+                    tom.setDate(tom.getDate() + 1);
+                    setSelectedDate(tom);
+                  }}
+                >
+                  Tomorrow
+                </button>
+              </div>
+
+              {/* Date Picker Row */}
+              <div className="cat-date-picker-row">
+                <div className="cat-date-display">
+                  <Calendar size={15} />
+                  <span>{formatDateDisplay(selectedDate)}</span>
+                </div>
+                <label className="cat-date-calendar-btn" title="Pick date">
+                  <Calendar size={18} />
+                  <input
+                    type="date"
+                    style={{
+                      position: 'absolute',
+                      opacity: 0,
+                      width: '100%',
+                      height: '100%',
+                      left: 0,
+                      top: 0,
+                      cursor: 'pointer'
+                    }}
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        const parts = e.target.value.split('-');
+                        const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+                        setSelectedDate(d);
+                      }
+                    }}
+                  />
+                </label>
+              </div>
+
+              {/* Category Pills */}
+              <div className="ts-tabs-row" style={{ marginBottom: '1rem' }}>
+                {CATEGORIES.map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    className={`ts-tab-pill ${selectedCategory === cat ? 'active' : ''}`}
+                    onClick={() => setSelectedCategory(cat)}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
 
       {/* ── Available Slots Header ── */}
       <div className="ts-section-header">
@@ -1110,7 +1643,7 @@ function TodaySlots() {
               </h3>
               <p style={{ fontSize: '0.9rem', maxWidth: '380px', margin: '0 auto 1.25rem' }}>
                 {!userInfo
-                  ? 'Sign in to your account to view your registered matches, slot room IDs, and passwords.'
+                  ? 'Sign in to your account to view your registered matches.'
                   : 'You have not registered for any upcoming tournament or scrim slots yet.'}
               </p>
               <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -1213,291 +1746,75 @@ function TodaySlots() {
           const bookedTeams = slot.bookedTeams || [];
 
           return (
-            <div key={slot._id} className="ts-slot-card">
-              {/* ── Top Header Row ── */}
-              <div className="ts-card-top">
-                <h3 className="ts-card-title">{slot.matchName || 'RISING 1-3 GRIND SCRIMS'}</h3>
-                <span className="ts-lobby-badge">{slot.lobby || 'LOBBY 1'}</span>
+            <div key={slot._id} className="cat-slot-card-item">
+              <div className="cat-slot-thumb">
+                <img src={slot.heroImage || soldierBgImg} alt={slot.matchName || 'Tournament'} />
+                <span className="cat-slot-thumb-badge">BGMI</span>
               </div>
 
-              {/* ── Box 1: Prize Pool Distribution ── */}
-              <div className="ts-inner-panel">
-                <div className="ts-panel-head">
-                  <div className="ts-panel-label">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                      <polygon points="6 9 12 15 18 9"/>
-                      <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/>
-                      <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
-                      <path d="M4 22h16"/>
-                      <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>
-                      <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
-                      <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
-                    </svg>
-                    PRIZE POOL DISTRIBUTION
-                  </div>
+              <div className="cat-slot-info">
+                <div className="cat-slot-top-row">
+                  <h3 className="cat-slot-card-title">{slot.matchName || 'RISING 1-3 GRIND SCRIMS'}</h3>
                 </div>
 
-                <div className="ts-prize-grid">
-                  {prizes.map((p, idx) => {
-                    const isGold = p.rank === '#1' || String(p.rank).includes('1') || idx === 0;
-                    const isFree = String(p.prize).toUpperCase().includes('FREE');
-                    return (
-                      <div key={idx} className="ts-prize-card">
-                        <div className="ts-prize-rank">{p.rank}</div>
-                        <div className={`ts-prize-val ${isGold ? 'gold' : isFree ? 'free' : ''}`}>
-                          {p.prize}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* ── Box 2: Schedule ── */}
-              <div className="ts-inner-panel">
-                <div className="ts-panel-head">
-                  <div className="ts-panel-label">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="10"/>
-                      <polyline points="12 6 12 12 16 14"/>
-                    </svg>
-                    SCHEDULE ({schedule.length} MATCH{schedule.length === 1 ? '' : 'ES'})
-                  </div>
-                  <div className="ts-slots-fraction">
-                    SLOTS: {bookedSlots}/{totalSlots}
-                  </div>
-                </div>
-
-                <div className="ts-schedule-grid">
-                  {schedule.map((m, idx) => (
-                    <div key={idx} className="ts-match-card">
-                      <div className="ts-match-name">{m.label || `MATCH ${m.matchNumber || idx + 1}`}</div>
-                      <div className="ts-match-clock">{m.time}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* ── Box 3: Dual Action Options (Teams & Drop List) ── */}
-              <div className="ts-card-dual-options">
-                <button
-                  type="button"
-                  className="ts-dual-opt-btn teams-btn"
-                  onClick={() => openTeamsModal(slot, 'teams')}
-                  title="View registered teams"
-                >
-                  <div className="ts-dual-opt-content">
-                    <div className="ts-avatars-cluster">
-                      {bookedTeams.slice(0, 2).map((team, idx) => {
-                        const initial = (team.teamName || 'T').charAt(0).toUpperCase();
-                        const colorClass = avatarColors[idx % avatarColors.length];
-                        return (
-                          <div key={idx} className={`ts-avatar-dot ${colorClass}`}>
-                            {initial}
-                          </div>
-                        );
-                      })}
-                      {bookedTeams.length > 2 && (
-                        <div className="ts-avatar-dot more">
-                          +{bookedTeams.length - 2}
-                        </div>
-                      )}
-                      {bookedTeams.length === 0 && (
-                        <div className="ts-avatar-dot purple">
-                          0
-                        </div>
-                      )}
-                    </div>
-                    <div className="ts-dual-opt-text">
-                      <span className="ts-dual-opt-title">Teams</span>
-                      <span className="ts-dual-opt-count">({bookedSlots}/{totalSlots})</span>
-                    </div>
-                  </div>
-                  <svg className="ts-dual-opt-arrow" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="9 18 15 12 9 6"/>
-                  </svg>
-                </button>
-
-                <button
-                  type="button"
-                  className="ts-dual-opt-btn drops-btn"
-                  onClick={() => openTeamsModal(slot, 'drops')}
-                  title="View map-wise drop locations"
-                >
-                  <div className="ts-dual-opt-content">
-                    <div className="ts-drop-icon-badge">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#c084fc" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
-                        <circle cx="12" cy="10" r="3"/>
-                      </svg>
-                    </div>
-                    <div className="ts-dual-opt-text">
-                      <span className="ts-dual-opt-title">Drop List</span>
-                      <span className="ts-dual-opt-sub">Map-Wise</span>
-                    </div>
-                  </div>
-                  <svg className="ts-dual-opt-arrow" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="9 18 15 12 9 6"/>
-                  </svg>
-                </button>
-              </div>
-
-              {/* ── Map Rotation ── */}
-              <div className="ts-maps-block">
-                <div className="ts-maps-title">MAP ROTATION</div>
-                <div className="ts-maps-pills">
-                  {maps.map((mapName, idx) => (
+                <div className="cat-slot-badges">
+                  <span className="cat-badge-game">BGMI</span>
+                  <span className="cat-badge-lobby">{slot.lobby || 'Lobby 01'}</span>
+                  {isPaid && (
                     <span
-                      key={idx}
-                      className={`ts-map-badge ${idx === 0 ? 'active' : ''}`}
+                      style={{
+                        fontSize: '0.6rem',
+                        color: '#34d399',
+                        background: 'rgba(16, 185, 129, 0.15)',
+                        padding: '1px 5px',
+                        borderRadius: '4px',
+                        fontWeight: 800
+                      }}
                     >
-                      {mapName}
+                      ✓ BOOKED
                     </span>
-                  ))}
-                </div>
-              </div>
-
-              {/* ── Booked Slot: WhatsApp Group Link Card ── */}
-              {isPaid && (
-                <div className="ts-booked-whatsapp-card">
-                  <div className="ts-booked-wa-header">
-                    <div className="ts-booked-wa-badge">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/>
-                      </svg>
-                      <span>OFFICIAL MATCH WHATSAPP GROUP</span>
-                    </div>
-                    <span className="ts-booked-wa-tag">CONFIRMED SLOT</span>
-                  </div>
-
-                  {normalizedWaLink ? (
-                    <div className="ts-booked-wa-body">
-                      <div className="ts-booked-wa-link-row">
-                        <span className="ts-booked-wa-url" title={waRawLink}>{waRawLink}</span>
-                        <button
-                          type="button"
-                          className="ts-booked-wa-copy-btn"
-                          onClick={() => copyToClipboard(waRawLink, `card_link_${slot._id}`)}
-                          title="Copy WhatsApp Group Link"
-                        >
-                          {copiedField === `card_link_${slot._id}` ? 'COPIED!' : 'COPY LINK'}
-                        </button>
-                      </div>
-                      <a
-                        href={normalizedWaLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="ts-booked-wa-join-btn"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/>
-                      </svg>
-                      <span>JOIN OFFICIAL WHATSAPP GROUP ↗</span>
-                    </a>
-                  </div>
-                ) : (
-                  <div className="ts-booked-wa-pending">
-                    <span className="ts-booked-wa-dot" />
-                    <span>WhatsApp group link will be updated here by admin before the match starts.</span>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* ── Card Footer: Entry Fee & Book Action ── */}
-            <div className="ts-card-bottom">
-              <div className="ts-fee-col">
-                <span className="ts-fee-label">SLOT ENTRY FEE</span>
-                <span className="ts-fee-value">
-                  {Number(slot.entryFee ?? slot.price ?? 0) === 0 ? 'FREE' : `₹${slot.entryFee ?? slot.price ?? 0}`}
-                </span>
-              </div>
-
-              {isPaid ? (
-                <div className="ts-paid-actions-wrap">
-                  <button
-                    type="button"
-                    onClick={() => handleOpenCredentials(slot)}
-                    className="ts-book-action-btn booked"
-                    title="View room credentials & slot match link"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
-                      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                    </svg>
-                    ROOM CREDENTIALS 🔑
-                  </button>
-                  {normalizedWaLink && (
-                    <a
-                      href={normalizedWaLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="ts-slot-whatsapp-btn"
-                      title="Join Official Match WhatsApp Group"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/>
-                      </svg>
-                      JOIN WHATSAPP ↗
-                    </a>
                   )}
                 </div>
-                ) : isPending ? (
-                  <button
-                    type="button"
-                    onClick={() => setNotification({
-                      type: 'info',
-                      message: '⏳ Payment submitted and pending admin verification. Room credentials will unlock as soon as approved!',
-                    })}
-                    className="ts-book-action-btn verifying"
-                    title="Click for verification status"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="10"/>
-                      <polyline points="12 6 12 12 16 14"/>
-                    </svg>
-                    VERIFICATION PENDING ⏳
-                  </button>
-                ) : isSoldOut ? (
-                  <div className="ts-soldout-actions-row">
-                    <button
-                      type="button"
-                      disabled
-                      className="ts-book-action-btn sold-out"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="12" cy="12" r="10"/>
-                        <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
-                      </svg>
-                      SOLD OUT
-                    </button>
-                    <button
-                      type="button"
-                      className="ts-book-action-btn view-droplist-soldout"
-                      onClick={() => openTeamsModal(slot, 'drops')}
-                      title="View Drop List for this full slot"
-                    >
-                      <MapPin size={15} />
-                      DROP LIST
-                    </button>
+
+                <div className="cat-slot-stats-row">
+                  <div className="cat-slot-stat">
+                    <Shield size={12} color="#38bdf8" />
+                    <span>₹<strong>{slot.entryFee != null ? slot.entryFee : 60}</strong></span>
                   </div>
-                ) : (
+                  <div className="cat-slot-stat">
+                    <Trophy size={12} color="#fbbf24" />
+                    <span>₹<strong>{(slot.prizePoolTotal || (slot.prizePool ? Number(String(slot.prizePool).replace(/[^0-9]/g, '')) : 5000)).toLocaleString('en-IN')}</strong></span>
+                  </div>
+                  <div className="cat-slot-stat">
+                    <Users size={12} color="#c084fc" />
+                    <span><strong>{bookedSlots} / {totalSlots}</strong> Teams</span>
+                  </div>
+                </div>
+
+                <div className="cat-slot-bottom-row">
+                  <div className="cat-slot-time">
+                    <Clock size={12} />
+                    <span>{formatSlotScheduledDate(slot)} • {slot.timing || '02:00 PM'}</span>
+                  </div>
+
                   <button
                     type="button"
-                    onClick={() => openPaymentModal(slot)}
-                    className="ts-book-action-btn"
+                    className="cat-slot-cta-btn"
+                    onClick={() => {
+                      setActiveTournament(slot);
+                      setSubPage('details');
+                    }}
                   >
-                    BOOK SLOT
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="9 18 15 12 9 6"/>
-                    </svg>
+                    View Details
                   </button>
-                )}
+                </div>
               </div>
             </div>
           );
-        })
+                  })
       )}
+    </>
+  )}
 
       {/* ── Registered Teams & Drop List Modal (Matches Target Design Exactly) ── */}
       {teamsModalSlot && createPortal(

@@ -4,6 +4,7 @@ import { Booking } from '../models/Booking.js';
 import { User } from '../models/User.js';
 import { Slot } from '../models/Slot.js';
 import { Tournament } from '../models/Tournament.js';
+import { Notification } from '../models/Notification.js';
 import { protect, userProtect } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -160,6 +161,34 @@ router.put('/:id/verify', protect, async (req, res) => {
 
     await booking.save();
 
+    // Create user notification
+    try {
+      const eventName = booking.slotId?.matchName || booking.tournamentId?.title || 'match registration';
+      if (status === 'paid') {
+        await Notification.create({
+          userId: booking.userId?._id || booking.userId,
+          title: 'Match Slot Confirmed! 🎮',
+          message: `Your payment of ₹${booking.amount} for ${eventName} is verified! Your slot is confirmed.`,
+          type: 'booking_approved',
+          amount: booking.amount,
+          status: 'approved',
+          metadata: { bookingId: booking._id, utrNumber: booking.utrNumber },
+        });
+      } else {
+        await Notification.create({
+          userId: booking.userId?._id || booking.userId,
+          title: 'Registration Payment Failed ❌',
+          message: `Payment verification for ${eventName} was rejected${note ? ': ' + note : '.'}`,
+          type: 'booking_rejected',
+          amount: booking.amount,
+          status: 'rejected',
+          metadata: { bookingId: booking._id, reason: note },
+        });
+      }
+    } catch (notifErr) {
+      console.error('Failed to create booking notification:', notifErr);
+    }
+
     console.log(`[UPI Verify] Booking ${booking._id} marked as ${status} by admin`);
 
     res.json({
@@ -222,8 +251,8 @@ router.get('/status/:orderId', async (req, res) => {
   }
 });
 
-// GET /api/bookings/my — Current user's bookings
-router.get('/my', userProtect, async (req, res) => {
+// GET /api/bookings/my & /api/bookings/my-bookings — Current user's bookings
+const getMyBookings = async (req, res) => {
   try {
     const bookings = await Booking.find({ userId: req.user._id })
       .populate('slotId', 'matchName slotTime entryFee price maxTeams date timing maps mode note')
@@ -233,6 +262,9 @@ router.get('/my', userProtect, async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
-});
+};
+
+router.get('/my', userProtect, getMyBookings);
+router.get('/my-bookings', userProtect, getMyBookings);
 
 export default router;

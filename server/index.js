@@ -14,6 +14,7 @@ import walletRoutes from './routes/wallet.js';
 import matchRoutes from './routes/matches.js';
 import resultRoutes from './routes/results.js';
 import configRoutes from './routes/config.js';
+import notificationRoutes from './routes/notifications.js';
 import { Admin } from './models/Admin.js';
 import { Ranking } from './models/Ranking.js';
 import { Slot } from './models/Slot.js';
@@ -149,6 +150,9 @@ app.use('/results', resultRoutes);
 
 app.use('/api/config', configRoutes);
 app.use('/config', configRoutes);
+
+app.use('/api/notifications', notificationRoutes);
+app.use('/notifications', notificationRoutes);
 
 // Health check routes
 app.get("/", (req, res) => res.send("Rising Esports API is running..."));

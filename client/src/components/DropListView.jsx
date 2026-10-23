@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { Users, MapPin, X, ArrowLeft, Copy, CheckCheck, RefreshCw } from 'lucide-react';
 import helmetImg from '../assets/droplist_soldier_helmet.jpg';
@@ -381,17 +381,54 @@ export default function DropListView({ slot, onClose, isStandalonePage = false, 
     return drops[mapKey] || '';
   };
 
+  const [selectedMatchNumber, setSelectedMatchNumber] = useState(0);
+
+  const matchesList = useMemo(() => {
+    if (Array.isArray(currentSlot?.scheduleMatches) && currentSlot.scheduleMatches.length > 0) {
+      return currentSlot.scheduleMatches.map((m, idx) => ({
+        matchNumber: m.matchNumber || idx + 1,
+        label: m.label || `MATCH ${m.matchNumber || idx + 1}`,
+        map: m.map || (idx === 0 ? 'ERANGEL' : idx === 1 ? 'MIRAMAR' : 'RONDO')
+      }));
+    }
+    return [
+      { matchNumber: 1, label: 'MATCH 1', map: 'ERANGEL' },
+      { matchNumber: 2, label: 'MATCH 2', map: 'MIRAMAR' },
+      { matchNumber: 3, label: 'MATCH 3', map: 'RONDO' }
+    ];
+  }, [currentSlot]);
+
+  const getDropForMatchAndTeam = (team, matchNumber, mapName) => {
+    // 1. Check if slot has admin published dropDetails for this match and team
+    if (Array.isArray(currentSlot?.dropDetails)) {
+      const matchDetail = currentSlot.dropDetails.find(
+        d => Number(d.matchNumber) === Number(matchNumber) &&
+             (String(d.teamId) === String(team.userId) || d.teamName?.toLowerCase() === team.teamName?.toLowerCase())
+      );
+      if (matchDetail?.dropLocation) {
+        return matchDetail.dropLocation;
+      }
+    }
+    // 2. Check team.dropLocations for specific match key e.g. match_1
+    if (team.dropLocations && team.dropLocations[`match_${matchNumber}`]) {
+      return team.dropLocations[`match_${matchNumber}`];
+    }
+    // 3. Fallback to standard map drop
+    return getDrop(team, (mapName || 'erangel').toLowerCase());
+  };
+
   const handleCopySheet = () => {
     const title = slot?.matchName || 'RISING ESPORTS SCRIM';
-    let text = activeTab === 'teams' ? `📋 *${title} - REGISTERED TEAMS*\n` : `📍 *${title} - DROP LIST*\n`;
+    let text = activeTab === 'teams' ? `📋 *${title} - REGISTERED TEAMS*\n` : `📍 *${title} - DROP DETAILS*\n`;
     text += `━━━━━━━━━━━━━━━━━━━━━\n\n`;
 
     displayTeams.forEach((team, idx) => {
-      text += `*#${idx + 1} ${team.teamName}*\n`;
+      const risingTag = team.registrationNumber ? ` (Rising ID: #${team.registrationNumber})` : '';
+      text += `*#${idx + 1} ${team.teamName}${risingTag}*\n`;
       if (activeTab === 'drops') {
-        text += `🗺️ Erangel: ${getDrop(team, 'erangel') || 'TBD'}\n`;
-        text += `🏜️ Miramar: ${getDrop(team, 'miramar') || 'TBD'}\n`;
-        text += `🏙️ Rondo: ${getDrop(team, 'rondo') || 'TBD'}\n`;
+        matchesList.forEach(m => {
+          text += `🗺️ ${m.label} (${m.map}): ${getDropForMatchAndTeam(team, m.matchNumber, m.map) || 'TBD'}\n`;
+        });
       }
       text += `\n`;
     });
@@ -430,7 +467,7 @@ export default function DropListView({ slot, onClose, isStandalonePage = false, 
             </button>
           )}
 
-          {/* Mode Switcher Pills: Registered Teams vs Drop List */}
+          {/* Mode Switcher Pills: Registered Teams vs Drop Details */}
           <div className="ts-esports-mode-switch">
             <button
               type="button"
@@ -446,7 +483,7 @@ export default function DropListView({ slot, onClose, isStandalonePage = false, 
               onClick={() => setActiveTab('drops')}
             >
               <MapPin size={15} />
-              <span>Drop List</span>
+              <span>Drop Details</span>
             </button>
           </div>
 
@@ -492,7 +529,7 @@ export default function DropListView({ slot, onClose, isStandalonePage = false, 
                 <>
                   <h1 className="ts-exact-banner-title">
                     <span className="text-white">DROP </span>
-                    <span className="text-purple">LIST</span>
+                    <span className="text-purple">DETAILS</span>
                   </h1>
                   <p className="ts-exact-banner-sub">Team wise drop locations for this scrim</p>
                 </>
@@ -512,17 +549,18 @@ export default function DropListView({ slot, onClose, isStandalonePage = false, 
           </div>
         </div>
 
-        {/* ── Master Card (Switches between Registered Teams & Drop List) ── */}
+        {/* ── Master Card (Switches between Registered Teams & Drop Details) ── */}
         <div className="ts-exact-table-card">
           <div className="ts-exact-table-scroll">
             {activeTab === 'teams' ? (
-              /* ── VIEW A: REGISTERED TEAMS TABLE (# | TEAM NAME | TEAM LOGO) ── */
+              /* ── VIEW A: REGISTERED TEAMS TABLE (# | TEAM NAME & RISING ID | TEAM LOGO | DROP LOCATIONS) ── */
               <table className="ts-exact-table ts-registered-teams-table">
                 <thead>
                   <tr>
                     <th className="col-num">#</th>
-                    <th className="col-reg-name">TEAM NAME</th>
+                    <th className="col-reg-name">TEAM NAME &amp; RISING ID</th>
                     <th className="col-reg-logo">TEAM LOGO</th>
+                    <th className="col-reg-drops">DROP LOCATIONS</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -534,11 +572,29 @@ export default function DropListView({ slot, onClose, isStandalonePage = false, 
                           <span className="ts-slot-number-text">{idx + 1}</span>
                         </td>
 
-                        {/* Team Name */}
+                        {/* Team Name & Rising ID */}
                         <td className="col-reg-name">
-                          <span className="ts-reg-team-name-text">
-                            {team.teamName || 'Unknown Team'}
-                          </span>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                            <span className="ts-reg-team-name-text">
+                              {team.teamName || 'Unknown Team'}
+                            </span>
+                            {team.registrationNumber && (
+                              <span style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                width: 'fit-content',
+                                fontSize: '0.72rem',
+                                color: '#c084fc',
+                                background: 'rgba(168, 85, 247, 0.12)',
+                                border: '1px solid rgba(168, 85, 247, 0.3)',
+                                borderRadius: '4px',
+                                padding: '1px 6px',
+                                fontWeight: 700
+                              }}>
+                                Rising ID: #{team.registrationNumber}
+                              </span>
+                            )}
+                          </div>
                         </td>
 
                         {/* Team Logo */}
@@ -547,11 +603,35 @@ export default function DropListView({ slot, onClose, isStandalonePage = false, 
                             <TeamEsportsSticker team={team} index={idx} size="table-logo" />
                           </div>
                         </td>
+
+                        {/* Drop Locations */}
+                        <td className="col-reg-drops">
+                          <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+                            {matchesList.map(m => {
+                              const drop = getDropForMatchAndTeam(team, m.matchNumber, m.map);
+                              return (
+                                <span key={m.matchNumber} style={{
+                                  fontSize: '0.72rem',
+                                  color: '#e2e8f0',
+                                  background: 'rgba(255,255,255,0.04)',
+                                  border: '1px solid rgba(139,92,246,0.22)',
+                                  borderRadius: '5px',
+                                  padding: '2px 7px',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '3px'
+                                }}>
+                                  <strong style={{ color: '#c084fc' }}>{m.map}:</strong> {drop || 'TBD'}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={3} style={{ textAlign: 'center', padding: '3rem 1.5rem', color: '#94a3b8' }}>
+                      <td colSpan={4} style={{ textAlign: 'center', padding: '3rem 1.5rem', color: '#94a3b8' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
                           <Users size={32} color="#c084fc" />
                           <p style={{ margin: 0, fontWeight: 800, fontSize: '1.05rem', color: '#ffffff' }}>
@@ -567,113 +647,183 @@ export default function DropListView({ slot, onClose, isStandalonePage = false, 
                 </tbody>
               </table>
             ) : (
-              /* ── VIEW B: DROP LIST TABLE (# | Team | Erangel | Miramar | Rondo) ── */
-              <table className="ts-exact-table ts-droplist-main-table">
-                <thead>
-                  <tr>
-                    <th className="col-num">#</th>
-                    <th
-                      className="col-team clickable-team-th"
-                      onClick={() => setActiveTab('teams')}
-                      title="Click to view full Registered Teams with Logos"
+              /* ── VIEW B: DROP DETAILS TABLE (With Match Selection) ── */
+              <div>
+                {/* Match Selection Filter Tabs */}
+                {matchesList.length > 1 && (
+                  <div style={{
+                    display: 'flex',
+                    gap: '0.45rem',
+                    marginBottom: '1rem',
+                    flexWrap: 'wrap',
+                    padding: '0.3rem 0.5rem',
+                    background: 'rgba(255,255,255,0.02)',
+                    borderRadius: '10px',
+                    border: '1px solid rgba(139,92,246,0.15)'
+                  }}>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedMatchNumber(0)}
+                      style={{
+                        background: selectedMatchNumber === 0 ? 'linear-gradient(135deg, #7c3aed, #a855f7)' : 'transparent',
+                        border: '1px solid ' + (selectedMatchNumber === 0 ? '#c084fc' : 'rgba(255,255,255,0.1)'),
+                        color: '#fff',
+                        padding: '0.35rem 0.8rem',
+                        borderRadius: '6px',
+                        fontSize: '0.76rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
                     >
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer' }}>
-                        Team <span style={{ fontSize: '0.68rem', color: '#c084fc', textDecoration: 'underline' }}>(View Logos)</span>
-                      </span>
-                    </th>
-                    <th className="col-map">Erangel</th>
-                    <th className="col-map">Miramar</th>
-                    <th className="col-map">Rondo</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {displayTeams.length > 0 ? (
-                    displayTeams.map((team, idx) => {
-                      const erangel = getDrop(team, 'erangel');
-                      const miramar = getDrop(team, 'miramar');
-                      const rondo = getDrop(team, 'rondo');
+                      ALL MATCHES
+                    </button>
+                    {matchesList.map(m => (
+                      <button
+                        key={m.matchNumber}
+                        type="button"
+                        onClick={() => setSelectedMatchNumber(m.matchNumber)}
+                        style={{
+                          background: selectedMatchNumber === m.matchNumber ? 'linear-gradient(135deg, #7c3aed, #a855f7)' : 'transparent',
+                          border: '1px solid ' + (selectedMatchNumber === m.matchNumber ? '#c084fc' : 'rgba(255,255,255,0.1)'),
+                          color: '#fff',
+                          padding: '0.35rem 0.8rem',
+                          borderRadius: '6px',
+                          fontSize: '0.76rem',
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          transition: 'all 0.2s'
+                        }}
+                      >
+                        {m.label} ({m.map})
+                      </button>
+                    ))}
+                  </div>
+                )}
 
-                      return (
+                <table className="ts-exact-table ts-droplist-main-table">
+                  <thead>
+                    <tr>
+                      <th className="col-num">#</th>
+                      <th
+                        className="col-team clickable-team-th"
+                        onClick={() => setActiveTab('teams')}
+                        title="Click to view full Registered Teams with Logos"
+                      >
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer' }}>
+                          Team <span style={{ fontSize: '0.68rem', color: '#c084fc', textDecoration: 'underline' }}>(View Logos)</span>
+                        </span>
+                      </th>
+                      {selectedMatchNumber === 0 ? (
+                        matchesList.map(m => (
+                          <th key={m.matchNumber} className="col-map">
+                            {m.label} ({m.map})
+                          </th>
+                        ))
+                      ) : (
+                        (() => {
+                          const activeM = matchesList.find(m => m.matchNumber === selectedMatchNumber) || matchesList[0];
+                          return (
+                            <>
+                              <th className="col-map" style={{ width: '140px' }}>Map</th>
+                              <th className="col-map">Drop Location</th>
+                            </>
+                          );
+                        })()
+                      )}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {displayTeams.length > 0 ? (
+                      displayTeams.map((team, idx) => (
                         <tr key={team.bookingId || idx} className="ts-exact-row">
                           {/* Slot # */}
                           <td className="col-num">
                             <span className="ts-slot-number-text">{idx + 1}</span>
                           </td>
 
-                          {/* Team Name & Sticker (Clickable to jump to team view) */}
+                          {/* Team Name & Sticker */}
                           <td className="col-team" onClick={() => setActiveTab('teams')} style={{ cursor: 'pointer' }}>
                             <div className="ts-team-cell">
                               <TeamEsportsSticker team={team} index={idx} size="normal" />
-                              <span className="ts-team-name-text">
-                                {team.teamName || 'Unknown Team'}
-                              </span>
+                              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                <span className="ts-team-name-text">
+                                  {team.teamName || 'Unknown Team'}
+                                </span>
+                                {team.registrationNumber && (
+                                  <span style={{ fontSize: '0.68rem', color: '#c084fc', fontWeight: 700 }}>
+                                    #{team.registrationNumber}
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </td>
 
-                          {/* Erangel Drop */}
-                          <td className="col-map">
-                            <div className="ts-drop-pin-cell">
-                              <MapPin
-                                size={18}
-                                className="ts-exact-map-pin"
-                                fill="#8b5cf6"
-                                stroke="#8b5cf6"
-                              />
-                              <span className="ts-exact-drop-text">
-                                {erangel || '—'}
-                              </span>
-                            </div>
-                          </td>
-
-                          {/* Miramar Drop */}
-                          <td className="col-map">
-                            <div className="ts-drop-pin-cell">
-                              <MapPin
-                                size={18}
-                                className="ts-exact-map-pin"
-                                fill="#8b5cf6"
-                                stroke="#8b5cf6"
-                              />
-                              <span className="ts-exact-drop-text">
-                                {miramar || '—'}
-                              </span>
-                            </div>
-                          </td>
-
-                          {/* Rondo Drop */}
-                          <td className="col-map">
-                            <div className="ts-drop-pin-cell">
-                              <MapPin
-                                size={18}
-                                className="ts-exact-map-pin"
-                                fill="#8b5cf6"
-                                stroke="#8b5cf6"
-                              />
-                              <span className="ts-exact-drop-text">
-                                {rondo || '—'}
-                              </span>
-                            </div>
-                          </td>
+                          {selectedMatchNumber === 0 ? (
+                            matchesList.map(m => {
+                              const dropVal = getDropForMatchAndTeam(team, m.matchNumber, m.map);
+                              return (
+                                <td key={m.matchNumber} className="col-map">
+                                  <div className="ts-drop-pin-cell">
+                                    <MapPin
+                                      size={17}
+                                      className="ts-exact-map-pin"
+                                      fill="#8b5cf6"
+                                      stroke="#8b5cf6"
+                                    />
+                                    <span className="ts-exact-drop-text">
+                                      {dropVal || '—'}
+                                    </span>
+                                  </div>
+                                </td>
+                              );
+                            })
+                          ) : (
+                            (() => {
+                              const activeM = matchesList.find(m => m.matchNumber === selectedMatchNumber) || matchesList[0];
+                              const dropVal = getDropForMatchAndTeam(team, activeM.matchNumber, activeM.map);
+                              return (
+                                <>
+                                  <td className="col-map">
+                                    <span style={{ fontWeight: 700, color: '#c084fc' }}>{activeM.map}</span>
+                                  </td>
+                                  <td className="col-map">
+                                    <div className="ts-drop-pin-cell">
+                                      <MapPin
+                                        size={17}
+                                        className="ts-exact-map-pin"
+                                        fill="#8b5cf6"
+                                        stroke="#8b5cf6"
+                                      />
+                                      <span className="ts-exact-drop-text" style={{ fontWeight: 700, color: '#fff' }}>
+                                        {dropVal || '—'}
+                                      </span>
+                                    </div>
+                                  </td>
+                                </>
+                              );
+                            })()
+                          )}
                         </tr>
-                      );
-                    })
-                  ) : (
-                    <tr>
-                      <td colSpan={5} style={{ textAlign: 'center', padding: '3rem 1.5rem', color: '#94a3b8' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
-                          <MapPin size={32} color="#c084fc" />
-                          <p style={{ margin: 0, fontWeight: 800, fontSize: '1.05rem', color: '#ffffff' }}>
-                            No Teams Registered For This Slot Yet
-                          </p>
-                          <p style={{ margin: 0, fontSize: '0.85rem', color: '#a78bfa' }}>
-                            Drop locations will be fetched directly from player profiles once slots are booked!
-                          </p>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={selectedMatchNumber === 0 ? 2 + matchesList.length : 4} style={{ textAlign: 'center', padding: '3rem 1.5rem', color: '#94a3b8' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
+                            <MapPin size={32} color="#c084fc" />
+                            <p style={{ margin: 0, fontWeight: 800, fontSize: '1.05rem', color: '#ffffff' }}>
+                              No Teams Registered For This Slot Yet
+                            </p>
+                            <p style={{ margin: 0, fontSize: '0.85rem', color: '#a78bfa' }}>
+                              Drop locations will be fetched directly from player profiles or published by admin!
+                            </p>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         </div>

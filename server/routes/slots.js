@@ -20,6 +20,14 @@ const upload = multer({
 
 // Helper to parse slotTime from date and timing strings
 const parseSlotTime = (body) => {
+    // If scheduleMatches is provided and has matches with time, but body.timing is empty
+    if (Array.isArray(body.scheduleMatches) && body.scheduleMatches.length > 0 && body.scheduleMatches[0].time && !body.timing) {
+        body.timing = body.scheduleMatches[0].time.trim();
+    }
+    // If timing is provided and scheduleMatches exists, sync first match time
+    if (body.timing && Array.isArray(body.scheduleMatches) && body.scheduleMatches.length > 0) {
+        body.scheduleMatches[0].time = body.timing.trim();
+    }
     if (body.date && body.timing) {
         const dateStr = `${body.date} ${body.timing}`;
         const parsedDate = new Date(dateStr);
@@ -46,19 +54,19 @@ router.get('/admin', protect, async(req, res) => {
     try {
         const slots = await Slot.find().sort({ slotTime: 1, createdAt: -1 });
 
-        // Attach booking counts and registered teams preview
+        // Attach booking counts and registered teams preview (confirmed paid only)
         const slotIds = slots.map(s => s._id);
         const [bookingCounts, bookings] = await Promise.all([
             Booking.aggregate([
-                { $match: { slotId: { $in: slotIds }, paymentStatus: { $in: ['pending', 'paid', 'pending_verification'] } } },
+                { $match: { slotId: { $in: slotIds }, paymentStatus: 'paid' } },
                 { $group: { _id: '$slotId', count: { $sum: 1 } } },
             ]),
             Booking.find({
                 slotId: { $in: slotIds },
-                paymentStatus: { $in: ['pending', 'paid', 'pending_verification'] }
+                paymentStatus: 'paid'
             })
             .sort({ createdAt: 1 })
-            .populate('userId', 'teamName teamTag registrationNumber teamLogo erangelDrop rondoDrop miramarDrop')
+            .populate('userId', 'teamName teamTag registrationNumber teamLogo erangelDrop rondoDrop miramarDrop phone')
             .lean(),
         ]);
 
@@ -80,10 +88,11 @@ router.get('/admin', protect, async(req, res) => {
             teamsMap[sId].push({
                 bookingId: b._id,
                 userId: u?._id,
-                teamName: u?.teamName || 'Unknown Team',
+                teamName: u?.teamName || (u?.phone ? `Team ${u.phone.slice(-4)}` : 'Unknown Team'),
                 teamTag: u?.teamTag || '',
                 teamLogo: u?.teamLogo || '',
                 registrationNumber: u?.registrationNumber || '',
+                phone: u?.phone || '',
                 paymentStatus: b.paymentStatus,
                 erangelDrop,
                 rondoDrop,
@@ -129,20 +138,35 @@ router.get('/admin', protect, async(req, res) => {
 // Get all slots (WITHOUT roomId / roomPassword / heroImage base64 / customLink)
 router.get('/', async(req, res) => {
     try {
-        const slots = await Slot.find()
+        const query = { isPublished: { $ne: false } };
+        if (req.query.category && req.query.category !== 'ALL') {
+            const raw = req.query.category.trim();
+            if (/scrim/i.test(raw)) {
+                query.category = { $regex: /scrim/i };
+            } else if (/weekly/i.test(raw)) {
+                query.category = { $regex: /weekly/i };
+            } else if (/weekend/i.test(raw)) {
+                query.category = { $regex: /weekend/i };
+            } else if (/grand/i.test(raw)) {
+                query.category = { $regex: /grand/i };
+            } else {
+                query.category = { $regex: new RegExp(`^${raw}$`, 'i') };
+            }
+        }
+        const slots = await Slot.find(query)
             .select('-roomId -roomPassword -whatsappLink -customLink')
             .sort({ slotTime: 1, createdAt: -1 });
 
-        // Attach booking counts and registered teams preview
+        // Attach booking counts and registered teams preview (confirmed paid only)
         const slotIds = slots.map(s => s._id);
         const [bookingCounts, bookings] = await Promise.all([
             Booking.aggregate([
-                { $match: { slotId: { $in: slotIds }, paymentStatus: { $in: ['pending', 'paid', 'pending_verification'] } } },
+                { $match: { slotId: { $in: slotIds }, paymentStatus: 'paid' } },
                 { $group: { _id: '$slotId', count: { $sum: 1 } } },
             ]),
             Booking.find({
                 slotId: { $in: slotIds },
-                paymentStatus: { $in: ['pending', 'paid', 'pending_verification'] }
+                paymentStatus: 'paid'
             })
             .sort({ createdAt: 1 })
             .populate('userId', 'teamName teamTag registrationNumber teamLogo erangelDrop rondoDrop miramarDrop')
@@ -337,6 +361,36 @@ router.get('/:slotId/room-credentials', userProtect, async(req, res) => {
     }
 });
 
+// Admin: Get all registered teams in DB available for slot assignment
+router.get('/available-teams', protect, async (req, res) => {
+    try {
+        const users = await User.find({
+            $or: [
+                { teamName: { $exists: true, $ne: '' } },
+                { phone: { $exists: true, $ne: '' } }
+            ]
+        })
+        .select('_id teamName teamTag registrationNumber teamLogo phone erangelDrop rondoDrop miramarDrop')
+        .sort({ teamName: 1 });
+
+        const teams = users.map(u => ({
+            userId: u._id,
+            teamName: u.teamName || `Team ${u.phone.slice(-4)}`,
+            teamTag: u.teamTag || '',
+            registrationNumber: u.registrationNumber || '',
+            teamLogo: u.teamLogo || '',
+            phone: u.phone,
+            erangelDrop: u.erangelDrop || '',
+            rondoDrop: u.rondoDrop || '',
+            miramarDrop: u.miramarDrop || '',
+        }));
+
+        res.json(teams);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
 // Get a single slot with populated registered teams and drop locations (PUBLIC)
 router.get('/:id', async (req, res) => {
     try {
@@ -348,7 +402,7 @@ router.get('/:id', async (req, res) => {
 
         const bookings = await Booking.find({
             slotId: slot._id,
-            paymentStatus: { $in: ['pending', 'paid', 'pending_verification'] }
+            paymentStatus: 'paid'
         })
         .sort({ createdAt: 1 })
         .populate('userId', 'teamName teamTag registrationNumber teamLogo erangelDrop rondoDrop miramarDrop phone')
@@ -407,6 +461,243 @@ router.get('/:id', async (req, res) => {
 });
 
 // ──────────────── ADMIN ROUTES ────────────────
+
+// Admin: Add / Assign a team to a slot
+router.post('/:id/teams', protect, async (req, res) => {
+    try {
+        const slot = await Slot.findById(req.params.id);
+        if (!slot) {
+            return res.status(404).json({ message: 'Slot not found' });
+        }
+
+        const { userId, dropLocations } = req.body;
+        if (!userId) {
+            return res.status(400).json({ message: 'Team ID is required' });
+        }
+
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: 'Team user not found' });
+        }
+
+        // Check if team is already registered for this slot
+        const existing = await Booking.findOne({
+            slotId: slot._id,
+            userId: user._id,
+            paymentStatus: { $in: ['paid', 'pending', 'pending_verification'] }
+        });
+
+        if (existing) {
+            return res.status(400).json({ message: 'This team is already assigned / registered for this slot.' });
+        }
+
+        // Check maxTeams limit
+        const currentConfirmed = await Booking.countDocuments({
+            slotId: slot._id,
+            paymentStatus: 'paid'
+        });
+        const maxTeams = slot.maxTeams || 20;
+        if (currentConfirmed >= maxTeams) {
+            return res.status(400).json({ message: `Slot is full (maximum ${maxTeams} teams reached)` });
+        }
+
+        const initialDrops = {
+            erangel: (dropLocations?.erangel || user.erangelDrop || '').trim(),
+            miramar: (dropLocations?.miramar || user.miramarDrop || '').trim(),
+            rondo: (dropLocations?.rondo || user.rondoDrop || '').trim(),
+            ...(dropLocations || {})
+        };
+
+        const booking = await Booking.create({
+            userId: user._id,
+            slotId: slot._id,
+            type: 'slot',
+            amount: slot.entryFee ?? slot.price ?? 0,
+            paymentStatus: 'paid',
+            paymentMethod: 'other',
+            paidAt: new Date(),
+            dropLocations: initialDrops
+        });
+
+        // Sync initial dropDetails for this team if slot has scheduleMatches
+        if (Array.isArray(slot.scheduleMatches) && slot.scheduleMatches.length > 0) {
+            if (!Array.isArray(slot.dropDetails)) slot.dropDetails = [];
+            slot.scheduleMatches.forEach(m => {
+                const mapKey = (m.map || 'ERANGEL').toLowerCase();
+                const dropLoc = initialDrops[mapKey] || '';
+                if (dropLoc) {
+                    const exists = slot.dropDetails.some(
+                        d => Number(d.matchNumber) === Number(m.matchNumber) && String(d.teamId) === String(user._id)
+                    );
+                    if (!exists) {
+                        slot.dropDetails.push({
+                            matchNumber: m.matchNumber,
+                            matchLabel: m.label || `MATCH ${m.matchNumber}`,
+                            map: m.map || 'ERANGEL',
+                            teamId: user._id,
+                            teamName: user.teamName || 'Unknown Team',
+                            teamTag: user.teamTag || '',
+                            teamLogo: user.teamLogo || '',
+                            registrationNumber: user.registrationNumber || '',
+                            dropLocation: dropLoc
+                        });
+                    }
+                }
+            });
+            await slot.save();
+        }
+
+        res.status(201).json({
+            message: 'Team assigned to slot successfully',
+            booking,
+            team: {
+                bookingId: booking._id,
+                userId: user._id,
+                teamName: user.teamName || 'Unknown Team',
+                teamTag: user.teamTag || '',
+                teamLogo: user.teamLogo || '',
+                registrationNumber: user.registrationNumber || '',
+                paymentStatus: booking.paymentStatus,
+                dropLocations: initialDrops
+            }
+        });
+    } catch (error) {
+        console.error('Error adding team to slot:', error);
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// Admin: Remove a team from a slot
+router.delete('/:id/teams/:bookingId', protect, async (req, res) => {
+    try {
+        const { id, bookingId } = req.params;
+        const booking = await Booking.findOne({ _id: bookingId, slotId: id });
+        if (!booking) {
+            return res.status(404).json({ message: 'Booking not found for this slot' });
+        }
+
+        const userId = booking.userId;
+        await Booking.findByIdAndDelete(bookingId);
+
+        // Also clean up dropDetails in slot for this team
+        const slot = await Slot.findById(id);
+        if (slot && Array.isArray(slot.dropDetails)) {
+            slot.dropDetails = slot.dropDetails.filter(
+                d => String(d.teamId) !== String(userId)
+            );
+            await slot.save();
+        }
+
+        res.json({ message: 'Team removed from slot successfully' });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// Admin: Add or update drop details for a slot, match, map, registered team, and drop location
+router.put('/:id/drop-details', protect, async (req, res) => {
+    try {
+        const slot = await Slot.findById(req.params.id);
+        if (!slot) {
+            return res.status(404).json({ message: 'Slot not found' });
+        }
+
+        const { matchNumber, matchLabel, map, teamId, dropLocation } = req.body;
+        if (!matchNumber || !teamId) {
+            return res.status(400).json({ message: 'matchNumber and teamId are required' });
+        }
+
+        const user = await User.findById(teamId);
+        const teamName = user?.teamName || req.body.teamName || 'Unknown Team';
+        const teamTag = user?.teamTag || '';
+        const teamLogo = user?.teamLogo || '';
+        const registrationNumber = user?.registrationNumber || '';
+        const normMap = (map || 'ERANGEL').toUpperCase().trim();
+        const cleanDrop = (dropLocation || '').trim();
+        const mNum = Number(matchNumber);
+
+        if (!Array.isArray(slot.dropDetails)) {
+            slot.dropDetails = [];
+        }
+
+        // Update match map in scheduleMatches if present
+        if (Array.isArray(slot.scheduleMatches)) {
+            const matchIndex = slot.scheduleMatches.findIndex(m => Number(m.matchNumber) === mNum);
+            if (matchIndex >= 0) {
+                slot.scheduleMatches[matchIndex].map = normMap;
+            }
+        }
+
+        // Find existing drop detail
+        const existingIdx = slot.dropDetails.findIndex(
+            d => Number(d.matchNumber) === mNum && String(d.teamId) === String(teamId)
+        );
+
+        if (existingIdx >= 0) {
+            slot.dropDetails[existingIdx].map = normMap;
+            slot.dropDetails[existingIdx].dropLocation = cleanDrop;
+            slot.dropDetails[existingIdx].matchLabel = matchLabel || slot.dropDetails[existingIdx].matchLabel || `MATCH ${mNum}`;
+            slot.dropDetails[existingIdx].teamName = teamName;
+            slot.dropDetails[existingIdx].teamLogo = teamLogo;
+            slot.dropDetails[existingIdx].registrationNumber = registrationNumber;
+        } else {
+            slot.dropDetails.push({
+                matchNumber: mNum,
+                matchLabel: matchLabel || `MATCH ${mNum}`,
+                map: normMap,
+                teamId: user?._id || teamId,
+                teamName,
+                teamTag,
+                teamLogo,
+                registrationNumber,
+                dropLocation: cleanDrop,
+            });
+        }
+
+        // Also sync into Booking for this team and slot
+        const booking = await Booking.findOne({ slotId: slot._id, userId: teamId });
+        if (booking) {
+            if (!booking.dropLocations) booking.dropLocations = {};
+            const mapKey = normMap.toLowerCase();
+            booking.dropLocations[mapKey] = cleanDrop;
+            booking.dropLocations[`match_${mNum}`] = cleanDrop;
+            booking.markModified('dropLocations');
+            await booking.save();
+        }
+
+        await slot.save();
+
+        res.json({
+            message: 'Drop details saved successfully',
+            dropDetails: slot.dropDetails,
+            scheduleMatches: slot.scheduleMatches
+        });
+    } catch (error) {
+        console.error('Error saving drop details:', error);
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// Admin: Delete drop detail entry
+router.delete('/:id/drop-details/:detailId', protect, async (req, res) => {
+    try {
+        const slot = await Slot.findById(req.params.id);
+        if (!slot) {
+            return res.status(404).json({ message: 'Slot not found' });
+        }
+
+        const { detailId } = req.params;
+        slot.dropDetails = (slot.dropDetails || []).filter(d => String(d._id) !== String(detailId));
+        await slot.save();
+
+        res.json({
+            message: 'Drop detail removed',
+            dropDetails: slot.dropDetails
+        });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
 
 // Create slot
 router.post('/', protect, async(req, res) => {
@@ -574,14 +865,62 @@ router.put('/:slotId/my-drop', userProtect, async(req, res) => {
     }
 });
 
-// Delete slot
+// Toggle / update publication status (Draft vs Published)
+router.patch('/:id/publish', protect, async(req, res) => {
+    try {
+        const slot = await Slot.findById(req.params.id);
+        if (!slot) return res.status(404).json({ message: 'Slot not found' });
+        const nextState = typeof req.body.isPublished === 'boolean' ? req.body.isPublished : !slot.isPublished;
+        slot.isPublished = nextState;
+        await slot.save();
+        res.json({
+            message: nextState ? 'Tournament published to public' : 'Tournament saved as draft (hidden from public)',
+            isPublished: slot.isPublished,
+            slot
+        });
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+});
+
+// Duplicate / copy-schedule slot
+router.post('/:id/duplicate', protect, async(req, res) => {
+    try {
+        const source = await Slot.findById(req.params.id).lean();
+        if (!source) return res.status(404).json({ message: 'Slot not found' });
+        delete source._id;
+        delete source.createdAt;
+        delete source.updatedAt;
+        source.matchName = `${source.matchName || 'Slot'} (Copy)`;
+        source.dropDetails = [];
+        source.roomId = '';
+        source.roomPassword = '';
+        source.isPublished = false; // set as draft
+        const newSlot = await Slot.create(source);
+        res.status(201).json(newSlot);
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+});
+
+// Delete slot (with safety check for active bookings)
 router.delete('/:id', protect, async(req, res) => {
     try {
-        const slot = await Slot.findByIdAndDelete(req.params.id);
+        const slot = await Slot.findById(req.params.id);
         if (!slot) {
             return res.status(404).json({ message: 'Slot not found' });
         }
-        res.json({ message: 'Slot removed' });
+        const activeBookings = await Booking.countDocuments({
+            slotId: req.params.id,
+            paymentStatus: { $in: ['paid', 'pending_verification'] }
+        });
+        if (activeBookings > 0 && req.query.force !== 'true') {
+            return res.status(400).json({
+                message: `Cannot delete: this tournament/slot has ${activeBookings} active booking(s). Please refund or remove registered teams first, or confirm force delete.`
+            });
+        }
+        await Slot.findByIdAndDelete(req.params.id);
+        res.json({ message: 'Slot removed successfully' });
     } catch (error) {
         res.status(400).json({ message: error.message });
     }
