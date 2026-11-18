@@ -12,51 +12,6 @@ import {
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-const DEFAULT_RESULTS = [
-  {
-    _id: 'sample-1',
-    matchName: 'RMC 03-05 PM GRIND SCRIM - POINT TABLE',
-    lobby: 'LOBBY 02',
-    date: 'Today',
-    imageUrl: '',
-  },
-  {
-    _id: 'sample-2',
-    matchName: 'RMC 11-01 AM GRIND SCRIM - POINT TABLE',
-    lobby: 'LOBBY 01',
-    date: 'Today',
-    imageUrl: '',
-  },
-  {
-    _id: 'sample-3',
-    matchName: 'RMC 09-11 PM GRIND SCRIM - POINT TABLE',
-    lobby: 'LOBBY 01',
-    date: 'Today',
-    imageUrl: '',
-  },
-  {
-    _id: 'sample-4',
-    matchName: 'RMC 07-09 PM GRIND SCRIM - POINT TABLE',
-    lobby: 'LOBBY 01',
-    date: 'Today',
-    imageUrl: '',
-  },
-  {
-    _id: 'sample-5',
-    matchName: 'RMC 03-05 PM GRIND SCRIM - POINT TABLE',
-    lobby: 'LOBBY 01',
-    date: 'Today',
-    imageUrl: '',
-  },
-  {
-    _id: 'sample-6',
-    matchName: 'RMC 01-03 PM GRIND SCRIM - POINT TABLE',
-    lobby: 'LOBBY 01',
-    date: 'Today',
-    imageUrl: '',
-  },
-];
-
 export default function ResultsPage() {
   const navigate = useNavigate();
   const [results, setResults] = useState([]);
@@ -83,12 +38,12 @@ export default function ResultsPage() {
     const query = selectedDate ? `?date=${encodeURIComponent(selectedDate)}` : '';
     axios.get(`${API_URL}/api/results${query}`)
       .then((res) => {
-        const data = Array.isArray(res.data) && res.data.length > 0 ? res.data : DEFAULT_RESULTS;
+        const data = Array.isArray(res.data) ? res.data : [];
         setResults(data);
       })
       .catch((err) => {
         console.error('Error fetching results:', err);
-        setResults(DEFAULT_RESULTS);
+        setResults([]);
       })
       .finally(() => setLoading(false));
   }, [selectedDate]);
