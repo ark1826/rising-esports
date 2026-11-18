@@ -62,6 +62,48 @@ function BgmiHelmetIcon({ size = 15, color = '#c084fc' }) {
   );
 }
 
+// Custom Chess Pawn Icon matching exact screenshot
+function ChessPawnIcon({ size = 19, color = '#c084fc' }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ verticalAlign: 'middle', flexShrink: 0 }}
+    >
+      <circle cx="12" cy="5" r="2.5" fill={color} fillOpacity="0.25" />
+      <path d="M9.5 9.5h5" />
+      <path d="M10 9.5c0 2.5-1.5 4-2.5 6h9c-1-2-2.5-3.5-2.5-6" />
+      <path d="M6 19.5h12" />
+      <path d="M7 16.5h10v3H7z" fill={color} fillOpacity="0.3" />
+    </svg>
+  );
+}
+
+// Custom Square Icon for Withdraw button matching screenshot
+function WithdrawSquareIcon({ size = 14, color = '#ffffff' }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ verticalAlign: 'middle', flexShrink: 0 }}
+    >
+      <rect x="3" y="3" width="18" height="18" rx="3" />
+    </svg>
+  );
+}
+
 export default function Home() {
   const navigate = useNavigate();
   const [walletBalance, setWalletBalance] = useState(0.0);
@@ -354,84 +396,79 @@ export default function Home() {
               onClick={handleWithdrawClick}
               id="home-withdraw-btn"
             >
-              <CreditCard size={18} strokeWidth={2} />
+              <WithdrawSquareIcon size={14} />
               <span>WITHDRAW</span>
             </button>
           </div>
         </section>
 
-        {/* ── 2. FEATURED HERO SCRIM CARD (Screen 1) ─────────── */}
-        <section className="home-featured-hero-wrap" aria-label="Featured Tournament">
+        {/* ── 2. ANNOUNCEMENT STRIP ──────────────────────────── */}
+        <div
+          className="home-announcement-strip"
+          onClick={() => setShowRulesModal(true)}
+          role="button"
+          tabIndex={0}
+        >
+          <div className="announcement-strip-icon">
+            <Megaphone size={22} />
+          </div>
+          <div className="announcement-strip-content">
+            <div className="announcement-strip-tag">ANNOUNCEMENT</div>
+            <div className="announcement-strip-text">
+              {announcements && announcements.length > 0 && announcements[0].content
+                ? `🔥 ${announcements[0].content}`
+                : '🔥 10K Open For All is Live Now! Register and Win Big!'}
+            </div>
+          </div>
+          <div className="announcement-strip-arrow">&gt;</div>
+        </div>
+
+        {/* ── 3. RESULTS & REQUIREMENTS ACTION BUTTONS ───────── */}
+        <div className="home-dual-actions-row">
+          {/* Left Button: RESULTS */}
           <div
-            className="featured-scrim-hero"
-            onClick={() => {
-              if (featuredSlot) {
-                navigate(`/slots?category=${encodeURIComponent(featuredSlot.category || 'Daily Scrims')}&slotId=${featuredSlot._id}`);
-              } else {
-                navigate('/slots?category=Daily%20Scrims');
-              }
-            }}
+            className="home-feature-btn-card"
+            onClick={() => navigate('/results')}
             role="button"
             tabIndex={0}
           >
-            <div className="featured-hero-left">
-              <span className="featured-hero-badge">
-                {featuredSlot?.category === 'Daily Scrims' ? 'BGMI' : (featuredSlot?.category || 'BGMI')}
-              </span>
-              <h2 className="featured-hero-title">
-                {featuredSlot?.matchName || 'RISING 1-3 GRIND SCRIMS'}
-              </h2>
-
-              <div className="featured-hero-stats">
-                <div className="featured-hero-stat-item">
-                  <Shield size={14} color="#38bdf8" />
-                  <span>Entry Fee: <strong className="featured-hero-stat-val">₹{featuredSlot?.entryFee != null ? featuredSlot.entryFee : 60}</strong></span>
-                </div>
-                <div className="featured-hero-stat-item">
-                  <Trophy size={14} color="#fbbf24" />
-                  <span>Prize Pool: <strong className="featured-hero-stat-val">₹{(featuredSlot?.prizePoolTotal || (featuredSlot?.prizePool ? Number(String(featuredSlot.prizePool).replace(/[^0-9]/g, '')) : 5000)).toLocaleString('en-IN')}</strong></span>
-                </div>
-              </div>
-
-              <div className="featured-hero-timing">
-                <Clock size={13} />
-                <span>{featuredSlot?.date || '10 Oct 2026'} • {featuredSlot?.timing || '02:00 PM'}</span>
-              </div>
-
-              <button
-                type="button"
-                className="featured-hero-cta"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (featuredSlot) {
-                    navigate(`/slots?category=${encodeURIComponent(featuredSlot.category || 'Daily Scrims')}&slotId=${featuredSlot._id}`);
-                  } else {
-                    navigate('/slots?category=Daily%20Scrims');
-                  }
-                }}
-              >
-                View Details
-              </button>
+            <div className="home-feature-btn-arrow">&gt;</div>
+            <div className="home-feature-btn-icon-wrap">
+              <Trophy size={19} color="#fbbf24" />
             </div>
-
-            <div className="featured-hero-art" aria-hidden="true">
-              <img
-                src={featuredSlot?.heroImage || soldierBgImg}
-                alt="Tournament Soldier"
-              />
+            <div className="home-feature-btn-info">
+              <div className="home-feature-btn-title">RESULTS</div>
+              <div className="home-feature-btn-sub">Check latest match results and standings</div>
             </div>
           </div>
 
-          <div className="featured-hero-dots">
-            <span className="featured-dot active"></span>
-            <span className="featured-dot"></span>
-            <span className="featured-dot"></span>
+          {/* Right Button: REQUIREMENTS */}
+          <div
+            className="home-feature-btn-card"
+            onClick={() => navigate('/requirements')}
+            role="button"
+            tabIndex={0}
+          >
+            <div className="home-feature-btn-arrow">&gt;</div>
+            <div className="home-feature-btn-icon-wrap">
+              <ChessPawnIcon size={19} color="#c084fc" />
+            </div>
+            <div className="home-feature-btn-info">
+              <div className="home-feature-btn-title">REQUIREMENTS</div>
+              <div className="home-feature-btn-sub">Rules, formats, slots &amp; more</div>
+            </div>
           </div>
-        </section>
+        </div>
 
-        {/* ── 3. EXPLORE WHAT WE OFFER (Screen 1 2x2 Grid) ────── */}
-        <section className="home-explore-section" aria-label="Explore Categories">
-          <div className="home-explore-title">EXPLORE WHAT WE OFFER</div>
+        {/* Divider Line */}
+        <div className="home-neon-divider" />
+
+        {/* ── 4. EXPLORE OUR CATEGORIES (Screen 1 2x2 Grid) ────── */}
+        <section className="home-explore-section" aria-label="Explore Categories" style={{ marginTop: '0.2rem' }}>
+          <div className="home-explore-title" style={{ marginBottom: '0.65rem' }}>
+            <span style={{ color: '#ffffff' }}>EXPLORE OUR </span>
+            <span style={{ color: '#a855f7' }}>CATEGORIES</span>
+          </div>
           <div className="explore-grid-2x2">
             <div
               className="explore-cat-card scrims"

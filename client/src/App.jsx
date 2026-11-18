@@ -13,6 +13,8 @@ import UserLogin from './pages/UserLogin'
 import PaymentStatus from './pages/PaymentStatus'
 import Profile from './pages/Profile'
 import DropListPage from './pages/DropListPage'
+import RequirementsPage from './pages/RequirementsPage'
+import ResultsPage from './pages/ResultsPage'
 import BottomNav from './components/BottomNav'
 
 function ScrollToTop() {
@@ -58,6 +60,8 @@ function App() {
           <Route path="/wallet" element={<Navigate to="/profile" replace />} />
           <Route path="/droplist" element={<DropListPage />} />
           <Route path="/droplist/:slotId" element={<DropListPage />} />
+          <Route path="/requirements" element={<RequirementsPage />} />
+          <Route path="/results" element={<ResultsPage />} />
 
           {/* User Auth Routes & Aliases */}
           <Route path="/user/login" element={<UserLogin />} />

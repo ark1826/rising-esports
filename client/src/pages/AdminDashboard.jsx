@@ -6,7 +6,6 @@ import {
   Trash2,
   LogOut,
   Trophy,
-  Layout,
   ShieldAlert,
   Users,
   ChevronDown,
@@ -25,7 +24,6 @@ import {
   Check,
   CheckSquare,
   RefreshCw,
-  Crosshair,
   Award,
   CreditCard,
   ArrowDownLeft,
@@ -33,7 +31,6 @@ import {
   Search,
   Filter,
   MapPin,
-  Grid,
   Clock,
   Copy,
   Eye,
@@ -61,9 +58,8 @@ const AdminDashboard = () => {
   const [allUsers, setAllUsers] = useState([]);
   const [walletSubTab, setWalletSubTab] = useState('deposits'); // 'deposits' | 'withdrawals' | 'all' | 'adjust'
   const [todaySlotsDate, setTodaySlotsDate] = useState(() => new Date().toISOString().split('T')[0]);
-  const [showSlotModal, setShowSlotModal] = useState(false);
-  const [slotFormData, setSlotFormData] = useState({});
-  const [slotEditTarget, setSlotEditTarget] = useState(null); // null = create, slot obj = edit
+  const [slotDropdownOpen, setSlotDropdownOpen] = useState(false);
+  const slotDropdownRef = useRef(null);
   const [depositFilter, setDepositFilter] = useState('pending'); // 'pending' | 'all'
   const [withdrawalFilter, setWithdrawalFilter] = useState('pending'); // 'pending' | 'all'
   const [txnSearchQuery, setTxnSearchQuery] = useState('');
@@ -80,6 +76,26 @@ const AdminDashboard = () => {
     mode: 'Squad TPP',
   });
   const [teamResultsRows, setTeamResultsRows] = useState([]);
+
+  // ── Requirements Management State ──
+  const [requirements, setRequirements] = useState([]);
+  const [reqSearch, setReqSearch] = useState('');
+  const [reqTypeFilter, setReqTypeFilter] = useState('ALL'); // 'ALL' | 'PLAYER' | 'TEAM'
+  const [reqStatusFilter, setReqStatusFilter] = useState('ALL'); // 'ALL' | 'active' | 'inactive'
+  const [viewReqModal, setViewReqModal] = useState({ open: false, item: null });
+
+  // ── Result Photo Upload State ──
+  const [showUploadResultPhotoModal, setShowUploadResultPhotoModal] = useState(false);
+  const [uploadResultForm, setUploadResultForm] = useState({
+    matchName: 'RMC 03-05 PM GRIND SCRIM - POINT TABLE',
+    lobby: 'LOBBY 01',
+    date: new Date().toISOString().split('T')[0],
+    imageFile: null,
+    imagePreview: null,
+    manualUrl: '',
+  });
+  const [uploadingResultPhoto, setUploadingResultPhoto] = useState(false);
+  const [previewPhotoModal, setPreviewPhotoModal] = useState({ open: false, url: '', title: '' });
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -131,6 +147,17 @@ const AdminDashboard = () => {
     }
   }, [activeTab]);
 
+  // Close slot creation dropdown on click outside
+  useEffect(() => {
+    const handleOutsideClick = (e) => {
+      if (slotDropdownRef.current && !slotDropdownRef.current.contains(e.target)) {
+        setSlotDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
+
   const adminInfo = JSON.parse(localStorage.getItem('adminInfo'));
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
   const config = {
@@ -143,7 +170,7 @@ const AdminDashboard = () => {
 
   const fetchData = async () => {
     try {
-      const [rankRes, slotRes, bookingRes, tourRes, annRes, matchRes, resultsRes, wthRes, depRes, allTxnRes, usersRes, teamsRes] = await Promise.all([
+      const [rankRes, slotRes, bookingRes, tourRes, annRes, matchRes, resultsRes, wthRes, depRes, allTxnRes, usersRes, teamsRes, reqsRes] = await Promise.all([
         axios.get(`${apiUrl}/api/rankings`),
         axios.get(`${apiUrl}/api/slots/admin`, config).catch(() => axios.get(`${apiUrl}/api/slots`)),
         axios.get(`${apiUrl}/api/bookings`, config),
@@ -156,6 +183,7 @@ const AdminDashboard = () => {
         axios.get(`${apiUrl}/api/wallet/admin/all`, config).catch(() => ({ data: { transactions: [] } })),
         axios.get(`${apiUrl}/api/users/admin/all`, config).catch(() => ({ data: [] })),
         axios.get(`${apiUrl}/api/slots/available-teams`, config).catch(() => ({ data: [] })),
+        axios.get(`${apiUrl}/api/requirements/admin/all`, config).catch(() => ({ data: [] })),
       ]);
       setRankings(rankRes.data || []);
       const loadedSlots = slotRes.data || [];
@@ -173,6 +201,7 @@ const AdminDashboard = () => {
       setAllTransactions(allTxnRes.data?.transactions || allTxnRes.data || []);
       setAllUsers(usersRes.data || []);
       setAvailableTeams(teamsRes.data || []);
+      setRequirements(reqsRes.data || []);
 
       axios.get(`${apiUrl}/api/config/official-whatsapp`)
         .then(r => { if (r.data?.url) setOfficialWaLink(r.data.url); })
@@ -181,6 +210,100 @@ const AdminDashboard = () => {
       console.error('Error fetching data', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteRequirement = async (id) => {
+    if (!window.confirm('Are you sure you want to permanently delete this requirement? This will update the user active limit and remove it from public listing.')) {
+      return;
+    }
+    try {
+      await axios.delete(`${apiUrl}/api/requirements/admin/${id}`, config);
+      alert('Requirement deleted successfully!');
+      setRequirements(prev => prev.filter(r => r._id !== id));
+      if (viewReqModal.open && viewReqModal.item?._id === id) {
+        setViewReqModal({ open: false, item: null });
+      }
+    } catch (err) {
+      alert('Failed to delete requirement: ' + (err.response?.data?.message || err.message));
+    }
+  };
+
+  const handleToggleRequirementStatus = async (id, currentStatus) => {
+    const nextStatus = currentStatus === 'active' ? 'inactive' : 'active';
+    try {
+      const { data } = await axios.patch(`${apiUrl}/api/requirements/admin/${id}/status`, { status: nextStatus }, config);
+      alert(data?.message || `Status updated to ${nextStatus}`);
+      setRequirements(prev => prev.map(r => r._id === id ? { ...r, status: nextStatus } : r));
+      if (viewReqModal.open && viewReqModal.item?._id === id) {
+        setViewReqModal(prev => ({ ...prev, item: { ...prev.item, status: nextStatus } }));
+      }
+    } catch (err) {
+      alert('Failed to update status: ' + (err.response?.data?.message || err.message));
+    }
+  };
+
+  const handleOpenUploadResultPhotoModal = () => {
+    setUploadResultForm({
+      matchName: 'RMC 03-05 PM GRIND SCRIM - POINT TABLE',
+      lobby: 'LOBBY 01',
+      date: new Date().toISOString().split('T')[0],
+      imageFile: null,
+      imagePreview: null,
+      manualUrl: '',
+    });
+    setShowUploadResultPhotoModal(true);
+  };
+
+  const handleResultPhotoFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setUploadResultForm(prev => ({
+        ...prev,
+        imageFile: file,
+        imagePreview: URL.createObjectURL(file),
+      }));
+    }
+  };
+
+  const handleUploadResultPhotoSubmit = async (e) => {
+    e.preventDefault();
+    if (!uploadResultForm.matchName.trim()) {
+      alert('Please enter a match / scrim name.');
+      return;
+    }
+    if (!uploadResultForm.imageFile && !uploadResultForm.manualUrl.trim()) {
+      alert('Please select an image file or provide an image URL.');
+      return;
+    }
+
+    setUploadingResultPhoto(true);
+    try {
+      const fd = new FormData();
+      fd.append('matchName', uploadResultForm.matchName.trim());
+      fd.append('lobby', uploadResultForm.lobby.trim());
+      fd.append('date', uploadResultForm.date.trim());
+      if (uploadResultForm.imageFile) {
+        fd.append('resultImage', uploadResultForm.imageFile);
+      }
+      if (uploadResultForm.manualUrl) {
+        fd.append('imageUrl', uploadResultForm.manualUrl.trim());
+      }
+
+      await axios.post(`${apiUrl}/api/results/upload-photo`, fd, {
+        headers: {
+          Authorization: `Bearer ${adminInfo?.token}`,
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      alert('Result photo uploaded and published successfully!');
+      setShowUploadResultPhotoModal(false);
+      await fetchData();
+    } catch (err) {
+      alert('Failed to upload result photo: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setUploadingResultPhoto(false);
     }
   };
 
@@ -377,46 +500,480 @@ const AdminDashboard = () => {
     return new Date(date.getTime() - tzOffset).toISOString().slice(0, 16);
   };
 
+  // ────────────────────────── UNIFIED SLOT CREATION & PRESETS ──────────────────────────
+
+  const formatDateForSlot = (dateObj) => {
+    if (!dateObj || isNaN(new Date(dateObj).getTime())) {
+      return new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+    const d = new Date(dateObj);
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+
+  const getUpcomingDayDate = (targetDayOfWeek) => {
+    const now = new Date();
+    const currentDay = now.getDay();
+    let diff = targetDayOfWeek - currentDay;
+    if (diff < 0) diff += 7;
+    const targetDate = new Date(now);
+    targetDate.setDate(now.getDate() + diff);
+    return targetDate;
+  };
+
+  const isSlotForDate = (slot, dateIsoStr) => {
+    if (!slot) return false;
+    if (!dateIsoStr) return true;
+
+    if (slot.slotTime) {
+      const d = new Date(slot.slotTime);
+      if (!isNaN(d.getTime())) {
+        const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        if (iso === dateIsoStr) return true;
+      }
+    }
+
+    const sDate = String(slot.date || '').trim();
+    if (!sDate) return false;
+
+    if (sDate.includes(dateIsoStr)) return true;
+
+    const targetDate = new Date(dateIsoStr + 'T00:00:00');
+    if (!isNaN(targetDate.getTime())) {
+      const day = targetDate.getDate();
+      const monthShort = targetDate.toLocaleDateString('en-US', { month: 'short' }).toLowerCase();
+      const monthLong = targetDate.toLocaleDateString('en-US', { month: 'long' }).toLowerCase();
+      const sLower = sDate.toLowerCase();
+
+      if (sLower.includes(`${day} ${monthShort}`) || sLower.includes(`${day} ${monthLong}`)) {
+        return true;
+      }
+
+      const parsed = new Date(sDate);
+      if (!isNaN(parsed.getTime())) {
+        const parsedIso = `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, '0')}-${String(parsed.getDate()).padStart(2, '0')}`;
+        if (parsedIso === dateIsoStr) return true;
+      }
+    }
+
+    return false;
+  };
+
+  const generateSlotPreset = (type = 'today', baseDateIso) => {
+    const todayDateObj = baseDateIso ? new Date(baseDateIso + 'T00:00:00') : new Date();
+    const todayFormatted = !isNaN(todayDateObj.getTime())
+      ? formatDateForSlot(todayDateObj)
+      : formatDateForSlot(new Date());
+
+    if (type === 'weekend' || type === 'WEEKEND WAR') {
+      const upcomingSat = getUpcomingDayDate(6);
+      return {
+        presetType: 'weekend',
+        category: 'WEEKEND WAR',
+        lobby: 'LOBBY 1',
+        matchName: 'RISING WEEKEND WAR #01',
+        date: formatDateForSlot(upcomingSat),
+        timing: '06:00 PM',
+        mode: 'Squad TPP',
+        entryFee: 100,
+        price: 100,
+        prizePoolTotal: 10000,
+        maxTeams: 20,
+        isPublished: true,
+        registrationStatus: 'Open',
+        registrationOpenTime: '',
+        registrationCloseTime: '',
+        description: 'Official Rising Weekend War. 4 intense maps, high points multiplier, and ₹10,000 cash pool.',
+        rules: '1. Emulators/iPads strictly banned.\n2. 4 matches back to back.\n3. Official points table updated live.',
+        maps: 'ERANGEL, MIRAMAR, SANHOK, RONDO',
+        scheduleMatches: [
+          { matchNumber: 1, label: 'MATCH 1', time: '06:00 PM', map: 'ERANGEL' },
+          { matchNumber: 2, label: 'MATCH 2', time: '06:50 PM', map: 'MIRAMAR' },
+          { matchNumber: 3, label: 'MATCH 3', time: '07:40 PM', map: 'SANHOK' },
+          { matchNumber: 4, label: 'MATCH 4', time: '08:30 PM', map: 'RONDO' },
+        ],
+        prizeDistribution: [
+          { rank: '#1', prize: '₹1,000' },
+          { rank: '#2', prize: '₹500' },
+          { rank: '#3', prize: '₹300' },
+          { rank: '#4', prize: '₹200' },
+          { rank: '#5', prize: '₹100' },
+        ],
+        roomId: '',
+        roomPassword: '',
+        note: 'Weekend War official rules apply. ID/Pass 20 min before match.',
+        whatsappLink: '',
+      };
+    }
+
+    if (type === 'weekly' || type === 'WEEKLY WAR') {
+      const upcomingFri = getUpcomingDayDate(5);
+      return {
+        presetType: 'weekly',
+        category: 'WEEKLY WAR',
+        lobby: 'LOBBY 1',
+        matchName: 'RISING WEEKLY WAR #01',
+        date: formatDateForSlot(upcomingFri),
+        timing: '08:00 PM',
+        mode: 'Squad TPP',
+        entryFee: 80,
+        price: 80,
+        prizePoolTotal: 7500,
+        maxTeams: 20,
+        isPublished: true,
+        registrationStatus: 'Open',
+        registrationOpenTime: '',
+        registrationCloseTime: '',
+        description: 'Weekly War tournament with weekly leaderboard points and cash rewards.',
+        rules: '1. BGMI standard competitive rules.\n2. Teams must join their allocated slot numbers.',
+        maps: 'ERANGEL, MIRAMAR, RONDO',
+        scheduleMatches: [
+          { matchNumber: 1, label: 'MATCH 1', time: '08:00 PM', map: 'ERANGEL' },
+          { matchNumber: 2, label: 'MATCH 2', time: '08:50 PM', map: 'MIRAMAR' },
+          { matchNumber: 3, label: 'MATCH 3', time: '09:40 PM', map: 'RONDO' },
+        ],
+        prizeDistribution: [
+          { rank: '#1', prize: '₹750' },
+          { rank: '#2', prize: '₹400' },
+          { rank: '#3', prize: '₹250' },
+          { rank: '#4', prize: '₹150' },
+          { rank: '#5', prize: 'FREE' },
+        ],
+        roomId: '',
+        roomPassword: '',
+        note: 'ID / Pass will be provided 25 min before match',
+        whatsappLink: '',
+      };
+    }
+
+    if (type === 'grands' || type === 'GRANDS') {
+      return {
+        presetType: 'grands',
+        category: 'GRANDS',
+        lobby: 'LOBBY 1',
+        matchName: 'RISING GRANDS FINALS',
+        date: todayFormatted,
+        timing: '07:00 PM',
+        mode: 'Squad TPP',
+        entryFee: 150,
+        price: 150,
+        prizePoolTotal: 25000,
+        maxTeams: 20,
+        isPublished: true,
+        registrationStatus: 'Open',
+        registrationOpenTime: '',
+        registrationCloseTime: '',
+        description: 'The pinnacle of Rising Esports: Grands Championship finals with official broadcast.',
+        rules: '1. Official esports tournament handbook applies.\n2. Stream delay 180s.\n3. POV recording mandatory on request.',
+        maps: 'ERANGEL, MIRAMAR, ERANGEL, MIRAMAR',
+        scheduleMatches: [
+          { matchNumber: 1, label: 'MATCH 1', time: '07:00 PM', map: 'ERANGEL' },
+          { matchNumber: 2, label: 'MATCH 2', time: '07:50 PM', map: 'MIRAMAR' },
+          { matchNumber: 3, label: 'MATCH 3', time: '08:40 PM', map: 'ERANGEL' },
+          { matchNumber: 4, label: 'MATCH 4', time: '09:30 PM', map: 'MIRAMAR' },
+        ],
+        prizeDistribution: [
+          { rank: '#1', prize: '₹2,500' },
+          { rank: '#2', prize: '₹1,500' },
+          { rank: '#3', prize: '₹1,000' },
+          { rank: '#4', prize: '₹600' },
+          { rank: '#5', prize: '₹400' },
+        ],
+        roomId: '',
+        roomPassword: '',
+        note: 'Official Grands lobby. ID/Pass 30 min before match.',
+        whatsappLink: '',
+      };
+    }
+
+    if (type === 'custom') {
+      return {
+        presetType: 'custom',
+        category: 'SCRIMS',
+        lobby: 'LOBBY 1',
+        matchName: '',
+        date: todayFormatted,
+        timing: '02:00 PM',
+        mode: 'Squad TPP',
+        entryFee: 60,
+        price: 60,
+        prizePoolTotal: 5000,
+        maxTeams: 20,
+        isPublished: true,
+        registrationStatus: 'Open',
+        registrationOpenTime: '',
+        registrationCloseTime: '',
+        description: '',
+        rules: '',
+        maps: 'ERANGEL, RONDO, MIRAMAR',
+        scheduleMatches: [
+          { matchNumber: 1, label: 'MATCH 1', time: '02:00 PM', map: 'ERANGEL' },
+        ],
+        prizeDistribution: [
+          { rank: '#1', prize: '₹400' },
+          { rank: '#2', prize: '₹150' },
+          { rank: '#3', prize: '₹100' },
+        ],
+        roomId: '',
+        roomPassword: '',
+        note: 'ID / Pass will be provided 30 min before match',
+        whatsappLink: '',
+      };
+    }
+
+    // Default: 'today' (SCRIMS)
+    return {
+      presetType: 'today',
+      category: 'SCRIMS',
+      lobby: 'LOBBY 1',
+      matchName: 'RISING 1-3 GRIND SCRIMS',
+      date: todayFormatted,
+      timing: '02:00 PM',
+      mode: 'Squad TPP',
+      entryFee: 60,
+      price: 60,
+      prizePoolTotal: 5000,
+      maxTeams: 19,
+      isPublished: true,
+      registrationStatus: 'Open',
+      registrationOpenTime: '',
+      registrationCloseTime: '',
+      description: 'Daily grind scrims for all passionate BGMI players. Compete, showcase your skills and win rewards!',
+      rules: '1. Emulators / iPads strictly prohibited.\n2. Match starts strictly on time.\n3. Points table updated after match finish.',
+      maps: 'ERANGEL, RONDO, MIRAMAR',
+      scheduleMatches: [
+        { matchNumber: 1, label: 'MATCH 1', time: '02:00 PM', map: 'ERANGEL' },
+        { matchNumber: 2, label: 'MATCH 2', time: '02:45 PM', map: 'MIRAMAR' },
+        { matchNumber: 3, label: 'MATCH 3', time: '03:30 PM', map: 'RONDO' },
+      ],
+      prizeDistribution: [
+        { rank: '#1', prize: '₹400' },
+        { rank: '#2', prize: '₹150' },
+        { rank: '#3', prize: '₹100' },
+        { rank: '#4', prize: '₹70' },
+        { rank: '#5', prize: 'FREE' },
+      ],
+      roomId: '',
+      roomPassword: '',
+      note: 'ID / Pass will be provided 30 min before match',
+      whatsappLink: '',
+    };
+  };
+
+  const handleOpenSlotModal = (presetOrItem = 'today') => {
+    if (presetOrItem && typeof presetOrItem === 'object' && presetOrItem._id) {
+      setEditingItem(presetOrItem);
+      const item = presetOrItem;
+      const matches = Array.isArray(item.scheduleMatches) && item.scheduleMatches.length > 0
+        ? item.scheduleMatches
+        : (item.timing ? [{ matchNumber: 1, label: 'MATCH 1', time: item.timing, map: 'ERANGEL' }] : []);
+
+      const pDist = Array.isArray(item.prizeDistribution) && item.prizeDistribution.length > 0
+        ? item.prizeDistribution
+        : (Array.isArray(item.prizePool) && item.prizePool.length > 0
+            ? item.prizePool.map(p => ({ rank: `#${p.position}`, prize: `₹${p.amount}` }))
+            : [
+                { rank: '#1', prize: '₹400' },
+                { rank: '#2', prize: '₹150' },
+                { rank: '#3', prize: '₹100' },
+                { rank: '#4', prize: '₹70' },
+                { rank: '#5', prize: 'FREE' }
+              ]);
+
+      setFormData({
+        ...item,
+        category: item.category || 'SCRIMS',
+        lobby: item.lobby || 'LOBBY 1',
+        matchName: item.matchName || '',
+        date: item.date || '',
+        timing: item.timing || '',
+        entryFee: item.entryFee ?? item.price ?? 60,
+        price: item.price ?? item.entryFee ?? 60,
+        prizePoolTotal: item.prizePoolTotal ?? 5000,
+        maxTeams: item.maxTeams ?? 20,
+        isPublished: item.isPublished !== false,
+        registrationStatus: item.registrationStatus || 'Open',
+        registrationOpenTime: item.registrationOpenTime || '',
+        registrationCloseTime: item.registrationCloseTime || '',
+        description: item.description || '',
+        rules: item.rules || '',
+        maps: Array.isArray(item.maps) ? item.maps.join(', ') : (item.maps || 'ERANGEL, RONDO, MIRAMAR'),
+        scheduleMatches: matches,
+        prizeDistribution: pDist,
+        roomId: item.roomId || '',
+        roomPassword: item.roomPassword || '',
+        note: item.note || '',
+        whatsappLink: item.whatsappLink || item.customLink || '',
+        customLink: item.customLink || item.whatsappLink || '',
+        presetType: item.category === 'WEEKEND WAR' ? 'weekend' : item.category === 'WEEKLY WAR' ? 'weekly' : item.category === 'GRANDS' ? 'grands' : 'today',
+      });
+      setShowModal(true);
+    } else {
+      setEditingItem(null);
+      const presetKey = typeof presetOrItem === 'string' ? presetOrItem : 'today';
+      const presetData = generateSlotPreset(presetKey, todaySlotsDate);
+      setFormData(presetData);
+      setShowModal(true);
+    }
+  };
+
+  const handleSwitchSlotPreset = (newPresetKey) => {
+    const currentCustom = {
+      lobby: formData.lobby,
+      roomId: formData.roomId,
+      roomPassword: formData.roomPassword,
+      whatsappLink: formData.whatsappLink,
+    };
+    const newPreset = generateSlotPreset(newPresetKey, todaySlotsDate);
+    setFormData(prev => ({
+      ...newPreset,
+      lobby: currentCustom.lobby || newPreset.lobby,
+      roomId: currentCustom.roomId || newPreset.roomId,
+      roomPassword: currentCustom.roomPassword || newPreset.roomPassword,
+      whatsappLink: currentCustom.whatsappLink || newPreset.whatsappLink,
+    }));
+  };
+
+  const setModalPrizePreset = (preset) => {
+    if (preset === 'top3') {
+      setFormData(prev => ({
+        ...prev,
+        prizeDistribution: [
+          { rank: '#1', prize: '₹400' },
+          { rank: '#2', prize: '₹150' },
+          { rank: '#3', prize: '₹100' },
+        ],
+      }));
+    } else if (preset === 'top5') {
+      setFormData(prev => ({
+        ...prev,
+        prizeDistribution: [
+          { rank: '#1', prize: '₹400' },
+          { rank: '#2', prize: '₹150' },
+          { rank: '#3', prize: '₹100' },
+          { rank: '#4', prize: '₹70' },
+          { rank: '#5', prize: 'FREE' },
+        ],
+      }));
+    } else if (preset === 'winner') {
+      setFormData(prev => ({
+        ...prev,
+        prizeDistribution: [
+          { rank: '#1', prize: '₹500' },
+        ],
+      }));
+    }
+  };
+
+  const renderUnifiedSlotCreateButton = () => (
+    <div className="unified-slot-create-wrap" ref={slotDropdownRef}>
+      <div className="unified-slot-btn-group">
+        <button
+          type="button"
+          className="unified-slot-primary-btn"
+          onClick={() => handleOpenSlotModal('today')}
+          title="Create slot pre-filled for today's match"
+        >
+          <Plus size={16} />
+          <span>Create Today Slot</span>
+        </button>
+        <button
+          type="button"
+          className={`unified-slot-dropdown-arrow ${slotDropdownOpen ? 'open' : ''}`}
+          onClick={() => setSlotDropdownOpen(prev => !prev)}
+          title="Create other slots (Weekend War, Weekly War, Grands, Custom)"
+          aria-label="Other slot types dropdown"
+        >
+          <ChevronDown size={15} style={{ transform: slotDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+        </button>
+      </div>
+
+      {slotDropdownOpen && (
+        <div className="unified-slot-menu">
+          <div className="unified-slot-menu-header">CREATE NEW SLOT</div>
+          <button
+            type="button"
+            className="unified-slot-menu-item"
+            onClick={() => {
+              handleOpenSlotModal('today');
+              setSlotDropdownOpen(false);
+            }}
+          >
+            <span className="usm-badge today">TODAY</span>
+            <div className="usm-info">
+              <div className="usm-title">📅 Today's Scrims (Daily Grind)</div>
+              <div className="usm-sub">Pre-filled for today ({new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}) • 3 Maps • ₹60 fee</div>
+            </div>
+          </button>
+          <button
+            type="button"
+            className="unified-slot-menu-item"
+            onClick={() => {
+              handleOpenSlotModal('weekend');
+              setSlotDropdownOpen(false);
+            }}
+          >
+            <span className="usm-badge weekend">WEEKEND</span>
+            <div className="usm-info">
+              <div className="usm-title">⚔️ Weekend War</div>
+              <div className="usm-sub">Saturday/Sunday major • 4 Maps • ₹100 fee • ₹10K pool</div>
+            </div>
+          </button>
+          <button
+            type="button"
+            className="unified-slot-menu-item"
+            onClick={() => {
+              handleOpenSlotModal('weekly');
+              setSlotDropdownOpen(false);
+            }}
+          >
+            <span className="usm-badge weekly">WEEKLY</span>
+            <div className="usm-info">
+              <div className="usm-title">🛡️ Weekly War</div>
+              <div className="usm-sub">Mid-week &amp; Friday war • 3 Maps • ₹80 fee • ₹7.5K pool</div>
+            </div>
+          </button>
+          <button
+            type="button"
+            className="unified-slot-menu-item"
+            onClick={() => {
+              handleOpenSlotModal('grands');
+              setSlotDropdownOpen(false);
+            }}
+          >
+            <span className="usm-badge grands">GRANDS</span>
+            <div className="usm-info">
+              <div className="usm-title">🏆 Grands Finals</div>
+              <div className="usm-sub">Championship tier • 4 Maps • ₹150 fee • ₹25K pool</div>
+            </div>
+          </button>
+          <div className="unified-slot-menu-divider" />
+          <button
+            type="button"
+            className="unified-slot-menu-item"
+            onClick={() => {
+              handleOpenSlotModal('custom');
+              setSlotDropdownOpen(false);
+            }}
+          >
+            <span className="usm-badge custom">CUSTOM</span>
+            <div className="usm-info">
+              <div className="usm-title">⚙️ Custom / Other Slot</div>
+              <div className="usm-sub">Create with custom category, maps, rules &amp; schedule</div>
+            </div>
+          </button>
+        </div>
+      )}
+    </div>
+  );
+
   const handleOpenModal = (item = null) => {
+    if (activeTab === 'slots' || activeTab === 'todayslots') {
+      handleOpenSlotModal(item || 'today');
+      return;
+    }
     setEditingItem(item);
     if (item) {
-      if (activeTab === 'slots') {
-        const matches = Array.isArray(item.scheduleMatches) && item.scheduleMatches.length > 0
-          ? item.scheduleMatches
-          : (item.timing ? [{ matchNumber: 1, label: 'MATCH 1', time: item.timing }] : []);
-
-        const pDist = Array.isArray(item.prizeDistribution) && item.prizeDistribution.length > 0
-          ? item.prizeDistribution
-          : (Array.isArray(item.prizePool) && item.prizePool.length > 0
-              ? item.prizePool.map(p => ({ rank: `#${p.position}`, prize: `₹${p.amount}` }))
-              : [
-                  { rank: '#1', prize: '₹400' },
-                  { rank: '#2', prize: '₹150' },
-                  { rank: '#3', prize: '₹100' },
-                  { rank: '#4', prize: '₹70' },
-                  { rank: '#5', prize: 'FREE' }
-                ]);
-
-        setFormData({
-          ...item,
-          category: item.category || 'SCRIMS',
-          lobby: item.lobby || 'LOBBY 1',
-          matchName: item.matchName || '',
-          date: item.date || '',
-          timing: item.timing || '',
-          entryFee: item.entryFee ?? item.price ?? 60,
-          price: item.price ?? item.entryFee ?? 60,
-          maxTeams: item.maxTeams ?? 19,
-          maps: Array.isArray(item.maps) ? item.maps.join(', ') : (item.maps || 'ERANGEL, RONDO, MIRAMAR'),
-          scheduleMatches: matches,
-          prizeDistribution: pDist,
-          roomId: item.roomId || '',
-          roomPassword: item.roomPassword || '',
-          note: item.note || '',
-          whatsappLink: item.whatsappLink || item.customLink || '',
-          customLink: item.customLink || item.whatsappLink || '',
-        });
-      } else if (activeTab === 'announcements') {
+      if (activeTab === 'announcements') {
         setFormData({
           title: item.title || '',
           content: item.content || '',
@@ -464,41 +1021,6 @@ const AdminDashboard = () => {
         setFormData({
           title: '', game: 'BGMI', date: '', location: 'ONLINE TOURNAMENT', prizePool: 0,
           entryFee: 0, status: 'UPCOMING', registrationOpen: false, description: '',
-        });
-      } else if (activeTab === 'slots') {
-        setFormData({
-          category: 'SCRIMS',
-          lobby: 'LOBBY 1',
-          matchName: 'RISING 1-3 GRIND SCRIMS',
-          date: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
-          timing: '02:00 PM',
-          mode: 'Squad TPP',
-          entryFee: 60,
-          price: 60,
-          prizePoolTotal: 5000,
-          maxTeams: 20,
-          isPublished: true,
-          registrationStatus: 'Open',
-          registrationOpenTime: '',
-          registrationCloseTime: '',
-          description: 'Daily grind scrims for all the passionate BGMI players. Compete, showcase your skills and win exciting rewards!',
-          rules: '1. Emulators / iPads / Hacks are strictly prohibited.\n2. Match starts strictly on time.\n3. Points table will be updated after match finish.',
-          maps: 'ERANGEL, RONDO, MIRAMAR',
-          scheduleMatches: [
-            { matchNumber: 1, label: 'MATCH 1', time: '02:00 PM', map: 'ERANGEL' },
-            { matchNumber: 2, label: 'MATCH 2', time: '02:45 PM', map: 'MIRAMAR' },
-            { matchNumber: 3, label: 'MATCH 3', time: '03:30 PM', map: 'RONDO' },
-          ],
-          prizeDistribution: [
-            { rank: '#1', prize: '₹2,500' },
-            { rank: '#2', prize: '₹1,500' },
-            { rank: '#3', prize: '₹1,000' }
-          ],
-          roomId: '',
-          roomPassword: '',
-          note: 'ID / Pass will be provided 30 min before match',
-          whatsappLink: '',
-          heroImage: '',
         });
       } else {
         setFormData({
@@ -710,7 +1232,7 @@ const AdminDashboard = () => {
     setIsSubmitting(true);
     try {
       let payload;
-      if (activeTab === 'slots') {
+      if (activeTab === 'slots' || activeTab === 'todayslots') {
         const slotTiming = (formData.timing || formData.scheduleMatches?.[0]?.time || '').trim();
         if (!slotTiming) {
           alert('Slot Timing is required (e.g. 2:00 PM)');
@@ -763,15 +1285,16 @@ const AdminDashboard = () => {
       delete payload.heroImagePreview;
 
       let savedId;
+      const resource = (activeTab === 'slots' || activeTab === 'todayslots') ? 'slots' : activeTab;
       if (editingItem) {
-        await axios.put(`${apiUrl}/api/${activeTab}/${editingItem._id}`, payload, config);
+        await axios.put(`${apiUrl}/api/${resource}/${editingItem._id}`, payload, config);
         savedId = editingItem._id;
       } else {
-        const res = await axios.post(`${apiUrl}/api/${activeTab}`, payload, config);
+        const res = await axios.post(`${apiUrl}/api/${resource}`, payload, config);
         savedId = res.data._id;
       }
 
-      if (activeTab === 'slots' && formData.heroImageFile && savedId) {
+      if ((activeTab === 'slots' || activeTab === 'todayslots') && formData.heroImageFile && savedId) {
         try {
           const fd = new FormData();
           fd.append('heroImage', formData.heroImageFile);
@@ -1161,7 +1684,7 @@ const AdminDashboard = () => {
             }}
             className="admin-mobile-tab-select"
           >
-            <option value="todayslots">📅 Today Slots ({slots.filter(s => s.date && String(s.date).includes(new Date().toISOString().split('T')[0])).length})</option>
+            <option value="todayslots">📅 Today Slots ({slots.filter(s => isSlotForDate(s, new Date().toISOString().split('T')[0])).length})</option>
             <option value="dropdetails">📍 Drop Details</option>
             <option value="slots">🎰 All Slots Editor ({slots.length})</option>
             <option value="official_wa">💬 Official WhatsApp Group Link</option>
@@ -1191,7 +1714,7 @@ const AdminDashboard = () => {
           <Calendar size={18} style={{ marginRight: '8px', color: '#10b981' }} /> Today Slots
           {(() => {
             const todayIso = new Date().toISOString().split('T')[0];
-            const todayCount = slots.filter(s => s.date && String(s.date).includes(todayIso)).length;
+            const todayCount = slots.filter(s => isSlotForDate(s, todayIso)).length;
             return todayCount > 0 ? (
               <span className="tab-counter-badge" style={{ background: '#10b981' }}>{todayCount}</span>
             ) : null;
@@ -1268,6 +1791,17 @@ const AdminDashboard = () => {
         >
           <Trophy size={18} style={{ marginRight: '8px' }} /> Tournaments
         </button>
+        <button
+          className={`tab-btn ${activeTab === 'requirements' ? 'active' : ''}`}
+          onClick={() => setActiveTab('requirements')}
+        >
+          <Users size={18} style={{ marginRight: '8px' }} /> Requirements
+          {requirements.filter(r => r.status === 'active').length > 0 && (
+            <span className="tab-counter-badge" style={{ background: '#7c3aed', color: '#fff' }}>
+              {requirements.filter(r => r.status === 'active').length}
+            </span>
+          )}
+        </button>
       </div>
 
       <div className="admin-section">
@@ -1280,6 +1814,7 @@ const AdminDashboard = () => {
               : activeTab === 'announcements' ? 'Manage Announcements'
               : activeTab === 'matches' ? 'Manage Scrims & Matches'
               : activeTab === 'results' ? 'Manage Scrim Results'
+              : activeTab === 'requirements' ? 'Manage Recruitment Requirements'
               : (activeTab === 'wallet' || activeTab === 'withdrawals' || activeTab === 'transactions') ? 'Wallet & Transaction Management'
               : activeTab === 'tournaments' ? 'Manage Tournaments'
               : activeTab === 'payments' ? 'UPI Slot Payments Verification'
@@ -1337,9 +1872,23 @@ const AdminDashboard = () => {
               </button>
             </div>
           ) : activeTab === 'results' ? (
-            <div className="admin-header-actions">
+            <div className="admin-header-actions" style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
+              <button
+                className="action-btn"
+                onClick={handleOpenUploadResultPhotoModal}
+                style={{
+                  background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+                  boxShadow: '0 2px 10px rgba(16, 185, 129, 0.4)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontWeight: 700,
+                }}
+              >
+                <Upload size={16} /> Upload Result Photo
+              </button>
               <button className="action-btn" onClick={() => handleOpenResultsModal()}>
-                <Plus size={18} /> Enter Match Results
+                <Plus size={16} /> Enter Match Results
               </button>
             </div>
           ) : activeTab === 'announcements' ? (
@@ -1356,40 +1905,57 @@ const AdminDashboard = () => {
             </div>
           ) : (activeTab === 'wallet' || activeTab === 'withdrawals' || activeTab === 'transactions') ? null
           : activeTab === 'todayslots' ? (
-            <div className="admin-header-actions today-slots-toolbar" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div className="admin-header-actions today-slots-toolbar" style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Date:</label>
                 <input
                   type="date"
                   value={todaySlotsDate}
                   onChange={(e) => setTodaySlotsDate(e.target.value)}
-                  style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(139,92,246,0.35)', borderRadius: '7px', color: '#fff', padding: '0.35rem 0.7rem', fontSize: '0.82rem', cursor: 'pointer' }}
+                  style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(139,92,246,0.35)', borderRadius: '7px', color: '#fff', padding: '0.35rem 0.65rem', fontSize: '0.82rem', cursor: 'pointer' }}
                 />
               </div>
-              <button className="action-btn" style={{ background: 'rgba(16,185,129,0.2)', border: '1px solid #10b981', color: '#10b981', fontSize: '0.8rem', padding: '0.35rem 0.8rem' }} onClick={() => setTodaySlotsDate(new Date().toISOString().split('T')[0])}>
+              <button
+                className="action-btn"
+                style={{ background: 'rgba(16,185,129,0.2)', border: '1px solid #10b981', color: '#10b981', fontSize: '0.8rem', padding: '0.35rem 0.75rem' }}
+                onClick={() => setTodaySlotsDate(new Date().toISOString().split('T')[0])}
+              >
                 Today
               </button>
-              <button className="action-btn" style={{ fontSize: '0.8rem', padding: '0.35rem 0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }} onClick={() => {
-                const todayStr = todaySlotsDate;
-                setSlotEditTarget(null);
-                setSlotFormData({ category: 'SCRIMS', lobby: 'LOBBY 1', matchName: 'RISING 1-3 GRIND SCRIMS', date: todayStr, timing: '', mode: 'Squad TPP', entryFee: 60, price: 60, maxTeams: 19, maps: 'ERANGEL, RONDO, MIRAMAR', scheduleMatches: [], prizeDistribution: [{ rank: '#1', prize: '₹400' }, { rank: '#2', prize: '₹150' }, { rank: '#3', prize: '₹100' }, { rank: '#4', prize: '₹70' }, { rank: '#5', prize: 'FREE' }], roomId: '', roomPassword: '', note: 'ID / Pass will be provided 30 min before match', whatsappLink: '' });
-                setShowSlotModal(true);
-              }}>
-                <Plus size={15} /> Create Slot
+
+              {/* Single unified button for creating Today Slots & other slots (Weekend War, Weekly War, Grands) */}
+              {renderUnifiedSlotCreateButton()}
+
+              <button
+                className="action-btn slot-nav-quick-btn"
+                onClick={() => setActiveTab('slots')}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', padding: '0.35rem 0.75rem', background: 'rgba(139,92,246,0.18)', border: '1px solid rgba(139,92,246,0.4)', color: '#c084fc' }}
+                title="Switch to Manage Slots editor"
+              >
+                <LayoutList size={14} /> All Slots ({slots.length})
               </button>
-              <button className="action-btn" onClick={() => fetchData()} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', padding: '0.35rem 0.8rem', background: 'rgba(99,102,241,0.2)', border: '1px solid rgba(99,102,241,0.5)' }}>
+
+              <button
+                className="action-btn"
+                onClick={() => fetchData()}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', padding: '0.35rem 0.75rem', background: 'rgba(99,102,241,0.2)', border: '1px solid rgba(99,102,241,0.5)' }}
+              >
                 <RefreshCw size={14} /> Refresh
               </button>
             </div>
           ) : activeTab === 'slots' ? (
-            <div className="admin-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <Calendar size={14} />
-                Configure category, lobby, schedule matches, prize pool &amp; credentials
-              </div>
-              <button className="action-btn" onClick={() => handleOpenModal()}>
-                <Plus size={18} /> Add New Slot
+            <div className="admin-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <button
+                className="action-btn slot-nav-quick-btn"
+                onClick={() => setActiveTab('todayslots')}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', padding: '0.35rem 0.75rem', background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.4)', color: '#34d399' }}
+                title="Switch to Today's Match Operations"
+              >
+                <Calendar size={14} /> Today's Schedule ({slots.filter(s => isSlotForDate(s, new Date().toISOString().split('T')[0])).length})
               </button>
+
+              {/* Single unified button for creating Today Slots & other slots (Weekend War, Weekly War, Grands) */}
+              {renderUnifiedSlotCreateButton()}
             </div>
           ) : activeTab === 'tournaments' ? (
             <div className="admin-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -1549,10 +2115,11 @@ const AdminDashboard = () => {
                   <table className="rankings-table">
                     <thead>
                       <tr>
-                        <th>Match Name</th>
+                        <th>Point Table / Match Name</th>
+                        <th>Lobby</th>
                         <th>Date</th>
-                        <th>WWCD Winner (#1)</th>
-                        <th>Teams Count</th>
+                        <th>Result Photo</th>
+                        <th>Winner / Teams</th>
                         <th>Actions</th>
                       </tr>
                     </thead>
@@ -1560,17 +2127,54 @@ const AdminDashboard = () => {
                       {matchResults.map(res => (
                         <tr key={res._id}>
                           <td><strong>{res.matchName}</strong></td>
-                          <td>{res.date} {res.timing ? `· ${res.timing}` : ''}</td>
-                          <td style={{ color: '#fbbf24', fontWeight: 'bold' }}>
-                            🏆 {res.results?.[0]?.teamName || 'N/A'}
+                          <td>
+                            <span style={{ border: '1px solid #10b981', color: '#34d399', background: 'rgba(16,185,129,0.1)', borderRadius: '12px', padding: '2px 8px', fontSize: '0.72rem', fontWeight: 700 }}>
+                              {res.lobby || 'LOBBY 01'}
+                            </span>
                           </td>
-                          <td>{res.results?.length || 0} Teams</td>
+                          <td>{res.date} {res.timing ? `· ${res.timing}` : ''}</td>
+                          <td>
+                            {res.imageUrl ? (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <img
+                                  src={res.imageUrl}
+                                  alt={res.matchName}
+                                  style={{ width: '50px', height: '34px', objectFit: 'cover', borderRadius: '4px', cursor: 'pointer', border: '1px solid rgba(16, 185, 129, 0.4)' }}
+                                  onClick={() => setPreviewPhotoModal({ open: true, url: res.imageUrl, title: res.matchName })}
+                                  title="Click to preview result image"
+                                />
+                                <span style={{ fontSize: '0.7rem', color: '#34d399' }}>Attached</span>
+                              </div>
+                            ) : (
+                              <span style={{ color: '#94a3b8', fontSize: '0.75rem' }}>No Image</span>
+                            )}
+                          </td>
+                          <td>
+                            {res.results?.length > 0 ? (
+                              <span style={{ color: '#fbbf24', fontWeight: 'bold' }}>
+                                🏆 {res.results?.[0]?.teamName || 'N/A'} ({res.results.length} Teams)
+                              </span>
+                            ) : (
+                              <span style={{ color: '#94a3b8', fontSize: '0.75rem' }}>Image Point Table</span>
+                            )}
+                          </td>
                           <td>
                             <div style={{ display: 'flex', gap: '0.5rem' }}>
+                              {res.imageUrl && (
+                                <button
+                                  type="button"
+                                  className="action-btn"
+                                  style={{ background: 'rgba(16, 185, 129, 0.2)', border: '1px solid rgba(16, 185, 129, 0.4)', color: '#34d399', padding: '4px 8px' }}
+                                  onClick={() => setPreviewPhotoModal({ open: true, url: res.imageUrl, title: res.matchName })}
+                                  title="View photo"
+                                >
+                                  <Eye size={14} />
+                                </button>
+                              )}
                               <button
                                 className="action-btn delete-btn"
                                 onClick={async () => {
-                                  if (window.confirm('Delete this match result? Rankings will be recalculated.')) {
+                                  if (window.confirm(`Delete point table result "${res.matchName}"?`)) {
                                     try {
                                       await axios.delete(`${apiUrl}/api/results/${res._id}`, config);
                                       await fetchData();
@@ -1579,6 +2183,7 @@ const AdminDashboard = () => {
                                     }
                                   }
                                 }}
+                                title="Delete this result"
                               >
                                 <Trash2 size={14} />
                               </button>
@@ -1591,6 +2196,199 @@ const AdminDashboard = () => {
                 )}
               </div>
             )}
+
+            {/* ── REQUIREMENTS MANAGEMENT ── */}
+            {activeTab === 'requirements' && (() => {
+              const filteredList = requirements.filter((r) => {
+                if (reqTypeFilter !== 'ALL' && r.type !== reqTypeFilter) return false;
+                if (reqStatusFilter !== 'ALL' && r.status !== reqStatusFilter) return false;
+                if (reqSearch.trim()) {
+                  const q = reqSearch.toLowerCase();
+                  const userName = (r.user?.teamName || '').toLowerCase();
+                  const userPhone = (r.user?.phone || '').toLowerCase();
+                  const role = (r.role || '').toLowerCase();
+                  const device = (r.device || '').toLowerCase();
+                  const contact = (r.contact || '').toLowerCase();
+                  if (!userName.includes(q) && !userPhone.includes(q) && !role.includes(q) && !device.includes(q) && !contact.includes(q)) {
+                    return false;
+                  }
+                }
+                return true;
+              });
+
+              return (
+                <div>
+                  {/* Controls: Search & Filters */}
+                  <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', gap: '0.6rem', flex: 1, minWidth: '240px' }}>
+                      <input
+                        type="text"
+                        placeholder="Search by Team, Role, Device, Contact..."
+                        value={reqSearch}
+                        onChange={(e) => setReqSearch(e.target.value)}
+                        style={{
+                          background: 'rgba(255, 255, 255, 0.05)',
+                          border: '1px solid rgba(168, 85, 247, 0.35)',
+                          borderRadius: '8px',
+                          padding: '8px 12px',
+                          color: '#fff',
+                          fontSize: '0.82rem',
+                          flex: 1,
+                        }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '0.6rem' }}>
+                      <select
+                        value={reqTypeFilter}
+                        onChange={(e) => setReqTypeFilter(e.target.value)}
+                        style={{
+                          background: '#160d2e',
+                          border: '1px solid rgba(168, 85, 247, 0.35)',
+                          borderRadius: '8px',
+                          padding: '8px 12px',
+                          color: '#c4b5fd',
+                          fontSize: '0.82rem',
+                        }}
+                      >
+                        <option value="ALL">All Types</option>
+                        <option value="PLAYER">Looking for Player</option>
+                        <option value="TEAM">Looking for Team</option>
+                      </select>
+
+                      <select
+                        value={reqStatusFilter}
+                        onChange={(e) => setReqStatusFilter(e.target.value)}
+                        style={{
+                          background: '#160d2e',
+                          border: '1px solid rgba(168, 85, 247, 0.35)',
+                          borderRadius: '8px',
+                          padding: '8px 12px',
+                          color: '#c4b5fd',
+                          fontSize: '0.82rem',
+                        }}
+                      >
+                        <option value="ALL">All Status</option>
+                        <option value="active">Active Only</option>
+                        <option value="inactive">Inactive Only</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Table */}
+                  <div className="rankings-table-wrapper">
+                    {filteredList.length === 0 ? (
+                      <div className="empty-state" style={{ padding: '2.5rem', textAlign: 'center' }}>
+                        <p style={{ color: '#a0a0c4' }}>No requirements found matching the criteria.</p>
+                      </div>
+                    ) : (
+                      <table className="rankings-table">
+                        <thead>
+                          <tr>
+                            <th>Type</th>
+                            <th>User / Team</th>
+                            <th>Role & Device</th>
+                            <th>Timing / Availability</th>
+                            <th>Age & Exp</th>
+                            <th>Contact</th>
+                            <th>Status</th>
+                            <th>Published</th>
+                            <th>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredList.map((req) => (
+                            <tr key={req._id}>
+                              <td>
+                                <span
+                                  style={{
+                                    background: req.type === 'PLAYER' ? 'rgba(56, 189, 248, 0.2)' : 'rgba(232, 121, 249, 0.2)',
+                                    color: req.type === 'PLAYER' ? '#38bdf8' : '#e879f9',
+                                    border: `1px solid ${req.type === 'PLAYER' ? 'rgba(56, 189, 248, 0.4)' : 'rgba(232, 121, 249, 0.4)'}`,
+                                    borderRadius: '4px',
+                                    padding: '2px 8px',
+                                    fontSize: '0.7rem',
+                                    fontWeight: 800,
+                                    whiteSpace: 'nowrap',
+                                  }}
+                                >
+                                  {req.type === 'PLAYER' ? 'PLAYER' : 'TEAM'}
+                                </span>
+                              </td>
+                              <td>
+                                <div style={{ fontWeight: 700, color: '#fff' }}>
+                                  {req.user?.teamName || 'Competitive User'}
+                                </div>
+                                <div style={{ fontSize: '0.72rem', color: '#a0a0c4' }}>
+                                  {req.user?.phone || ''}
+                                </div>
+                              </td>
+                              <td>
+                                <div style={{ fontWeight: 700, color: '#c084fc' }}>{req.role}</div>
+                                <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{req.device}</div>
+                              </td>
+                              <td style={{ fontSize: '0.78rem', color: '#e2e8f0' }}>
+                                {req.type === 'PLAYER' ? (req.availability || 'N/A') : (req.playingTime || 'N/A')}
+                              </td>
+                              <td style={{ fontSize: '0.78rem', color: '#e2e8f0' }}>
+                                {req.age} yrs · {req.experience}
+                              </td>
+                              <td>
+                                <span style={{ fontSize: '0.78rem', color: '#22c55e', fontWeight: 600 }}>
+                                  {req.contact}
+                                </span>
+                              </td>
+                              <td>
+                                <span
+                                  onClick={() => handleToggleRequirementStatus(req._id, req.status)}
+                                  style={{
+                                    background: req.status === 'active' ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                                    color: req.status === 'active' ? '#4ade80' : '#f87171',
+                                    border: `1px solid ${req.status === 'active' ? '#22c55e' : '#ef4444'}`,
+                                    padding: '2px 8px',
+                                    borderRadius: '12px',
+                                    fontSize: '0.7rem',
+                                    fontWeight: 700,
+                                    cursor: 'pointer',
+                                  }}
+                                  title="Click to toggle status"
+                                >
+                                  {req.status === 'active' ? 'Active' : 'Inactive'}
+                                </span>
+                              </td>
+                              <td style={{ fontSize: '0.72rem', color: '#94a3b8', whiteSpace: 'nowrap' }}>
+                                {req.createdAt ? new Date(req.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : 'N/A'}
+                              </td>
+                              <td>
+                                <div style={{ display: 'flex', gap: '6px' }}>
+                                  <button
+                                    type="button"
+                                    className="action-btn"
+                                    onClick={() => setViewReqModal({ open: true, item: req })}
+                                    style={{ padding: '4px 8px', fontSize: '0.75rem', background: 'rgba(124, 58, 237, 0.2)', border: '1px solid rgba(168, 85, 247, 0.4)', color: '#c084fc' }}
+                                    title="View full requirement details"
+                                  >
+                                    <Eye size={14} />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="action-btn delete-btn"
+                                    onClick={() => handleDeleteRequirement(req._id)}
+                                    title="Delete requirement"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* ── WALLET & TRANSACTIONS MANAGEMENT ── */}
             {(activeTab === 'transactions' || activeTab === 'wallet' || activeTab === 'withdrawals') && (
@@ -2754,284 +3552,42 @@ const AdminDashboard = () => {
               </div>
             )}
 
-            {/* â”€â”€ TODAY SLOTS ADMIN PANEL â”€â”€ */}
+            {/* ── TODAY SLOTS ADMIN PANEL ── */}
             {activeTab === 'todayslots' && (
               <div>
-                {/* Inline Slot Create / Edit Modal */}
-                {showSlotModal && (
-                  <div className="slot-inline-modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', overflowY: 'auto', padding: '2rem 1rem' }}>
-                    <div className="slot-inline-modal-card" style={{ width: '100%', maxWidth: '640px', background: 'linear-gradient(160deg,#13131f,#0e0e1a)', border: '1px solid rgba(139,92,246,0.3)', borderRadius: '20px', padding: '1.75rem', margin: 'auto' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                        <h2 style={{ margin: 0, fontSize: '1.1rem', color: '#fff' }}>{slotEditTarget ? 'Edit Slot' : 'Create New Slot'}</h2>
-                        <button onClick={() => setShowSlotModal(false)} style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '50%', width: '32px', height: '32px', color: '#94a3b8', fontSize: '1.2rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>x</button>
-                      </div>
-                      <div className="form-grid slot-modal-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-                        <div>
-                          <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '0.3rem' }}>Match Title *</label>
-                          <input type="text" value={slotFormData.matchName || ''} onChange={e => setSlotFormData(p => ({ ...p, matchName: e.target.value }))} placeholder="e.g. RISING 1-3 GRIND SCRIMS" style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(139,92,246,0.3)', borderRadius: '8px', color: '#fff', padding: '0.55rem 0.75rem', fontSize: '0.88rem' }} />
-                        </div>
-                        <div>
-                          <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '0.3rem' }}>Date *</label>
-                          <input type="text" value={slotFormData.date || ''} onChange={e => setSlotFormData(p => ({ ...p, date: e.target.value }))} placeholder="e.g. 30 Sep 2026" style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(139,92,246,0.3)', borderRadius: '8px', color: '#fff', padding: '0.55rem 0.75rem', fontSize: '0.88rem' }} />
-                        </div>
-                        <div>
-                          <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '0.3rem' }}>Category</label>
-                          <select value={slotFormData.category || 'SCRIMS'} onChange={e => setSlotFormData(p => ({ ...p, category: e.target.value }))} style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(139,92,246,0.3)', borderRadius: '8px', color: '#fff', padding: '0.55rem 0.75rem', fontSize: '0.88rem' }}>
-                            <option value="SCRIMS">SCRIMS</option>
-                            <option value="GRANDS">GRANDS</option>
-                            <option value="WEEKLY WAR">WEEKLY WAR</option>
-                            <option value="WEEKEND WAR">WEEKEND WAR</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '0.3rem' }}>Lobby</label>
-                          <input type="text" value={slotFormData.lobby || ''} onChange={e => setSlotFormData(p => ({ ...p, lobby: e.target.value }))} placeholder="e.g. LOBBY 1" style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(139,92,246,0.3)', borderRadius: '8px', color: '#fff', padding: '0.55rem 0.75rem', fontSize: '0.88rem' }} />
-                        </div>
-                        <div>
-                          <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '0.3rem' }}>Timing *</label>
-                          <input type="text" value={slotFormData.timing || ''} onChange={e => setSlotFormData(p => ({ ...p, timing: e.target.value }))} placeholder="e.g. 2:00 PM" style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(139,92,246,0.3)', borderRadius: '8px', color: '#fff', padding: '0.55rem 0.75rem', fontSize: '0.88rem' }} />
-                        </div>
-                        <div>
-                          <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '0.3rem' }}>Entry Fee (Rs.)</label>
-                          <input type="number" value={slotFormData.entryFee || ''} onChange={e => setSlotFormData(p => ({ ...p, entryFee: Number(e.target.value), price: Number(e.target.value) }))} placeholder="60" style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(139,92,246,0.3)', borderRadius: '8px', color: '#fff', padding: '0.55rem 0.75rem', fontSize: '0.88rem' }} />
-                        </div>
-                        <div>
-                          <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '0.3rem' }}>Max Teams</label>
-                          <input type="number" value={slotFormData.maxTeams || ''} onChange={e => setSlotFormData(p => ({ ...p, maxTeams: Number(e.target.value) }))} placeholder="19" style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(139,92,246,0.3)', borderRadius: '8px', color: '#fff', padding: '0.55rem 0.75rem', fontSize: '0.88rem' }} />
-                        </div>
-                        <div>
-                          <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '0.3rem' }}>Mode</label>
-                          <input type="text" value={slotFormData.mode || ''} onChange={e => setSlotFormData(p => ({ ...p, mode: e.target.value }))} placeholder="Squad TPP" style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(139,92,246,0.3)', borderRadius: '8px', color: '#fff', padding: '0.55rem 0.75rem', fontSize: '0.88rem' }} />
-                        </div>
-                      </div>
-                      <div style={{ marginBottom: '1rem' }}>
-                        <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '0.3rem' }}>Maps (comma-separated)</label>
-                        <input type="text" value={slotFormData.maps || ''} onChange={e => setSlotFormData(p => ({ ...p, maps: e.target.value }))} placeholder="ERANGEL, RONDO, MIRAMAR" style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(139,92,246,0.3)', borderRadius: '8px', color: '#fff', padding: '0.55rem 0.75rem', fontSize: '0.88rem' }} />
-                      </div>
-
-                      {/* ── RANK-WISE PRIZE DISTRIBUTION ── */}
-                      <div style={{ background: 'rgba(234,179,8,0.04)', border: '1px solid rgba(234,179,8,0.22)', borderRadius: '12px', padding: '1rem', marginBottom: '1.25rem' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: '#facc15', fontWeight: '800', fontSize: '0.85rem', letterSpacing: '0.5px' }}>
-                            <Trophy size={16} /> RANK-WISE PRIZE MONEY
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
-                            <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Presets:</span>
-                            <button
-                              type="button"
-                              onClick={() => setSlotPrizePreset('top3')}
-                              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '5px', color: '#e2e8f0', fontSize: '0.7rem', padding: '0.15rem 0.5rem', cursor: 'pointer' }}
-                            >
-                              Top 3
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setSlotPrizePreset('top5')}
-                              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '5px', color: '#e2e8f0', fontSize: '0.7rem', padding: '0.15rem 0.5rem', cursor: 'pointer' }}
-                            >
-                              Top 5
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setSlotPrizePreset('winner')}
-                              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '5px', color: '#e2e8f0', fontSize: '0.7rem', padding: '0.15rem 0.5rem', cursor: 'pointer' }}
-                            >
-                              #1 Only
-                            </button>
-                            <button
-                              type="button"
-                              onClick={addSlotPrizeDistRow}
-                              style={{ background: 'rgba(234,179,8,0.18)', border: '1px solid rgba(234,179,8,0.45)', borderRadius: '5px', color: '#fef08a', fontSize: '0.72rem', fontWeight: '700', padding: '0.2rem 0.6rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', marginLeft: '0.25rem' }}
-                            >
-                              <Plus size={12} /> Add Rank
-                            </button>
-                          </div>
-                        </div>
-
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '0.6rem' }}>
-                          {(slotFormData.prizeDistribution && slotFormData.prizeDistribution.length > 0 ? slotFormData.prizeDistribution : [
-                            { rank: '#1', prize: '₹400' },
-                            { rank: '#2', prize: '₹150' },
-                            { rank: '#3', prize: '₹100' },
-                            { rank: '#4', prize: '₹70' },
-                            { rank: '#5', prize: 'FREE' },
-                          ]).map((item, pIdx) => (
-                            <div
-                              key={pIdx}
-                              style={{
-                                background: 'rgba(15,12,30,0.85)',
-                                border: '1px solid rgba(234,179,8,0.25)',
-                                borderRadius: '8px',
-                                padding: '0.55rem',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: '0.35rem',
-                              }}
-                            >
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <input
-                                  type="text"
-                                  value={item.rank || `#${pIdx + 1}`}
-                                  onChange={(e) => handleSlotPrizeDistChange(pIdx, 'rank', e.target.value)}
-                                  placeholder="#1"
-                                  style={{
-                                    width: '54px',
-                                    background: 'rgba(234,179,8,0.15)',
-                                    border: '1px solid rgba(234,179,8,0.4)',
-                                    borderRadius: '4px',
-                                    color: '#fef08a',
-                                    fontSize: '0.76rem',
-                                    fontWeight: '800',
-                                    padding: '0.2rem 0.35rem',
-                                    textAlign: 'center',
-                                  }}
-                                />
-                                {(slotFormData.prizeDistribution || []).length > 1 && (
-                                  <button
-                                    type="button"
-                                    onClick={() => removeSlotPrizeDistRow(pIdx)}
-                                    style={{
-                                      background: 'rgba(239,68,68,0.18)',
-                                      border: 'none',
-                                      borderRadius: '4px',
-                                      color: '#f87171',
-                                      width: '20px',
-                                      height: '20px',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center',
-                                      cursor: 'pointer',
-                                      padding: 0,
-                                    }}
-                                    title="Delete rank"
-                                  >
-                                    <X size={12} />
-                                  </button>
-                                )}
-                              </div>
-                              <input
-                                type="text"
-                                value={item.prize || ''}
-                                onChange={(e) => handleSlotPrizeDistChange(pIdx, 'prize', e.target.value)}
-                                placeholder="₹400 / FREE"
-                                style={{
-                                  width: '100%',
-                                  boxSizing: 'border-box',
-                                  background: 'rgba(0,0,0,0.4)',
-                                  border: '1px solid rgba(255,255,255,0.15)',
-                                  borderRadius: '5px',
-                                  color: '#fff',
-                                  fontSize: '0.82rem',
-                                  fontWeight: '700',
-                                  padding: '0.35rem 0.5rem',
-                                }}
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-                        <div>
-                          <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '0.3rem' }}>Room ID</label>
-                          <input type="text" value={slotFormData.roomId || ''} onChange={e => setSlotFormData(p => ({ ...p, roomId: e.target.value }))} placeholder="Room ID (set before match)" style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(139,92,246,0.3)', borderRadius: '8px', color: '#fff', padding: '0.55rem 0.75rem', fontSize: '0.88rem' }} />
-                        </div>
-                        <div>
-                          <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '0.3rem' }}>Room Password</label>
-                          <input type="text" value={slotFormData.roomPassword || ''} onChange={e => setSlotFormData(p => ({ ...p, roomPassword: e.target.value }))} placeholder="Password (set before match)" style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(139,92,246,0.3)', borderRadius: '8px', color: '#fff', padding: '0.55rem 0.75rem', fontSize: '0.88rem' }} />
-                        </div>
-                      </div>
-                      <div style={{ marginBottom: '1rem' }}>
-                        <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '0.3rem' }}>Note / Instructions</label>
-                        <input type="text" value={slotFormData.note || ''} onChange={e => setSlotFormData(p => ({ ...p, note: e.target.value }))} placeholder="e.g. ID/Pass will be provided 30 min before match" style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(139,92,246,0.3)', borderRadius: '8px', color: '#fff', padding: '0.55rem 0.75rem', fontSize: '0.88rem' }} />
-                      </div>
-                      <div style={{ marginBottom: '1.25rem' }}>
-                        <label style={{ fontSize: '0.75rem', color: '#a78bfa', display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.3rem', fontWeight: '700' }}>
-                          🔗 Match / Slot Link (WhatsApp / Discord / Custom URL)
-                        </label>
-                        <input
-                          type="url"
-                          value={slotFormData.customLink || slotFormData.whatsappLink || ''}
-                          onChange={e => setSlotFormData(p => ({ ...p, customLink: e.target.value, whatsappLink: e.target.value }))}
-                          placeholder="https://chat.whatsapp.com/... or https://discord.gg/..."
-                          style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(139,92,246,0.3)', borderRadius: '8px', color: '#fff', padding: '0.55rem 0.75rem', fontSize: '0.88rem' }}
-                        />
-                        <span style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '0.25rem', display: 'block' }}>
-                          🔒 Only visible to users who book and pay for this specific slot.
-                        </span>
-                      </div>
-                      <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-                        <button onClick={() => setShowSlotModal(false)} style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '10px', color: '#94a3b8', padding: '0.65rem 1.25rem', cursor: 'pointer', fontSize: '0.88rem' }}>Cancel</button>
-                        <button
-                          disabled={isSubmitting}
-                          style={{ background: isSubmitting ? 'rgba(124,58,237,0.4)' : 'linear-gradient(135deg,#7c3aed,#6d28d9)', border: 'none', borderRadius: '10px', color: '#fff', padding: '0.65rem 1.5rem', cursor: isSubmitting ? 'not-allowed' : 'pointer', fontSize: '0.88rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
-                          onClick={async () => {
-                            if (!slotFormData.matchName) { alert('Match title is required'); return; }
-                            if (!slotFormData.date) { alert('Date is required'); return; }
-                            const slotTiming = (slotFormData.timing || slotFormData.scheduleMatches?.[0]?.time || '').trim();
-                            if (!slotTiming) {
-                              alert('Slot Timing is required (e.g. 2:00 PM)');
-                              return;
-                            }
-                            setIsSubmitting(true);
-                            try {
-                              const updatedMatches = (slotFormData.scheduleMatches && slotFormData.scheduleMatches.length > 0)
-                                ? slotFormData.scheduleMatches.map((m, idx) => (idx === 0 ? { ...m, time: slotTiming } : m))
-                                : [{ matchNumber: 1, label: 'MATCH 1', time: slotTiming }];
-
-                              const payload = {
-                                ...slotFormData,
-                                category: slotFormData.category || 'SCRIMS',
-                                lobby: slotFormData.lobby || 'LOBBY 1',
-                                timing: slotTiming,
-                                price: Number(slotFormData.price ?? slotFormData.entryFee ?? 0),
-                                entryFee: Number(slotFormData.entryFee ?? slotFormData.price ?? 0),
-                                maxTeams: Number(slotFormData.maxTeams ?? 19),
-                                maps: typeof slotFormData.maps === 'string'
-                                  ? slotFormData.maps.split(',').map(m => m.trim().toUpperCase()).filter(Boolean)
-                                  : (slotFormData.maps || ['ERANGEL', 'RONDO', 'MIRAMAR']),
-                                scheduleMatches: updatedMatches,
-                                prizeDistribution: slotFormData.prizeDistribution || [],
-                                customLink: slotFormData.customLink || slotFormData.whatsappLink || '',
-                                whatsappLink: slotFormData.whatsappLink || slotFormData.customLink || '',
-                              };
-                              if (slotEditTarget) {
-                                await axios.put(`${apiUrl}/api/slots/${slotEditTarget._id}`, payload, config);
-                              } else {
-                                await axios.post(`${apiUrl}/api/slots`, payload, config);
-                              }
-                              await fetchData();
-                              setShowSlotModal(false);
-                              setSlotEditTarget(null);
-                            } catch (err) {
-                              alert('Failed: ' + (err.response?.data?.message || err.message));
-                            } finally {
-                              setIsSubmitting(false);
-                            }
-                          }}
-                        >
-                          {isSubmitting ? 'Saving...' : (slotEditTarget ? 'Save Changes' : 'Create Slot')}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                {slots.filter(s => s.date && String(s.date).includes(todaySlotsDate)).length === 0 ? (
+                {slots.filter(s => isSlotForDate(s, todaySlotsDate)).length === 0 ? (
                   <div style={{ textAlign: 'center', padding: '3.5rem 1.5rem', color: 'var(--text-secondary)' }}>
                     <Calendar size={52} style={{ opacity: 0.25, display: 'block', margin: '0 auto 1rem' }} />
                     <h3 style={{ color: '#fff', marginBottom: '0.5rem' }}>No Slots for This Date</h3>
                     <p>Nothing scheduled for <strong style={{ color: '#a78bfa' }}>{todaySlotsDate}</strong>.</p>
-                    <button
-                      className="action-btn"
-                      style={{ marginTop: '1.25rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
-                      onClick={() => { setSlotEditTarget(null); setSlotFormData({ category: 'SCRIMS', lobby: 'LOBBY 1', matchName: 'RISING 1-3 GRIND SCRIMS', date: todaySlotsDate, timing: '', mode: 'Squad TPP', entryFee: 60, price: 60, maxTeams: 19, maps: 'ERANGEL, RONDO, MIRAMAR', scheduleMatches: [], prizeDistribution: [{ rank: '#1', prize: 'Rs.400' }, { rank: '#2', prize: 'Rs.150' }, { rank: '#3', prize: 'Rs.100' }], roomId: '', roomPassword: '', note: 'ID/Pass 30 min before match', whatsappLink: '', customLink: '' }); setShowSlotModal(true); }}
-                    >
-                      <Plus size={16} /> Create First Slot
-                    </button>
+                    <div style={{ display: 'flex', gap: '0.65rem', justifyContent: 'center', marginTop: '1.25rem', flexWrap: 'wrap' }}>
+                      <button
+                        className="action-btn"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', background: 'linear-gradient(135deg, #10b981, #059669)' }}
+                        onClick={() => handleOpenSlotModal('today')}
+                      >
+                        <Plus size={16} /> Create Today's Scrims
+                      </button>
+                      <button
+                        className="action-btn"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(139,92,246,0.2)', border: '1px solid rgba(139,92,246,0.5)', color: '#c084fc' }}
+                        onClick={() => handleOpenSlotModal('weekend')}
+                      >
+                        ⚔️ Weekend War
+                      </button>
+                      <button
+                        className="action-btn"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(59,130,246,0.2)', border: '1px solid rgba(59,130,246,0.5)', color: '#60a5fa' }}
+                        onClick={() => handleOpenSlotModal('weekly')}
+                      >
+                        🛡️ Weekly War
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                     {(() => {
-                      const todaySlots = slots.filter(s => s.date && String(s.date).includes(todaySlotsDate));
+                      const todaySlots = slots.filter(s => isSlotForDate(s, todaySlotsDate));
                       const todayBookings = bookings.filter(b => todaySlots.some(sl => sl._id === (b.slotId && b.slotId._id ? b.slotId._id : b.slotId)));
                       return (
                         <>
@@ -3070,39 +3626,20 @@ const AdminDashboard = () => {
                                     <span style={{ fontSize: '0.77rem', color: '#94a3b8' }}>{slot.timing || 'TBA'}</span>
                                   </div>
                                   <div style={{ display: 'flex', gap: '0.4rem' }}>
-                                    <button className="action-btn edit-btn" style={{ padding: '0.28rem 0.6rem', fontSize: '0.73rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }} onClick={() => {
-                                      const pDist = Array.isArray(slot.prizeDistribution) && slot.prizeDistribution.length > 0
-                                        ? slot.prizeDistribution
-                                        : [
-                                            { rank: '#1', prize: '₹400' },
-                                            { rank: '#2', prize: '₹150' },
-                                            { rank: '#3', prize: '₹100' },
-                                            { rank: '#4', prize: '₹70' },
-                                            { rank: '#5', prize: 'FREE' },
-                                          ];
-                                      setSlotEditTarget(slot);
-                                      setSlotFormData({
-                                        matchName: slot.matchName || '',
-                                        category: slot.category || 'SCRIMS',
-                                        lobby: slot.lobby || 'LOBBY 1',
-                                        date: slot.date || '',
-                                        timing: slot.timing || '',
-                                        mode: slot.mode || 'Squad TPP',
-                                        entryFee: slot.entryFee ?? 60,
-                                        price: slot.price ?? 60,
-                                        maxTeams: slot.maxTeams ?? 19,
-                                        maps: Array.isArray(slot.maps) ? slot.maps.join(', ') : (slot.maps || ''),
-                                        roomId: slot.roomId || '',
-                                        roomPassword: slot.roomPassword || '',
-                                        note: slot.note || '',
-                                        whatsappLink: slot.whatsappLink || slot.customLink || '',
-                                        customLink: slot.customLink || slot.whatsappLink || '',
-                                        scheduleMatches: slot.scheduleMatches || [],
-                                        prizeDistribution: pDist,
-                                      });
-                                      setShowSlotModal(true);
-                                    }}><Edit2 size={12} /> Edit</button>
-                                    <button className="action-btn delete-btn" style={{ padding: '0.28rem 0.6rem', fontSize: '0.73rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }} onClick={() => handleDelete(slotId)}><Trash2 size={12} /> Delete</button>
+                                    <button
+                                      className="action-btn edit-btn"
+                                      style={{ padding: '0.28rem 0.6rem', fontSize: '0.73rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                                      onClick={() => handleOpenSlotModal(slot)}
+                                    >
+                                      <Edit2 size={12} /> Edit
+                                    </button>
+                                    <button
+                                      className="action-btn delete-btn"
+                                      style={{ padding: '0.28rem 0.6rem', fontSize: '0.73rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                                      onClick={() => handleDelete(slotId)}
+                                    >
+                                      <Trash2 size={12} /> Delete
+                                    </button>
                                   </div>
                                 </div>
                                 <div style={{ padding: '1rem 1.2rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
@@ -3990,7 +4527,7 @@ const AdminDashboard = () => {
                                 </button>
                                 <button
                                   type="button"
-                                  onClick={() => handleOpenModal(slot)}
+                                  onClick={() => handleOpenSlotModal(slot)}
                                   style={{
                                     padding: '0.35rem 0.65rem',
                                     borderRadius: '6px',
@@ -4300,8 +4837,8 @@ const AdminDashboard = () => {
       {/* ── MODAL ── */}
       {showModal && (
         <div className="modal-overlay">
-          <div className={`modal ${activeTab === 'slots' ? 'slot-modal' : ''}`}>
-            <h3>{editingItem ? 'Edit' : 'Add'} {activeTab === 'rankings' ? 'Ranking' : activeTab === 'tournaments' ? 'Tournament' : 'Slot'}</h3>
+          <div className={`modal ${(activeTab === 'slots' || activeTab === 'todayslots') ? 'slot-modal' : ''}`}>
+            <h3>{editingItem ? 'Edit' : 'Add'} {activeTab === 'rankings' ? 'Ranking' : activeTab === 'tournaments' ? 'Tournament' : (activeTab === 'todayslots' ? "Today's Slot" : 'Slot')}</h3>
             <form onSubmit={handleSubmit} style={{ marginTop: '1.5rem' }}>
               {activeTab === 'rankings' ? (
                 <>
@@ -4495,8 +5032,48 @@ const AdminDashboard = () => {
                     />
                   </div>
                 </div>
-              ) : activeTab === 'slots' ? (
+              ) : (activeTab === 'slots' || activeTab === 'todayslots') ? (
                 <div className="new-slot-modern-modal">
+                  {/* Quick Preset Selector */}
+                  <div className="modal-slot-preset-bar">
+                    <span className="mspb-label">⚡ Slot Preset:</span>
+                    <button
+                      type="button"
+                      className={`modal-preset-chip ${(formData.category === 'SCRIMS' && isSlotForDate(formData, formatDateForSlot(new Date()))) ? 'active' : ''}`}
+                      onClick={() => handleSwitchSlotPreset('today')}
+                    >
+                      📅 Today's Scrims
+                    </button>
+                    <button
+                      type="button"
+                      className={`modal-preset-chip ${formData.category === 'WEEKEND WAR' ? 'active' : ''}`}
+                      onClick={() => handleSwitchSlotPreset('weekend')}
+                    >
+                      🏆 Weekend War
+                    </button>
+                    <button
+                      type="button"
+                      className={`modal-preset-chip ${formData.category === 'WEEKLY WAR' ? 'active' : ''}`}
+                      onClick={() => handleSwitchSlotPreset('weekly')}
+                    >
+                      ⚔️ Weekly War
+                    </button>
+                    <button
+                      type="button"
+                      className={`modal-preset-chip ${formData.category === 'GRANDS' ? 'active' : ''}`}
+                      onClick={() => handleSwitchSlotPreset('grands')}
+                    >
+                      👑 Grands
+                    </button>
+                    <button
+                      type="button"
+                      className="modal-preset-chip"
+                      onClick={() => handleSwitchSlotPreset('custom')}
+                    >
+                      ✨ Custom
+                    </button>
+                  </div>
+
                   <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                     <div className="form-group" style={{ gridColumn: 'span 2' }}>
                       <label>Match / Tournament Title *</label>
@@ -4532,7 +5109,26 @@ const AdminDashboard = () => {
                       />
                     </div>
                     <div className="form-group">
-                      <label>Scheduled Date *</label>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <label style={{ margin: 0 }}>Scheduled Date *</label>
+                        <button
+                          type="button"
+                          onClick={() => setFormData(prev => ({ ...prev, date: formatDateForSlot(new Date()) }))}
+                          style={{
+                            background: 'rgba(168, 85, 247, 0.15)',
+                            border: '1px solid rgba(168, 85, 247, 0.4)',
+                            color: '#c084fc',
+                            fontSize: '0.7rem',
+                            fontWeight: 600,
+                            padding: '1px 7px',
+                            borderRadius: '4px',
+                            cursor: 'pointer'
+                          }}
+                          title="Set date to today"
+                        >
+                          📅 Set to Today
+                        </button>
+                      </div>
                       <input
                         type="text"
                         value={formData.date || ''}
@@ -4743,13 +5339,40 @@ const AdminDashboard = () => {
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#facc15', fontWeight: '700', fontSize: '0.88rem' }}>
                         <Trophy size={16} /> PRIZE POOL DISTRIBUTION
                       </div>
-                      <button
-                        type="button"
-                        className="se-pill-add-btn"
-                        onClick={addModalPrizeDistRow}
-                      >
-                        + Add Rank
-                      </button>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Presets:</span>
+                        <button
+                          type="button"
+                          className="se-pill-add-btn"
+                          style={{ fontSize: '0.72rem', padding: '2px 8px' }}
+                          onClick={() => setModalPrizePreset('top3')}
+                        >
+                          Top 3
+                        </button>
+                        <button
+                          type="button"
+                          className="se-pill-add-btn"
+                          style={{ fontSize: '0.72rem', padding: '2px 8px' }}
+                          onClick={() => setModalPrizePreset('top5')}
+                        >
+                          Top 5
+                        </button>
+                        <button
+                          type="button"
+                          className="se-pill-add-btn"
+                          style={{ fontSize: '0.72rem', padding: '2px 8px' }}
+                          onClick={() => setModalPrizePreset('firstOnly')}
+                        >
+                          #1 Only
+                        </button>
+                        <button
+                          type="button"
+                          className="se-pill-add-btn"
+                          onClick={addModalPrizeDistRow}
+                        >
+                          + Add Rank
+                        </button>
+                      </div>
                     </div>
                     <div className="se-items-row">
                       {(formData.prizeDistribution || []).map((p, pIdx) => (
@@ -5133,6 +5756,457 @@ const AdminDashboard = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── VIEW REQUIREMENT DETAILS MODAL ── */}
+      {viewReqModal.open && viewReqModal.item && (
+        <div className="modal-overlay" onClick={() => setViewReqModal({ open: false, item: null })}>
+          <div
+            className="modal"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: '520px', width: '100%', background: '#0e0a1f', border: '1px solid rgba(168, 85, 247, 0.5)' }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(168, 85, 247, 0.25)', paddingBottom: '0.75rem', marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span
+                  style={{
+                    background: viewReqModal.item.type === 'PLAYER' ? 'rgba(56, 189, 248, 0.2)' : 'rgba(232, 121, 249, 0.2)',
+                    color: viewReqModal.item.type === 'PLAYER' ? '#38bdf8' : '#e879f9',
+                    border: `1px solid ${viewReqModal.item.type === 'PLAYER' ? '#38bdf8' : '#e879f9'}`,
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                    fontSize: '0.75rem',
+                    fontWeight: 800,
+                  }}
+                >
+                  {viewReqModal.item.type === 'PLAYER' ? 'LOOKING FOR PLAYER' : 'LOOKING FOR TEAM'}
+                </span>
+                <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                  ID: {viewReqModal.item._id.slice(-6)}
+                </span>
+              </div>
+              <button
+                type="button"
+                className="header-icon-btn"
+                onClick={() => setViewReqModal({ open: false, item: null })}
+                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', fontSize: '0.82rem', maxHeight: '70vh', overflowY: 'auto' }}>
+              <div>
+                <div style={{ color: '#a0a0c4', fontSize: '0.72rem' }}>Publisher:</div>
+                <div style={{ color: '#fff', fontWeight: 700, fontSize: '0.95rem' }}>
+                  {viewReqModal.item.user?.teamName || 'Competitive User'}
+                  {viewReqModal.item.user?.registrationNumber && ` (Rising #${viewReqModal.item.user.registrationNumber})`}
+                </div>
+                <div style={{ color: '#c084fc', fontSize: '0.75rem' }}>
+                  Phone: {viewReqModal.item.user?.phone || 'N/A'}
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', background: 'rgba(255,255,255,0.03)', padding: '10px', borderRadius: '8px' }}>
+                <div>
+                  <span style={{ color: '#a0a0c4', fontSize: '0.7rem' }}>Role:</span>
+                  <div style={{ color: '#fff', fontWeight: 700 }}>{viewReqModal.item.role}</div>
+                </div>
+                <div>
+                  <span style={{ color: '#a0a0c4', fontSize: '0.7rem' }}>Device:</span>
+                  <div style={{ color: '#fff', fontWeight: 700 }}>{viewReqModal.item.device}</div>
+                </div>
+                <div>
+                  <span style={{ color: '#a0a0c4', fontSize: '0.7rem' }}>Age:</span>
+                  <div style={{ color: '#fff' }}>{viewReqModal.item.age} years</div>
+                </div>
+                <div>
+                  <span style={{ color: '#a0a0c4', fontSize: '0.7rem' }}>Experience:</span>
+                  <div style={{ color: '#fff' }}>{viewReqModal.item.experience}</div>
+                </div>
+                <div style={{ gridColumn: 'span 2' }}>
+                  <span style={{ color: '#a0a0c4', fontSize: '0.7rem' }}>
+                    {viewReqModal.item.type === 'PLAYER' ? 'Availability:' : 'Playing Time:'}
+                  </span>
+                  <div style={{ color: '#e2e8f0', fontWeight: 600 }}>
+                    {viewReqModal.item.type === 'PLAYER' ? viewReqModal.item.availability : viewReqModal.item.playingTime}
+                  </div>
+                </div>
+                <div style={{ gridColumn: 'span 2' }}>
+                  <span style={{ color: '#a0a0c4', fontSize: '0.7rem' }}>Contact Detail:</span>
+                  <div style={{ color: '#22c55e', fontWeight: 700 }}>{viewReqModal.item.contact}</div>
+                </div>
+              </div>
+
+              {viewReqModal.item.achievements && (
+                <div>
+                  <div style={{ color: '#fbbf24', fontWeight: 700, fontSize: '0.75rem' }}>Achievements:</div>
+                  <div style={{ color: '#e2e8f0', background: 'rgba(255,255,255,0.02)', padding: '8px', borderRadius: '6px', marginTop: '2px', whiteSpace: 'pre-wrap' }}>
+                    {viewReqModal.item.achievements}
+                  </div>
+                </div>
+              )}
+
+              {viewReqModal.item.additionalInfo && (
+                <div>
+                  <div style={{ color: '#c4b5fd', fontWeight: 700, fontSize: '0.75rem' }}>Additional Info:</div>
+                  <div style={{ color: '#cbd5e1', background: 'rgba(255,255,255,0.02)', padding: '8px', borderRadius: '6px', marginTop: '2px', whiteSpace: 'pre-wrap' }}>
+                    {viewReqModal.item.additionalInfo}
+                  </div>
+                </div>
+              )}
+
+              {viewReqModal.item.clips && (
+                <div>
+                  <div style={{ color: '#e879f9', fontWeight: 700, fontSize: '0.75rem' }}>Clips URL:</div>
+                  <a
+                    href={viewReqModal.item.clips.startsWith('http') ? viewReqModal.item.clips : `https://${viewReqModal.item.clips}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: '#38bdf8', wordBreak: 'break-all', display: 'inline-block', marginTop: '2px' }}
+                  >
+                    {viewReqModal.item.clips} ↗
+                  </a>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                  Status: <strong style={{ color: viewReqModal.item.status === 'active' ? '#4ade80' : '#f87171' }}>{viewReqModal.item.status}</strong>
+                </span>
+
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleRequirementStatus(viewReqModal.item._id, viewReqModal.item.status)}
+                    style={{
+                      background: 'rgba(124, 58, 237, 0.2)',
+                      border: '1px solid rgba(168, 85, 247, 0.4)',
+                      borderRadius: '6px',
+                      padding: '5px 10px',
+                      color: '#c084fc',
+                      fontSize: '0.75rem',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Toggle Status
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteRequirement(viewReqModal.item._id)}
+                    style={{
+                      background: 'rgba(239, 68, 68, 0.2)',
+                      border: '1px solid rgba(239, 68, 68, 0.5)',
+                      borderRadius: '6px',
+                      padding: '5px 10px',
+                      color: '#f87171',
+                      fontSize: '0.75rem',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── UPLOAD RESULT PHOTO MODAL (New Separate Feature) ── */}
+      {showUploadResultPhotoModal && (
+        <div className="modal-overlay" onClick={() => setShowUploadResultPhotoModal(false)}>
+          <div
+            className="modal"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: '520px', width: '100%', background: '#090e0c', border: '1.5px solid rgba(16, 185, 129, 0.5)' }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(16, 185, 129, 0.25)', paddingBottom: '0.75rem', marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Upload size={18} style={{ color: '#10b981' }} />
+                <h3 style={{ margin: 0, color: '#ffffff', fontSize: '1rem', fontWeight: 800 }}>
+                  Upload Scrim Result Photo
+                </h3>
+              </div>
+              <button
+                type="button"
+                className="header-icon-btn"
+                onClick={() => setShowUploadResultPhotoModal(false)}
+                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleUploadResultPhotoSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+              {/* Quick Title Presets */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.74rem', color: '#6ee7b7', fontWeight: 700, marginBottom: '4px' }}>
+                  Quick Preset Titles:
+                </label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '6px' }}>
+                  {[
+                    'RMC 01-03 PM GRIND SCRIM - POINT TABLE',
+                    'RMC 03-05 PM GRIND SCRIM - POINT TABLE',
+                    'RMC 07-09 PM GRIND SCRIM - POINT TABLE',
+                    'RMC 09-11 PM GRIND SCRIM - POINT TABLE',
+                    'RMC 11-01 AM GRIND SCRIM - POINT TABLE',
+                  ].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setUploadResultForm({ ...uploadResultForm, matchName: preset })}
+                      style={{
+                        background: uploadResultForm.matchName === preset ? 'rgba(16, 185, 129, 0.3)' : 'rgba(255, 255, 255, 0.05)',
+                        border: `1px solid ${uploadResultForm.matchName === preset ? '#34d399' : 'rgba(255, 255, 255, 0.15)'}`,
+                        color: uploadResultForm.matchName === preset ? '#ffffff' : '#a0a0c4',
+                        padding: '3px 8px',
+                        borderRadius: '6px',
+                        fontSize: '0.68rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {preset.split(' - ')[0]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Title / Scrim Name */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.74rem', color: '#6ee7b7', fontWeight: 700, marginBottom: '3px' }}>
+                  Match / Scrim Title *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. RMC 03-05 PM GRIND SCRIM - POINT TABLE"
+                  value={uploadResultForm.matchName}
+                  onChange={(e) => setUploadResultForm({ ...uploadResultForm, matchName: e.target.value })}
+                  style={{
+                    width: '100%',
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    border: '1px solid rgba(16, 185, 129, 0.4)',
+                    borderRadius: '8px',
+                    padding: '8px 10px',
+                    color: '#fff',
+                    fontSize: '0.82rem',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+
+              {/* Lobby & Date (2 columns) */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.74rem', color: '#6ee7b7', fontWeight: 700, marginBottom: '3px' }}>
+                    Lobby *
+                  </label>
+                  <select
+                    value={uploadResultForm.lobby}
+                    onChange={(e) => setUploadResultForm({ ...uploadResultForm, lobby: e.target.value })}
+                    style={{
+                      width: '100%',
+                      background: '#0e1612',
+                      border: '1px solid rgba(16, 185, 129, 0.4)',
+                      borderRadius: '8px',
+                      padding: '8px 10px',
+                      color: '#34d399',
+                      fontSize: '0.82rem',
+                      fontWeight: 700,
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  >
+                    <option value="LOBBY 01">LOBBY 01</option>
+                    <option value="LOBBY 02">LOBBY 02</option>
+                    <option value="LOBBY 03">LOBBY 03</option>
+                    <option value="LOBBY 04">LOBBY 04</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.74rem', color: '#6ee7b7', fontWeight: 700, marginBottom: '3px' }}>
+                    Date *
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={uploadResultForm.date}
+                    onChange={(e) => setUploadResultForm({ ...uploadResultForm, date: e.target.value })}
+                    style={{
+                      width: '100%',
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      border: '1px solid rgba(16, 185, 129, 0.4)',
+                      borderRadius: '8px',
+                      padding: '8px 10px',
+                      color: '#fff',
+                      fontSize: '0.82rem',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Image File Selector */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.74rem', color: '#6ee7b7', fontWeight: 700, marginBottom: '3px' }}>
+                  Result Photo / Point Table Screenshot *
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleResultPhotoFileChange}
+                  style={{
+                    width: '100%',
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    border: '1px dashed rgba(16, 185, 129, 0.5)',
+                    borderRadius: '8px',
+                    padding: '8px 10px',
+                    color: '#34d399',
+                    fontSize: '0.8rem',
+                    cursor: 'pointer',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+
+              {/* Live Preview */}
+              {uploadResultForm.imagePreview && (
+                <div style={{ textAlign: 'center', background: 'rgba(0,0,0,0.4)', padding: '6px', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
+                  <img
+                    src={uploadResultForm.imagePreview}
+                    alt="Preview"
+                    style={{ maxHeight: '140px', maxWidth: '100%', objectFit: 'contain', borderRadius: '4px' }}
+                  />
+                  <div style={{ fontSize: '0.68rem', color: '#34d399', marginTop: '2px' }}>✓ Image ready to upload</div>
+                </div>
+              )}
+
+              {/* Optional Manual URL input */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.68rem', color: '#94a3b8', marginBottom: '2px' }}>
+                  Or paste direct image URL (optional fallback):
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://..."
+                  value={uploadResultForm.manualUrl}
+                  onChange={(e) => setUploadResultForm({ ...uploadResultForm, manualUrl: e.target.value })}
+                  style={{
+                    width: '100%',
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    borderRadius: '6px',
+                    padding: '6px 8px',
+                    color: '#fff',
+                    fontSize: '0.75rem',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+
+              {/* Submit Buttons */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
+                <button
+                  type="button"
+                  className="tab-btn cancel-btn"
+                  onClick={() => setShowUploadResultPhotoModal(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={uploadingResultPhoto}
+                  style={{
+                    background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+                    border: 'none',
+                    borderRadius: '8px',
+                    padding: '8px 18px',
+                    color: '#ffffff',
+                    fontWeight: 800,
+                    fontSize: '0.82rem',
+                    cursor: uploadingResultPhoto ? 'not-allowed' : 'pointer',
+                    boxShadow: '0 2px 10px rgba(16, 185, 129, 0.4)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  {uploadingResultPhoto ? (
+                    <>
+                      <RefreshCw size={14} className="spin" />
+                      <span>Uploading...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload size={14} />
+                      <span>Upload &amp; Publish Result</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── PREVIEW PHOTO LIGHTBOX MODAL ── */}
+      {previewPhotoModal.open && (
+        <div className="modal-overlay" onClick={() => setPreviewPhotoModal({ open: false, url: '', title: '' })}>
+          <div
+            className="modal"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: '640px', width: '100%', background: '#070b09', border: '1.5px solid rgba(16, 185, 129, 0.5)', padding: '1rem' }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+              <h4 style={{ margin: 0, color: '#ffffff', fontSize: '0.92rem', fontWeight: 800 }}>
+                {previewPhotoModal.title}
+              </h4>
+              <button
+                type="button"
+                className="header-icon-btn"
+                onClick={() => setPreviewPhotoModal({ open: false, url: '', title: '' })}
+                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <img
+                src={previewPhotoModal.url}
+                alt="Result Point Table"
+                style={{ maxWidth: '100%', maxHeight: '70vh', objectFit: 'contain', borderRadius: '8px' }}
+              />
+              <div style={{ marginTop: '0.75rem' }}>
+                <a
+                  href={previewPhotoModal.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    background: 'rgba(16, 185, 129, 0.2)',
+                    border: '1px solid #10b981',
+                    color: '#34d399',
+                    padding: '6px 14px',
+                    borderRadius: '8px',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    textDecoration: 'none',
+                  }}
+                >
+                  <ExternalLink size={14} />
+                  <span>Open Full Size</span>
+                </a>
+              </div>
+            </div>
           </div>
         </div>
       )}

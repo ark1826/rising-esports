@@ -1,10 +1,21 @@
 import express from 'express';
+import multer from 'multer';
 import { MatchResult } from '../models/MatchResult.js';
 import { Match } from '../models/Match.js';
 import { protect } from '../middleware/auth.js';
 import { syncRankingsFromResults } from '../utils/rankingUtils.js';
+import { uploadToCloudinary } from '../config/cloudinary.js';
 
 const router = express.Router();
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) cb(null, true);
+    else cb(new Error('Only image files are allowed'), false);
+  }
+});
 
 // Helper to compute BGMI points: position points + kills
 const getPlacementPoints = (position) => {
@@ -78,10 +89,56 @@ router.get('/admin/all', protect, async (req, res) => {
   }
 });
 
+// POST /api/results/upload-photo — Admin: Upload photo of result & publish
+router.post('/upload-photo', protect, upload.single('resultImage'), async (req, res) => {
+  try {
+    const { matchName, lobby, date, timing, mode, imageUrl: manualUrl } = req.body;
+
+    if (!matchName || !matchName.trim()) {
+      return res.status(400).json({ message: 'Title / Match Name is required (e.g. RMC 03-05 PM GRIND SCRIM - POINT TABLE)' });
+    }
+
+    let finalImageUrl = manualUrl ? manualUrl.trim() : '';
+
+    if (req.file) {
+      try {
+        const cloudRes = await uploadToCloudinary(req.file.buffer, 'rising-esports/results');
+        finalImageUrl = cloudRes.secure_url;
+      } catch (cloudErr) {
+        console.warn('[Cloudinary Notice]', cloudErr.message, '- Falling back to base64 data URI');
+        finalImageUrl = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+      }
+    }
+
+    if (!finalImageUrl) {
+      return res.status(400).json({ message: 'Please select an image file to upload or provide an image URL' });
+    }
+
+    const newResult = await MatchResult.create({
+      matchName: matchName.trim(),
+      lobby: lobby ? lobby.trim() : 'LOBBY 01',
+      date: date ? date.trim() : new Date().toISOString().split('T')[0],
+      timing: timing ? timing.trim() : '',
+      mode: mode ? mode.trim() : 'Squad TPP',
+      imageUrl: finalImageUrl,
+      isPublished: true,
+      results: [],
+    });
+
+    res.status(201).json({
+      message: 'Result photo uploaded and published successfully!',
+      result: newResult,
+    });
+  } catch (error) {
+    console.error('Error uploading result photo:', error);
+    res.status(500).json({ message: error.message || 'Failed to upload result photo' });
+  }
+});
+
 // POST /api/results — Admin: Create or Publish Match Result
 router.post('/', protect, async (req, res) => {
   try {
-    const { matchId, matchName, date, timing, mode, results, isPublished } = req.body;
+    const { matchId, matchName, lobby, imageUrl, date, timing, mode, results, isPublished } = req.body;
 
     if (!matchName || !date) {
       return res.status(400).json({ message: 'Match name and date are required' });
@@ -111,6 +168,8 @@ router.post('/', protect, async (req, res) => {
     const matchResult = await MatchResult.create({
       matchId: matchId || null,
       matchName: matchName.trim(),
+      lobby: lobby ? lobby.trim() : 'LOBBY 01',
+      imageUrl: imageUrl ? imageUrl.trim() : '',
       date: date.trim(),
       timing: timing?.trim() || '',
       mode: mode?.trim() || 'Squad TPP',
@@ -139,10 +198,12 @@ router.post('/', protect, async (req, res) => {
 // PUT /api/results/:id — Admin: Update Match Result
 router.put('/:id', protect, async (req, res) => {
   try {
-    const { matchName, date, timing, mode, results, isPublished } = req.body;
+    const { matchName, lobby, imageUrl, date, timing, mode, results, isPublished } = req.body;
 
     const updatePayload = {};
     if (matchName) updatePayload.matchName = matchName.trim();
+    if (lobby !== undefined) updatePayload.lobby = lobby.trim();
+    if (imageUrl !== undefined) updatePayload.imageUrl = imageUrl.trim();
     if (date) updatePayload.date = date.trim();
     if (timing !== undefined) updatePayload.timing = timing.trim();
     if (mode !== undefined) updatePayload.mode = mode.trim();

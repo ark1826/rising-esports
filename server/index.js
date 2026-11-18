@@ -13,6 +13,7 @@ import announcementRoutes from './routes/announcements.js';
 import walletRoutes from './routes/wallet.js';
 import matchRoutes from './routes/matches.js';
 import resultRoutes from './routes/results.js';
+import requirementRoutes from './routes/requirements.js';
 import configRoutes from './routes/config.js';
 import notificationRoutes from './routes/notifications.js';
 import { Admin } from './models/Admin.js';
@@ -25,7 +26,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 dotenv.config({ path: path.resolve(__dirname, '.env') });
-dotenv.config();
 
 const app = express();
 
@@ -147,6 +147,9 @@ app.use('/matches', matchRoutes);
 
 app.use('/api/results', resultRoutes);
 app.use('/results', resultRoutes);
+
+app.use('/api/requirements', requirementRoutes);
+app.use('/requirements', requirementRoutes);
 
 app.use('/api/config', configRoutes);
 app.use('/config', configRoutes);

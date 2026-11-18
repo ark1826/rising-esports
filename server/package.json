@@ -6,7 +6,8 @@
   "scripts": {
     "test": "node test_runner.mjs",
     "start": "node index.js",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "seed:slots": "node seed_slots.js"
   },
   "keywords": [],
   "author": "",
