@@ -11,12 +11,14 @@ const teamResultItemSchema = new mongoose.Schema({
 
 const matchResultSchema = new mongoose.Schema({
   matchId: { type: mongoose.Schema.Types.ObjectId, ref: 'Match', required: false },
+  category: { type: String, default: 'DAILY SCRIMS', trim: true }, // 'DAILY SCRIMS' or 'WEEKLY & WEEKEND WAR'
   matchName: { type: String, required: true, trim: true },
   date: { type: String, required: true, trim: true }, // Format: YYYY-MM-DD
   timing: { type: String, default: '', trim: true },
   lobby: { type: String, default: 'LOBBY 01', trim: true },
   mode: { type: String, default: 'Squad TPP', trim: true },
   imageUrl: { type: String, default: '', trim: true }, // Result Photo / Point Table Image
+  imageUrls: { type: [String], default: [] }, // Multiple Result Photos support
   results: { type: [teamResultItemSchema], default: [] },
   isPublished: { type: Boolean, default: true },
 }, { timestamps: true });

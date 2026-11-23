@@ -32,13 +32,16 @@ const getPlacementPoints = (position) => {
   return pointsTable[position] || 0;
 };
 
-// GET /api/results — Public: Get results filtered by ?date=YYYY-MM-DD
+// GET /api/results — Public: Get results filtered by ?date=YYYY-MM-DD and optional ?category
 router.get('/', async (req, res) => {
   try {
-    const { date } = req.query;
+    const { date, category } = req.query;
     const filter = { isPublished: true };
     if (date) {
       filter.date = date.trim();
+    }
+    if (category && category !== 'ALL') {
+      filter.category = category.trim();
     }
 
     const results = await MatchResult.find(filter)
@@ -89,44 +92,115 @@ router.get('/admin/all', protect, async (req, res) => {
   }
 });
 
-// POST /api/results/upload-photo — Admin: Upload photo of result & publish
-router.post('/upload-photo', protect, upload.single('resultImage'), async (req, res) => {
+// POST /api/results/upload-photo — Admin: Upload photo(s) of result & publish (supports multiple photos & batch lobbies)
+router.post('/upload-photo', protect, upload.any(), async (req, res) => {
   try {
-    const { matchName, lobby, date, timing, mode, imageUrl: manualUrl } = req.body;
+    const {
+      matchName,
+      category,
+      lobby,
+      date,
+      timing,
+      mode,
+      imageUrl: manualUrl,
+      batch,
+      batchLobbies,
+      batchTitles,
+    } = req.body;
 
-    if (!matchName || !matchName.trim()) {
-      return res.status(400).json({ message: 'Title / Match Name is required (e.g. RMC 03-05 PM GRIND SCRIM - POINT TABLE)' });
-    }
+    const files = req.files || (req.file ? [req.file] : []);
 
-    let finalImageUrl = manualUrl ? manualUrl.trim() : '';
-
-    if (req.file) {
+    const uploadBuffer = async (file) => {
       try {
-        const cloudRes = await uploadToCloudinary(req.file.buffer, 'rising-esports/results');
-        finalImageUrl = cloudRes.secure_url;
+        const cloudRes = await uploadToCloudinary(file.buffer, 'rising-esports/results');
+        return cloudRes.secure_url;
       } catch (cloudErr) {
         console.warn('[Cloudinary Notice]', cloudErr.message, '- Falling back to base64 data URI');
-        finalImageUrl = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+        return `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
       }
+    };
+
+    const targetCategory = (category && category.trim()) ? category.trim() : 'DAILY SCRIMS';
+
+    // BATCH MODE: multiple files representing separate lobby results
+    if (batch === 'true' && files.length > 0) {
+      let parsedLobbies = [];
+      try {
+        parsedLobbies = batchLobbies ? JSON.parse(batchLobbies) : [];
+      } catch {
+        parsedLobbies = (batchLobbies || '').split(',').map(s => s.trim());
+      }
+
+      let parsedTitles = [];
+      try {
+        parsedTitles = batchTitles ? JSON.parse(batchTitles) : [];
+      } catch {
+        parsedTitles = (batchTitles || '').split(',').map(s => s.trim());
+      }
+
+      const createdResults = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const uploadedUrl = await uploadBuffer(file);
+        const itemLobby = parsedLobbies[i] || (files.length > 1 ? `LOBBY 0${i + 1}` : (lobby || 'LOBBY 01'));
+        const itemTitle = parsedTitles[i] || matchName || (targetCategory === 'DAILY SCRIMS' ? 'RISING DAILY GRIND SCRIM - POINT TABLE' : 'RISING WAR TOURNAMENT - POINT TABLE');
+
+        const newResult = await MatchResult.create({
+          category: targetCategory,
+          matchName: itemTitle.trim(),
+          lobby: itemLobby.trim(),
+          date: date ? date.trim() : new Date().toISOString().split('T')[0],
+          timing: timing ? timing.trim() : '',
+          mode: mode ? mode.trim() : 'Squad TPP',
+          imageUrl: uploadedUrl,
+          imageUrls: [uploadedUrl],
+          isPublished: true,
+          results: [],
+        });
+        createdResults.push(newResult);
+      }
+
+      return res.status(201).json({
+        message: `${createdResults.length} match results published successfully!`,
+        results: createdResults,
+      });
     }
 
-    if (!finalImageUrl) {
+    // SINGLE RESULT with one or multiple photos attached
+    if (!matchName || !matchName.trim()) {
+      return res.status(400).json({ message: 'Title / Match Name is required (e.g. RISING 03-05 PM GRIND SCRIM - POINT TABLE)' });
+    }
+
+    const uploadedUrls = [];
+    if (files.length > 0) {
+      for (const file of files) {
+        const url = await uploadBuffer(file);
+        if (url) uploadedUrls.push(url);
+      }
+    }
+    if (manualUrl && manualUrl.trim()) {
+      uploadedUrls.push(manualUrl.trim());
+    }
+
+    if (uploadedUrls.length === 0) {
       return res.status(400).json({ message: 'Please select an image file to upload or provide an image URL' });
     }
 
     const newResult = await MatchResult.create({
+      category: targetCategory,
       matchName: matchName.trim(),
       lobby: lobby ? lobby.trim() : 'LOBBY 01',
       date: date ? date.trim() : new Date().toISOString().split('T')[0],
       timing: timing ? timing.trim() : '',
       mode: mode ? mode.trim() : 'Squad TPP',
-      imageUrl: finalImageUrl,
+      imageUrl: uploadedUrls[0],
+      imageUrls: uploadedUrls,
       isPublished: true,
       results: [],
     });
 
     res.status(201).json({
-      message: 'Result photo uploaded and published successfully!',
+      message: 'Result photo(s) uploaded and published successfully!',
       result: newResult,
     });
   } catch (error) {

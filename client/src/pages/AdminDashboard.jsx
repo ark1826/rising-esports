@@ -88,15 +88,16 @@ const AdminDashboard = () => {
   // ── Result Photo Upload State ──
   const [showUploadResultPhotoModal, setShowUploadResultPhotoModal] = useState(false);
   const [uploadResultForm, setUploadResultForm] = useState({
-    matchName: 'RMC 03-05 PM GRIND SCRIM - POINT TABLE',
+    category: 'DAILY SCRIMS',
+    matchName: 'RISING 03-05 PM GRIND SCRIMS - POINT TABLE',
     lobby: 'LOBBY 01',
     date: new Date().toISOString().split('T')[0],
-    imageFile: null,
-    imagePreview: null,
+    isBatchMode: true,
+    items: [],
     manualUrl: '',
   });
   const [uploadingResultPhoto, setUploadingResultPhoto] = useState(false);
-  const [previewPhotoModal, setPreviewPhotoModal] = useState({ open: false, url: '', title: '' });
+  const [previewPhotoModal, setPreviewPhotoModal] = useState({ open: false, url: '', title: '', allUrls: [], activeIndex: 0 });
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -244,50 +245,91 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleOpenUploadResultPhotoModal = () => {
+  const handleOpenUploadResultPhotoModal = (category = 'DAILY SCRIMS', match = null) => {
+    const isDaily = category === 'DAILY SCRIMS';
     setUploadResultForm({
-      matchName: 'RMC 03-05 PM GRIND SCRIM - POINT TABLE',
-      lobby: 'LOBBY 01',
-      date: new Date().toISOString().split('T')[0],
-      imageFile: null,
-      imagePreview: null,
+      category: category || 'DAILY SCRIMS',
+      matchName: match
+        ? match.matchName
+        : (isDaily ? 'RISING 03-05 PM GRIND SCRIMS - POINT TABLE' : 'RISING WEEKLY WAR - POINT TABLE'),
+      lobby: match ? (match.lobby || 'LOBBY 01') : 'LOBBY 01',
+      date: match ? match.date : new Date().toISOString().split('T')[0],
+      isBatchMode: true,
+      items: [],
       manualUrl: '',
     });
     setShowUploadResultPhotoModal(true);
   };
 
   const handleResultPhotoFileChange = (e) => {
-    const file = e.target.files?.[0];
-    if (file) {
+    const selectedFiles = Array.from(e.target.files || []);
+    if (selectedFiles.length > 0) {
+      const defaultLobbies = ['LOBBY 01', 'LOBBY 02', 'LOBBY 03', 'LOBBY 04', 'LOBBY 05', 'LOBBY 06'];
+      const newItems = selectedFiles.map((file, idx) => ({
+        file,
+        preview: URL.createObjectURL(file),
+        lobby: defaultLobbies[idx % defaultLobbies.length],
+        title: uploadResultForm.matchName || (uploadResultForm.category === 'DAILY SCRIMS' ? 'RISING SCRIM - POINT TABLE' : 'RISING WAR - POINT TABLE'),
+      }));
+
       setUploadResultForm(prev => ({
         ...prev,
-        imageFile: file,
-        imagePreview: URL.createObjectURL(file),
+        items: newItems,
       }));
     }
+  };
+
+  const handleUpdateItemLobby = (index, newLobby) => {
+    setUploadResultForm(prev => {
+      const copy = [...prev.items];
+      copy[index] = { ...copy[index], lobby: newLobby };
+      return { ...prev, items: copy };
+    });
+  };
+
+  const handleRemovePhotoItem = (index) => {
+    setUploadResultForm(prev => {
+      const copy = prev.items.filter((_, idx) => idx !== index);
+      return { ...prev, items: copy };
+    });
   };
 
   const handleUploadResultPhotoSubmit = async (e) => {
     e.preventDefault();
     if (!uploadResultForm.matchName.trim()) {
-      alert('Please enter a match / scrim name.');
+      alert('Please enter a match / scrim title.');
       return;
     }
-    if (!uploadResultForm.imageFile && !uploadResultForm.manualUrl.trim()) {
-      alert('Please select an image file or provide an image URL.');
+    const hasFiles = uploadResultForm.items && uploadResultForm.items.length > 0;
+    if (!hasFiles && !uploadResultForm.manualUrl.trim()) {
+      alert('Please select at least one result photo or provide an image URL.');
       return;
     }
 
     setUploadingResultPhoto(true);
     try {
       const fd = new FormData();
+      fd.append('category', uploadResultForm.category || 'DAILY SCRIMS');
       fd.append('matchName', uploadResultForm.matchName.trim());
       fd.append('lobby', uploadResultForm.lobby.trim());
       fd.append('date', uploadResultForm.date.trim());
-      if (uploadResultForm.imageFile) {
-        fd.append('resultImage', uploadResultForm.imageFile);
+
+      if (uploadResultForm.isBatchMode && uploadResultForm.items.length > 1) {
+        fd.append('batch', 'true');
+        const lobbies = uploadResultForm.items.map(it => it.lobby);
+        const titles = uploadResultForm.items.map(it => it.title || uploadResultForm.matchName.trim());
+        fd.append('batchLobbies', JSON.stringify(lobbies));
+        fd.append('batchTitles', JSON.stringify(titles));
+        uploadResultForm.items.forEach(it => {
+          fd.append('resultImages', it.file);
+        });
+      } else if (hasFiles) {
+        uploadResultForm.items.forEach(it => {
+          fd.append('resultImages', it.file);
+        });
       }
-      if (uploadResultForm.manualUrl) {
+
+      if (uploadResultForm.manualUrl && uploadResultForm.manualUrl.trim()) {
         fd.append('imageUrl', uploadResultForm.manualUrl.trim());
       }
 
@@ -298,7 +340,7 @@ const AdminDashboard = () => {
         },
       });
 
-      alert('Result photo uploaded and published successfully!');
+      alert('Point table result(s) published successfully!');
       setShowUploadResultPhotoModal(false);
       await fetchData();
     } catch (err) {
@@ -1802,20 +1844,34 @@ const AdminDashboard = () => {
             <div className="admin-header-actions" style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
               <button
                 className="action-btn"
-                onClick={handleOpenUploadResultPhotoModal}
+                onClick={() => handleOpenUploadResultPhotoModal('DAILY SCRIMS')}
                 style={{
-                  background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
-                  boxShadow: '0 2px 10px rgba(16, 185, 129, 0.4)',
+                  background: 'linear-gradient(135deg, #7c3aed 0%, #9333ea 100%)',
+                  boxShadow: '0 2px 10px rgba(147, 51, 234, 0.4)',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '6px',
-                  fontWeight: 700,
+                  fontWeight: 800,
+                  fontSize: '0.82rem',
                 }}
               >
-                <Upload size={16} /> Upload Result Photo
+                <Upload size={16} /> Publish Daily Scrims
               </button>
-              <button className="action-btn" onClick={() => handleOpenResultsModal()}>
-                <Plus size={16} /> Enter Match Results
+              <button
+                className="action-btn"
+                onClick={() => handleOpenUploadResultPhotoModal('WEEKLY & WEEKEND WAR')}
+                style={{
+                  background: 'linear-gradient(135deg, #d97706 0%, #f59e0b 100%)',
+                  boxShadow: '0 2px 10px rgba(245, 158, 11, 0.4)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontWeight: 800,
+                  fontSize: '0.82rem',
+                  color: '#ffffff',
+                }}
+              >
+                <Trophy size={16} /> Publish Weekly / Weekend War
               </button>
             </div>
           ) : activeTab === 'announcements' ? (
@@ -2014,8 +2070,8 @@ const AdminDashboard = () => {
                               <button
                                 className="action-btn"
                                 style={{ background: 'var(--purple-dark)', fontSize: '0.75rem', padding: '0.3rem 0.6rem' }}
-                                onClick={() => handleOpenResultsModal(m)}
-                                title="Enter results for this match"
+                                onClick={() => handleOpenUploadResultPhotoModal('DAILY SCRIMS', m)}
+                                title="Publish result photo for this match"
                               >
                                 <Award size={13} style={{ marginRight: '4px' }} /> Results
                               </button>
@@ -2036,88 +2092,128 @@ const AdminDashboard = () => {
               <div className="rankings-table-wrapper">
                 {matchResults.length === 0 ? (
                   <div className="empty-state" style={{ padding: '2rem', textAlign: 'center' }}>
-                    <p>No match results published yet. Click "Enter Match Results" to record scrim winners and kills.</p>
+                    <p>No match results published yet. Click "Publish Daily Scrims" or "Publish Weekly / Weekend War" to post result photos.</p>
                   </div>
                 ) : (
                   <table className="rankings-table">
                     <thead>
                       <tr>
+                        <th>Category</th>
                         <th>Point Table / Match Name</th>
                         <th>Lobby</th>
                         <th>Date</th>
-                        <th>Result Photo</th>
-                        <th>Winner / Teams</th>
+                        <th>Result Photo(s)</th>
                         <th>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {matchResults.map(res => (
-                        <tr key={res._id}>
-                          <td><strong>{res.matchName}</strong></td>
-                          <td>
-                            <span style={{ border: '1px solid #10b981', color: '#34d399', background: 'rgba(16,185,129,0.1)', borderRadius: '12px', padding: '2px 8px', fontSize: '0.72rem', fontWeight: 700 }}>
-                              {res.lobby || 'LOBBY 01'}
-                            </span>
-                          </td>
-                          <td>{res.date} {res.timing ? `· ${res.timing}` : ''}</td>
-                          <td>
-                            {res.imageUrl ? (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <img
-                                  src={res.imageUrl}
-                                  alt={res.matchName}
-                                  style={{ width: '50px', height: '34px', objectFit: 'cover', borderRadius: '4px', cursor: 'pointer', border: '1px solid rgba(16, 185, 129, 0.4)' }}
-                                  onClick={() => setPreviewPhotoModal({ open: true, url: res.imageUrl, title: res.matchName })}
-                                  title="Click to preview result image"
-                                />
-                                <span style={{ fontSize: '0.7rem', color: '#34d399' }}>Attached</span>
-                              </div>
-                            ) : (
-                              <span style={{ color: '#94a3b8', fontSize: '0.75rem' }}>No Image</span>
-                            )}
-                          </td>
-                          <td>
-                            {res.results?.length > 0 ? (
-                              <span style={{ color: '#fbbf24', fontWeight: 'bold' }}>
-                                🏆 {res.results?.[0]?.teamName || 'N/A'} ({res.results.length} Teams)
-                              </span>
-                            ) : (
-                              <span style={{ color: '#94a3b8', fontSize: '0.75rem' }}>Image Point Table</span>
-                            )}
-                          </td>
-                          <td>
-                            <div style={{ display: 'flex', gap: '0.5rem' }}>
-                              {res.imageUrl && (
-                                <button
-                                  type="button"
-                                  className="action-btn"
-                                  style={{ background: 'rgba(16, 185, 129, 0.2)', border: '1px solid rgba(16, 185, 129, 0.4)', color: '#34d399', padding: '4px 8px' }}
-                                  onClick={() => setPreviewPhotoModal({ open: true, url: res.imageUrl, title: res.matchName })}
-                                  title="View photo"
-                                >
-                                  <Eye size={14} />
-                                </button>
-                              )}
-                              <button
-                                className="action-btn delete-btn"
-                                onClick={async () => {
-                                  if (window.confirm(`Delete point table result "${res.matchName}"?`)) {
-                                    try {
-                                      await axios.delete(`${apiUrl}/api/results/${res._id}`, config);
-                                      await fetchData();
-                                    } catch (e) {
-                                      alert('Failed: ' + e.message);
-                                    }
-                                  }
+                      {matchResults.map(res => {
+                        const photos = (res.imageUrls && res.imageUrls.length > 0)
+                          ? res.imageUrls
+                          : (res.imageUrl ? [res.imageUrl] : []);
+                        const isWeekly = res.category === 'WEEKLY & WEEKEND WAR';
+
+                        return (
+                          <tr key={res._id}>
+                            <td>
+                              <span
+                                style={{
+                                  border: isWeekly ? '1px solid #f59e0b' : '1px solid #8b5cf6',
+                                  color: isWeekly ? '#fbbf24' : '#c084fc',
+                                  background: isWeekly ? 'rgba(245, 158, 11, 0.12)' : 'rgba(139, 92, 246, 0.12)',
+                                  borderRadius: '12px',
+                                  padding: '2px 8px',
+                                  fontSize: '0.68rem',
+                                  fontWeight: 800,
+                                  whiteSpace: 'nowrap',
                                 }}
-                                title="Delete this result"
                               >
-                                <Trash2 size={14} />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
+                                {isWeekly ? 'WEEKLY & WAR' : 'DAILY SCRIMS'}
+                              </span>
+                            </td>
+                            <td><strong>{res.matchName}</strong></td>
+                            <td>
+                              <span
+                                style={{
+                                  border: '1px solid #1d4ed8',
+                                  color: '#60a5fa',
+                                  background: 'rgba(29, 78, 216, 0.22)',
+                                  borderRadius: '6px',
+                                  padding: '3px 10px',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 800,
+                                  letterSpacing: '0.5px',
+                                  display: 'inline-block',
+                                }}
+                              >
+                                {res.lobby || 'LOBBY 01'}
+                              </span>
+                            </td>
+                            <td>{res.date} {res.timing ? `· ${res.timing}` : ''}</td>
+                            <td>
+                              {photos.length > 0 ? (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <img
+                                    src={photos[0]}
+                                    alt={res.matchName}
+                                    style={{
+                                      width: '50px',
+                                      height: '34px',
+                                      objectFit: 'cover',
+                                      borderRadius: '4px',
+                                      cursor: 'pointer',
+                                      border: '1px solid rgba(59, 130, 246, 0.4)',
+                                    }}
+                                    onClick={() => setPreviewPhotoModal({ open: true, url: photos[0], title: res.matchName, allUrls: photos, activeIndex: 0 })}
+                                    title="Click to preview result image"
+                                  />
+                                  <span style={{ fontSize: '0.7rem', color: '#60a5fa', fontWeight: 700 }}>
+                                    {photos.length > 1 ? `${photos.length} Photos` : 'Attached'}
+                                  </span>
+                                </div>
+                              ) : (
+                                <span style={{ color: '#94a3b8', fontSize: '0.75rem' }}>No Image</span>
+                              )}
+                            </td>
+                            <td>
+                              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                {photos.length > 0 && (
+                                  <button
+                                    type="button"
+                                    className="action-btn"
+                                    style={{
+                                      background: 'rgba(37, 99, 235, 0.2)',
+                                      border: '1px solid rgba(59, 130, 246, 0.4)',
+                                      color: '#60a5fa',
+                                      padding: '4px 8px',
+                                    }}
+                                    onClick={() => setPreviewPhotoModal({ open: true, url: photos[0], title: res.matchName, allUrls: photos, activeIndex: 0 })}
+                                    title="View photo(s)"
+                                  >
+                                    <Eye size={14} />
+                                  </button>
+                                )}
+                                <button
+                                  className="action-btn delete-btn"
+                                  onClick={async () => {
+                                    if (window.confirm(`Delete point table result "${res.matchName}"?`)) {
+                                      try {
+                                        await axios.delete(`${apiUrl}/api/results/${res._id}`, config);
+                                        await fetchData();
+                                      } catch (e) {
+                                        alert('Failed: ' + e.message);
+                                      }
+                                    }
+                                  }}
+                                  title="Delete this result"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 )}
@@ -6046,19 +6142,19 @@ const AdminDashboard = () => {
         </div>
       )}
 
-      {/* ── UPLOAD RESULT PHOTO MODAL (New Separate Feature) ── */}
+      {/* ── UPLOAD RESULT PHOTO MODAL (Daily Scrims & Weekly/Weekend War) ── */}
       {showUploadResultPhotoModal && (
         <div className="modal-overlay" onClick={() => setShowUploadResultPhotoModal(false)}>
           <div
             className="modal"
             onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: '520px', width: '100%', background: '#090e0c', border: '1.5px solid rgba(16, 185, 129, 0.5)' }}
+            style={{ maxWidth: '580px', width: '100%', background: '#090a14', border: '1.5px solid rgba(139, 92, 246, 0.45)', maxHeight: '90vh', overflowY: 'auto' }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(16, 185, 129, 0.25)', paddingBottom: '0.75rem', marginBottom: '1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(139, 92, 246, 0.25)', paddingBottom: '0.75rem', marginBottom: '1rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Upload size={18} style={{ color: '#10b981' }} />
+                <Upload size={18} style={{ color: '#c084fc' }} />
                 <h3 style={{ margin: 0, color: '#ffffff', fontSize: '1rem', fontWeight: 800 }}>
-                  Upload Scrim Result Photo
+                  Publish Match Result Photo
                 </h3>
               </div>
               <button
@@ -6071,28 +6167,94 @@ const AdminDashboard = () => {
               </button>
             </div>
 
-            <form onSubmit={handleUploadResultPhotoSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+            <form onSubmit={handleUploadResultPhotoSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
+              {/* 1. Category Switcher (Two Options: Daily Scrims vs Weekly & Weekend War) */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', color: '#c084fc', fontWeight: 800, marginBottom: '5px' }}>
+                  Select Result Category *
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUploadResultForm(prev => ({
+                        ...prev,
+                        category: 'DAILY SCRIMS',
+                        matchName: 'RISING 03-05 PM GRIND SCRIMS - POINT TABLE',
+                      }));
+                    }}
+                    style={{
+                      background: uploadResultForm.category === 'DAILY SCRIMS'
+                        ? 'linear-gradient(135deg, #7c3aed 0%, #9333ea 100%)'
+                        : 'rgba(255, 255, 255, 0.04)',
+                      border: `1.5px solid ${uploadResultForm.category === 'DAILY SCRIMS' ? '#c084fc' : 'rgba(139, 92, 246, 0.2)'}`,
+                      color: '#ffffff',
+                      padding: '9px 12px',
+                      borderRadius: '8px',
+                      fontSize: '0.8rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    ⚡ DAILY SCRIMS
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUploadResultForm(prev => ({
+                        ...prev,
+                        category: 'WEEKLY & WEEKEND WAR',
+                        matchName: 'RISING WEEKLY WAR - POINT TABLE',
+                      }));
+                    }}
+                    style={{
+                      background: uploadResultForm.category === 'WEEKLY & WEEKEND WAR'
+                        ? 'linear-gradient(135deg, #d97706 0%, #f59e0b 100%)'
+                        : 'rgba(255, 255, 255, 0.04)',
+                      border: `1.5px solid ${uploadResultForm.category === 'WEEKLY & WEEKEND WAR' ? '#fbbf24' : 'rgba(245, 158, 11, 0.2)'}`,
+                      color: '#ffffff',
+                      padding: '9px 12px',
+                      borderRadius: '8px',
+                      fontSize: '0.8rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    🏆 WEEKLY &amp; WEEKEND WAR
+                  </button>
+                </div>
+              </div>
+
               {/* Quick Title Presets */}
               <div>
-                <label style={{ display: 'block', fontSize: '0.74rem', color: '#6ee7b7', fontWeight: 700, marginBottom: '4px' }}>
+                <label style={{ display: 'block', fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, marginBottom: '4px' }}>
                   Quick Preset Titles:
                 </label>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '6px' }}>
-                  {[
-                    'RMC 01-03 PM GRIND SCRIM - POINT TABLE',
-                    'RMC 03-05 PM GRIND SCRIM - POINT TABLE',
-                    'RMC 07-09 PM GRIND SCRIM - POINT TABLE',
-                    'RMC 09-11 PM GRIND SCRIM - POINT TABLE',
-                    'RMC 11-01 AM GRIND SCRIM - POINT TABLE',
-                  ].map((preset) => (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '4px' }}>
+                  {(uploadResultForm.category === 'DAILY SCRIMS'
+                    ? [
+                        'RISING 01-03 PM GRIND SCRIMS - POINT TABLE',
+                        'RISING 03-05 PM GRIND SCRIMS - POINT TABLE',
+                        'RISING 07-09 PM GRIND SCRIMS - POINT TABLE',
+                        'RISING 09-11 PM GRIND SCRIMS - POINT TABLE',
+                      ]
+                    : [
+                        'RISING WEEKLY WAR - POINT TABLE',
+                        'RISING WEEKEND WAR - POINT TABLE',
+                        'RISING GRANDS FINALS - POINT TABLE',
+                      ]
+                  ).map((preset) => (
                     <button
                       key={preset}
                       type="button"
-                      onClick={() => setUploadResultForm({ ...uploadResultForm, matchName: preset })}
+                      onClick={() => setUploadResultForm(prev => ({ ...prev, matchName: preset }))}
                       style={{
-                        background: uploadResultForm.matchName === preset ? 'rgba(16, 185, 129, 0.3)' : 'rgba(255, 255, 255, 0.05)',
-                        border: `1px solid ${uploadResultForm.matchName === preset ? '#34d399' : 'rgba(255, 255, 255, 0.15)'}`,
-                        color: uploadResultForm.matchName === preset ? '#ffffff' : '#a0a0c4',
+                        background: uploadResultForm.matchName === preset ? 'rgba(139, 92, 246, 0.3)' : 'rgba(255, 255, 255, 0.05)',
+                        border: `1px solid ${uploadResultForm.matchName === preset ? '#c084fc' : 'rgba(255, 255, 255, 0.15)'}`,
+                        color: uploadResultForm.matchName === preset ? '#ffffff' : '#c4b5fd',
                         padding: '3px 8px',
                         borderRadius: '6px',
                         fontSize: '0.68rem',
@@ -6100,7 +6262,7 @@ const AdminDashboard = () => {
                         cursor: 'pointer',
                       }}
                     >
-                      {preset.split(' - ')[0]}
+                      {preset.replace(' - POINT TABLE', '')}
                     </button>
                   ))}
                 </div>
@@ -6108,19 +6270,19 @@ const AdminDashboard = () => {
 
               {/* Title / Scrim Name */}
               <div>
-                <label style={{ display: 'block', fontSize: '0.74rem', color: '#6ee7b7', fontWeight: 700, marginBottom: '3px' }}>
-                  Match / Scrim Title *
+                <label style={{ display: 'block', fontSize: '0.74rem', color: '#e2e8f0', fontWeight: 700, marginBottom: '3px' }}>
+                  Match / Point Table Title *
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. RMC 03-05 PM GRIND SCRIM - POINT TABLE"
+                  placeholder="e.g. RISING 03-05 PM GRIND SCRIMS - POINT TABLE"
                   value={uploadResultForm.matchName}
-                  onChange={(e) => setUploadResultForm({ ...uploadResultForm, matchName: e.target.value })}
+                  onChange={(e) => setUploadResultForm(prev => ({ ...prev, matchName: e.target.value }))}
                   style={{
                     width: '100%',
                     background: 'rgba(255, 255, 255, 0.05)',
-                    border: '1px solid rgba(16, 185, 129, 0.4)',
+                    border: '1px solid rgba(139, 92, 246, 0.4)',
                     borderRadius: '8px',
                     padding: '8px 10px',
                     color: '#fff',
@@ -6131,24 +6293,24 @@ const AdminDashboard = () => {
                 />
               </div>
 
-              {/* Lobby & Date (2 columns) */}
+              {/* Date & Default Lobby (2 columns) */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.74rem', color: '#6ee7b7', fontWeight: 700, marginBottom: '3px' }}>
-                    Lobby *
+                  <label style={{ display: 'block', fontSize: '0.74rem', color: '#e2e8f0', fontWeight: 700, marginBottom: '3px' }}>
+                    Default Lobby *
                   </label>
                   <select
                     value={uploadResultForm.lobby}
-                    onChange={(e) => setUploadResultForm({ ...uploadResultForm, lobby: e.target.value })}
+                    onChange={(e) => setUploadResultForm(prev => ({ ...prev, lobby: e.target.value }))}
                     style={{
                       width: '100%',
-                      background: '#0e1612',
-                      border: '1px solid rgba(16, 185, 129, 0.4)',
+                      background: '#100e1f',
+                      border: '1px solid rgba(139, 92, 246, 0.4)',
                       borderRadius: '8px',
                       padding: '8px 10px',
-                      color: '#34d399',
+                      color: '#60a5fa',
                       fontSize: '0.82rem',
-                      fontWeight: 700,
+                      fontWeight: 800,
                       outline: 'none',
                       boxSizing: 'border-box',
                     }}
@@ -6157,22 +6319,23 @@ const AdminDashboard = () => {
                     <option value="LOBBY 02">LOBBY 02</option>
                     <option value="LOBBY 03">LOBBY 03</option>
                     <option value="LOBBY 04">LOBBY 04</option>
+                    <option value="LOBBY 05">LOBBY 05</option>
                   </select>
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.74rem', color: '#6ee7b7', fontWeight: 700, marginBottom: '3px' }}>
-                    Date *
+                  <label style={{ display: 'block', fontSize: '0.74rem', color: '#e2e8f0', fontWeight: 700, marginBottom: '3px' }}>
+                    Result Date *
                   </label>
                   <input
                     type="date"
                     required
                     value={uploadResultForm.date}
-                    onChange={(e) => setUploadResultForm({ ...uploadResultForm, date: e.target.value })}
+                    onChange={(e) => setUploadResultForm(prev => ({ ...prev, date: e.target.value }))}
                     style={{
                       width: '100%',
                       background: 'rgba(255, 255, 255, 0.05)',
-                      border: '1px solid rgba(16, 185, 129, 0.4)',
+                      border: '1px solid rgba(139, 92, 246, 0.4)',
                       borderRadius: '8px',
                       padding: '8px 10px',
                       color: '#fff',
@@ -6184,38 +6347,120 @@ const AdminDashboard = () => {
                 </div>
               </div>
 
-              {/* Image File Selector */}
+              {/* Image File Selector (Multiple Files Allowed) */}
               <div>
-                <label style={{ display: 'block', fontSize: '0.74rem', color: '#6ee7b7', fontWeight: 700, marginBottom: '3px' }}>
-                  Result Photo / Point Table Screenshot *
+                <label style={{ display: 'block', fontSize: '0.74rem', color: '#c084fc', fontWeight: 800, marginBottom: '3px' }}>
+                  Select Result Photo(s) * (Single or Multiple)
                 </label>
                 <input
                   type="file"
+                  multiple
                   accept="image/*"
                   onChange={handleResultPhotoFileChange}
                   style={{
                     width: '100%',
                     background: 'rgba(255, 255, 255, 0.05)',
-                    border: '1px dashed rgba(16, 185, 129, 0.5)',
+                    border: '1px dashed rgba(168, 85, 247, 0.5)',
                     borderRadius: '8px',
                     padding: '8px 10px',
-                    color: '#34d399',
+                    color: '#c084fc',
                     fontSize: '0.8rem',
                     cursor: 'pointer',
                     boxSizing: 'border-box',
                   }}
                 />
+                <span style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: '2px', display: 'block' }}>
+                  Tip: Hold Ctrl/Shift to pick multiple photos (e.g. Lobby 01 + Lobby 02, or Match 1 + Match 2)
+                </span>
               </div>
 
-              {/* Live Preview */}
-              {uploadResultForm.imagePreview && (
-                <div style={{ textAlign: 'center', background: 'rgba(0,0,0,0.4)', padding: '6px', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
-                  <img
-                    src={uploadResultForm.imagePreview}
-                    alt="Preview"
-                    style={{ maxHeight: '140px', maxWidth: '100%', objectFit: 'contain', borderRadius: '4px' }}
-                  />
-                  <div style={{ fontSize: '0.68rem', color: '#34d399', marginTop: '2px' }}>✓ Image ready to upload</div>
+              {/* Multiple Uploaded Photos Cards */}
+              {uploadResultForm.items && uploadResultForm.items.length > 0 && (
+                <div style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(139, 92, 246, 0.25)', borderRadius: '10px', padding: '10px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#f3e8ff' }}>
+                      Selected Photos ({uploadResultForm.items.length}):
+                    </span>
+
+                    {uploadResultForm.items.length > 1 && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ fontSize: '0.68rem', color: '#c084fc' }}>Batch Lobbies:</span>
+                        <input
+                          type="checkbox"
+                          checked={uploadResultForm.isBatchMode}
+                          onChange={(e) => setUploadResultForm(prev => ({ ...prev, isBatchMode: e.target.checked }))}
+                          id="batch-mode-toggle"
+                          style={{ cursor: 'pointer' }}
+                        />
+                        <label htmlFor="batch-mode-toggle" style={{ fontSize: '0.68rem', color: '#94a3b8', cursor: 'pointer' }}>
+                          Publish separate lobby results
+                        </label>
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '180px', overflowY: 'auto' }}>
+                    {uploadResultForm.items.map((item, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                          background: 'rgba(0, 0, 0, 0.4)',
+                          padding: '6px 8px',
+                          borderRadius: '6px',
+                          border: '1px solid rgba(255, 255, 255, 0.08)',
+                        }}
+                      >
+                        <img
+                          src={item.preview}
+                          alt={`Upload preview ${idx + 1}`}
+                          style={{ width: '45px', height: '32px', objectFit: 'cover', borderRadius: '4px' }}
+                        />
+                        <span style={{ fontSize: '0.72rem', color: '#ffffff', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {item.file.name}
+                        </span>
+
+                        {uploadResultForm.isBatchMode && uploadResultForm.items.length > 1 && (
+                          <select
+                            value={item.lobby}
+                            onChange={(e) => handleUpdateItemLobby(idx, e.target.value)}
+                            style={{
+                              background: '#120e26',
+                              border: '1px solid #1d4ed8',
+                              color: '#60a5fa',
+                              borderRadius: '4px',
+                              padding: '2px 6px',
+                              fontSize: '0.7rem',
+                              fontWeight: 800,
+                            }}
+                          >
+                            <option value="LOBBY 01">LOBBY 01</option>
+                            <option value="LOBBY 02">LOBBY 02</option>
+                            <option value="LOBBY 03">LOBBY 03</option>
+                            <option value="LOBBY 04">LOBBY 04</option>
+                            <option value="LOBBY 05">LOBBY 05</option>
+                          </select>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => handleRemovePhotoItem(idx)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: '#ef4444',
+                            cursor: 'pointer',
+                            padding: '2px 4px',
+                          }}
+                          title="Remove photo"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
@@ -6228,7 +6473,7 @@ const AdminDashboard = () => {
                   type="url"
                   placeholder="https://..."
                   value={uploadResultForm.manualUrl}
-                  onChange={(e) => setUploadResultForm({ ...uploadResultForm, manualUrl: e.target.value })}
+                  onChange={(e) => setUploadResultForm(prev => ({ ...prev, manualUrl: e.target.value }))}
                   style={{
                     width: '100%',
                     background: 'rgba(255, 255, 255, 0.03)',
@@ -6255,7 +6500,9 @@ const AdminDashboard = () => {
                   type="submit"
                   disabled={uploadingResultPhoto}
                   style={{
-                    background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+                    background: uploadResultForm.category === 'WEEKLY & WEEKEND WAR'
+                      ? 'linear-gradient(135deg, #d97706 0%, #f59e0b 100%)'
+                      : 'linear-gradient(135deg, #7c3aed 0%, #9333ea 100%)',
                     border: 'none',
                     borderRadius: '8px',
                     padding: '8px 18px',
@@ -6263,7 +6510,7 @@ const AdminDashboard = () => {
                     fontWeight: 800,
                     fontSize: '0.82rem',
                     cursor: uploadingResultPhoto ? 'not-allowed' : 'pointer',
-                    boxShadow: '0 2px 10px rgba(16, 185, 129, 0.4)',
+                    boxShadow: '0 2px 10px rgba(139, 92, 246, 0.4)',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '6px',
@@ -6272,12 +6519,14 @@ const AdminDashboard = () => {
                   {uploadingResultPhoto ? (
                     <>
                       <RefreshCw size={14} className="spin" />
-                      <span>Uploading...</span>
+                      <span>Publishing...</span>
                     </>
                   ) : (
                     <>
                       <Upload size={14} />
-                      <span>Upload &amp; Publish Result</span>
+                      <span>
+                        Publish {uploadResultForm.items.length > 1 ? `(${uploadResultForm.items.length}) Results` : 'Result'}
+                      </span>
                     </>
                   )}
                 </button>
@@ -6289,11 +6538,11 @@ const AdminDashboard = () => {
 
       {/* ── PREVIEW PHOTO LIGHTBOX MODAL ── */}
       {previewPhotoModal.open && (
-        <div className="modal-overlay" onClick={() => setPreviewPhotoModal({ open: false, url: '', title: '' })}>
+        <div className="modal-overlay" onClick={() => setPreviewPhotoModal({ open: false, url: '', title: '', allUrls: [], activeIndex: 0 })}>
           <div
             className="modal"
             onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: '640px', width: '100%', background: '#070b09', border: '1.5px solid rgba(16, 185, 129, 0.5)', padding: '1rem' }}
+            style={{ maxWidth: '680px', width: '100%', background: '#070810', border: '1.5px solid rgba(139, 92, 246, 0.5)', padding: '1.1rem' }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
               <h4 style={{ margin: 0, color: '#ffffff', fontSize: '0.92rem', fontWeight: 800 }}>
@@ -6302,12 +6551,38 @@ const AdminDashboard = () => {
               <button
                 type="button"
                 className="header-icon-btn"
-                onClick={() => setPreviewPhotoModal({ open: false, url: '', title: '' })}
+                onClick={() => setPreviewPhotoModal({ open: false, url: '', title: '', allUrls: [], activeIndex: 0 })}
                 style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
               >
                 <X size={18} />
               </button>
             </div>
+
+            {/* Photo switcher pills if multiple photos exist */}
+            {previewPhotoModal.allUrls && previewPhotoModal.allUrls.length > 1 && (
+              <div style={{ display: 'flex', gap: '6px', marginBottom: '10px', overflowX: 'auto' }}>
+                {previewPhotoModal.allUrls.map((imgUrl, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setPreviewPhotoModal(prev => ({ ...prev, url: imgUrl, activeIndex: idx }))}
+                    style={{
+                      background: (previewPhotoModal.activeIndex || 0) === idx ? '#7c3aed' : 'rgba(255, 255, 255, 0.08)',
+                      border: `1px solid ${(previewPhotoModal.activeIndex || 0) === idx ? '#c084fc' : 'rgba(255, 255, 255, 0.15)'}`,
+                      color: '#ffffff',
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Photo {idx + 1}
+                  </button>
+                ))}
+              </div>
+            )}
+
             <div style={{ textAlign: 'center' }}>
               <img
                 src={previewPhotoModal.url}
@@ -6323,9 +6598,9 @@ const AdminDashboard = () => {
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '6px',
-                    background: 'rgba(16, 185, 129, 0.2)',
-                    border: '1px solid #10b981',
-                    color: '#34d399',
+                    background: 'rgba(124, 58, 237, 0.25)',
+                    border: '1px solid #a855f7',
+                    color: '#c084fc',
                     padding: '6px 14px',
                     borderRadius: '8px',
                     fontSize: '0.78rem',
