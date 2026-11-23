@@ -1040,17 +1040,6 @@ function TodaySlots() {
             <h2 className="category-screen-title">Tournament Details</h2>
           </div>
 
-          {/* Hero Banner */}
-          <div className="tourney-hero-card">
-            <div style={{ position: 'relative', zIndex: 2 }}>
-              <span className="cat-hero-badge">BGMI</span>
-              <h1 className="tourney-hero-title">{activeTournament.matchName || 'RISING 1-3 GRIND SCRIMS'}</h1>
-            </div>
-            <div className="cat-hero-art" aria-hidden="true">
-              <img src={activeTournament.heroImage || soldierBgImg} alt="Tournament Artwork" />
-            </div>
-          </div>
-
           {/* Tabs row: Overview | Prize Pool | Schedule | Map */}
           <div className="tourney-tabs-row">
             {['overview', 'prizepool', 'schedule', 'map'].map((tab) => (
@@ -1440,55 +1429,6 @@ function TodaySlots() {
               {selectedCategory === 'ALL' ? "Today's Slots" : selectedCategory}
             </h2>
           </div>
-
-          {/* Category Hero Banner */}
-          {selectedCategory !== 'ALL' ? (
-            <div
-              className={`cat-hero-banner ${
-                selectedCategory === 'WEEKLY WAR'
-                  ? 'weekly'
-                  : selectedCategory === 'WEEKEND WAR'
-                  ? 'weekend'
-                  : selectedCategory === 'GRANDS'
-                  ? 'grands'
-                  : ''
-              }`}
-            >
-              <div style={{ position: 'relative', zIndex: 2 }}>
-                <span className="cat-hero-badge">BGMI</span>
-                <h1 className="cat-hero-title">
-                  {selectedCategory === 'SCRIMS' ? 'DAILY GRIND SCRIMS' : selectedCategory}
-                </h1>
-                <div className="cat-hero-sub">
-                  {selectedCategory === 'SCRIMS'
-                    ? 'Play • Compete • Win'
-                    : selectedCategory === 'WEEKLY WAR'
-                    ? 'Competitive Battles'
-                    : selectedCategory === 'WEEKEND WAR'
-                    ? 'Big Rewards'
-                    : 'Elite Tournaments'}
-                </div>
-              </div>
-
-            </div>
-          ) : (
-            <div className="ts-hero-banner">
-              <div className="ts-hero-bg" style={{ backgroundImage: `url(${bannerImg})` }} />
-              <div className="ts-hero-overlay" />
-              <div className="ts-hero-content">
-                <div className="ts-hero-left">
-                  <div className="ts-calendar-icon-box">
-                    <Calendar size={28} />
-                  </div>
-                  <div className="ts-hero-titles">
-                    <h4>TODAY'S</h4>
-                    <h1>SLOTS</h1>
-                    <p>Book your slot, participate in tournaments and climb the rankings!</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* ── Main Tab Switcher (Available Slots vs My Registered Matches) ── */}
           <div

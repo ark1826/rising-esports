@@ -552,7 +552,7 @@ export default function Home() {
             <div className="rules-modal-header">
               <div className="rules-modal-title">
                 <Megaphone size={22} style={{ color: '#c084fc' }} />
-                <h3>Official Announcements &amp; Rules</h3>
+                <h3>Official Announcements</h3>
               </div>
               <button
                 type="button"
@@ -565,8 +565,8 @@ export default function Home() {
 
             <div className="rules-modal-body">
               {/* Live Admin Broadcasts */}
-              {announcements && announcements.length > 0 && (
-                <div style={{ marginBottom: '1.25rem' }}>
+              {announcements && announcements.length > 0 ? (
+                <div style={{ marginBottom: '0.5rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0.75rem' }}>
                     <Megaphone size={17} style={{ color: '#c084fc' }} />
                     <h4 style={{ margin: 0, color: '#f3e8ff', fontSize: '0.9rem', fontWeight: 800, letterSpacing: '0.5px' }}>
@@ -602,90 +602,14 @@ export default function Home() {
                       )}
                     </div>
                   ))}
-                  <div style={{ borderBottom: '1px solid rgba(167, 139, 250, 0.2)', margin: '1rem 0' }} />
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '2rem 1rem', color: '#94a3b8' }}>
+                  <Megaphone size={36} style={{ color: '#a855f7', marginBottom: '0.75rem', opacity: 0.6 }} />
+                  <p style={{ margin: 0, fontSize: '0.9rem', color: '#cbd5e1' }}>No active announcements right now.</p>
+                  <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: '#64748b' }}>Stay tuned for upcoming scrims and tournament updates.</p>
                 </div>
               )}
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0.75rem' }}>
-                <Shield size={17} style={{ color: '#c084fc' }} />
-                <h4 style={{ margin: 0, color: '#f3e8ff', fontSize: '0.9rem', fontWeight: 800, letterSpacing: '0.5px' }}>
-                  GENERAL RULES &amp; REWARDS
-                </h4>
-              </div>
-
-              <div className="rules-full-item">
-                <div className="rules-full-num">1</div>
-                <div className="rules-full-content">
-                  <h5>Team Registration</h5>
-                  <p>Register your team on our official WhatsApp to showcase your team in the official Rankings.</p>
-                </div>
-              </div>
-
-              <div className="rules-full-item">
-                <div className="rules-full-num">2</div>
-                <div className="rules-full-content">
-                  <h5>Unique Rising ID</h5>
-                  <p>Your team will receive an official three-digit (XXX) Rising ID to avoid confusion between similar team names.</p>
-                </div>
-              </div>
-
-              <div className="rules-full-item">
-                <div className="rules-full-num">3</div>
-                <div className="rules-full-content">
-                  <h5>250 Matches Requirement</h5>
-                  <p>Teams must complete 250 matches in a month to claim all exclusive rewards and perks provided by Rising Esports.</p>
-                </div>
-              </div>
-
-              <div className="rules-full-item">
-                <div className="rules-full-num">4</div>
-                <div className="rules-full-content">
-                  <h5>Cash Prizes for #1 Team</h5>
-                  <p>The #1 ranked team wins cash prizes starting from ₹1,000, increasing daily with community prize pool support.</p>
-                </div>
-              </div>
-
-              <div className="rules-full-item">
-                <div className="rules-full-num">5</div>
-                <div className="rules-full-content">
-                  <h5>Top 5 Discounts</h5>
-                  <p>Top 5 ranked teams receive a 50% discount on all 3-day slot bookings.</p>
-                </div>
-              </div>
-
-              <div className="rules-full-item">
-                <div className="rules-full-num">6</div>
-                <div className="rules-full-content">
-                  <h5>Invited Slots for Top 20</h5>
-                  <p>All Top 20 ranked teams get invited priority slots based on their rankings leaderboard standing.</p>
-                </div>
-              </div>
-
-              <div className="rules-full-item">
-                <div className="rules-full-num">7</div>
-                <div className="rules-full-content">
-                  <h5>Sponsorship Placement</h5>
-                  <p>Higher tier rankings gain direct sponsor visibility and esports organization scout opportunities.</p>
-                </div>
-              </div>
-
-              <div className="rules-full-item">
-                <div className="rules-full-num">8</div>
-                <div className="rules-full-content">
-                  <h5>Managers &amp; Coaches</h5>
-                  <p>Top 10 teams gain access to dedicated team managers, coaches, and strategic drop maps coordination.</p>
-                </div>
-              </div>
-
-              <div className="rules-full-item" style={{ borderColor: 'rgba(239, 68, 68, 0.4)', background: 'rgba(239, 68, 68, 0.06)' }}>
-                <div className="rules-full-num" style={{ background: '#ef4444' }}>!</div>
-                <div className="rules-full-content">
-                  <h5 style={{ color: '#f87171' }}>Fair Play &amp; Anti-Cheat Policy</h5>
-                  <p style={{ color: '#fca5a5' }}>
-                    Emulators, iPads, and unauthorized modifications are strictly banned. Violating teams face immediate, permanent blacklisting.
-                  </p>
-                </div>
-              </div>
             </div>
           </div>
         </div>
