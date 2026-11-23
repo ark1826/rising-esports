@@ -5,7 +5,7 @@ import axios from 'axios';
 import {
   Users, MapPin, Search, AlertTriangle, Check, RefreshCw, X,
   ChevronRight, Crosshair, Copy, CheckCheck, Grid, Columns, Shield, Sparkles, Calendar,
-  ArrowLeft, Trophy, Clock
+  ArrowLeft, Trophy, Clock, Info
 } from 'lucide-react';
 import PaymentModal from '../components/PaymentModal';
 import DropListView from '../components/DropListView';
@@ -942,6 +942,45 @@ function TodaySlots() {
     ];
   };
 
+  // Helper to resolve 3 Match Pillars with map and timing for Slot Box
+  const resolveSlotMatches = (slot) => {
+    const maps = resolveMaps(slot);
+    const defaultMaps = ['ERANGEL', 'RONDO', 'MIRAMAR'];
+    
+    if (slot.scheduleMatches && Array.isArray(slot.scheduleMatches) && slot.scheduleMatches.length > 0) {
+      return slot.scheduleMatches.slice(0, 3).map((m, idx) => ({
+        map: (m.map || maps[idx] || defaultMaps[idx % defaultMaps.length]).toUpperCase(),
+        time: m.time || m.label || slot.timing || '02:00 PM',
+        matchNumber: m.matchNumber || idx + 1
+      }));
+    }
+
+    const baseTime = slot.timing || '01:42 PM';
+    const timeMatch = baseTime.match(/(\d+):?(\d*)\s*(AM|PM)?/i);
+    let h = 1;
+    let m = 42;
+    let isPM = true;
+    if (timeMatch) {
+      h = parseInt(timeMatch[1], 10);
+      m = timeMatch[2] ? parseInt(timeMatch[2], 10) : 0;
+      if (timeMatch[3]) isPM = /pm/i.test(timeMatch[3]);
+    }
+
+    const calcTime = (addMin) => {
+      let tot = (h % 12) * 60 + m + addMin;
+      let newH = Math.floor(tot / 60) % 12;
+      if (newH === 0) newH = 12;
+      let newM = tot % 60;
+      return `${newH}:${newM.toString().padStart(2, '0')} ${isPM ? 'PM' : 'AM'}`;
+    };
+
+    return [
+      { matchNumber: 1, map: (maps[0] || 'ERANGEL').toUpperCase(), time: calcTime(0) },
+      { matchNumber: 2, map: (maps[1] || 'RONDO').toUpperCase(), time: calcTime(40) },
+      { matchNumber: 3, map: (maps[2] || 'MIRAMAR').toUpperCase(), time: calcTime(80) },
+    ];
+  };
+
   // Helper to format scheduled date for slot
   const formatSlotScheduledDate = (slot) => {
     if (!slot) return '';
@@ -1726,73 +1765,122 @@ function TodaySlots() {
           const waRawLink = (userBooking?.whatsappLink || userBooking?.slotLink || '').trim();
           const normalizedWaLink = waRawLink ? (waRawLink.startsWith('http://') || waRawLink.startsWith('https://') ? waRawLink : `https://${waRawLink}`) : '';
 
-          const prizes = resolvePrizes(slot);
-          const schedule = resolveSchedule(slot);
-          const maps = resolveMaps(slot);
-          const bookedTeams = slot.bookedTeams || [];
+          const defaultPrizes = [
+            { rank: '#1', prize: '₹400' },
+            { rank: '#2', prize: '₹150' },
+            { rank: '#3', prize: '₹100' },
+            { rank: '#4', prize: '₹70' },
+            { rank: '#5', prize: 'FREE' },
+          ];
+          const rawPrizes = resolvePrizes(slot);
+          const displayPrizes = defaultPrizes.map((def, idx) => rawPrizes[idx] || def);
+          const matchPillars = resolveSlotMatches(slot);
 
           return (
             <div key={slot._id} className="cat-slot-card-item">
-              <div className="cat-slot-thumb">
-                <img src={slot.heroImage || soldierBgImg} alt={slot.matchName || 'Tournament'} />
-                <span className="cat-slot-thumb-badge">BGMI</span>
+              {/* Header Row: Title on Left, Lobby on Right */}
+              <div className="cat-slot-header-row">
+                <h3 className="cat-slot-card-title">{slot.matchName || 'RISING 1-3 GRIND SCRIMS'}</h3>
+                <span className="cat-slot-lobby-badge">{slot.lobby || 'LOBBY 2'}</span>
               </div>
 
-              <div className="cat-slot-info">
-                <div className="cat-slot-top-row">
-                  <h3 className="cat-slot-card-title">{slot.matchName || 'RISING 1-3 GRIND SCRIMS'}</h3>
-                </div>
-
-                <div className="cat-slot-badges">
-                  <span className="cat-badge-game">BGMI</span>
-                  <span className="cat-badge-lobby">{slot.lobby || 'Lobby 01'}</span>
-                  {isPaid && (
-                    <span
-                      style={{
-                        fontSize: '0.6rem',
-                        color: '#34d399',
-                        background: 'rgba(16, 185, 129, 0.15)',
-                        padding: '1px 5px',
-                        borderRadius: '4px',
-                        fontWeight: 800
-                      }}
+              {/* Row 1: 5-Pillar Prize Distribution Grid */}
+              <div className="cat-slot-prize-grid">
+                {displayPrizes.map((p, pIdx) => {
+                  const isFirst = pIdx === 0;
+                  const isFree = /free/i.test(p.prize);
+                  return (
+                    <div
+                      key={pIdx}
+                      className={`cat-slot-prize-chip ${isFirst ? 'highlight-first' : ''}`}
                     >
-                      ✓ BOOKED
-                    </span>
+                      <span className="cat-slot-prize-rank">{p.rank}</span>
+                      <span className={`cat-slot-prize-amount ${isFirst ? 'gold' : ''} ${isFree ? 'free' : ''}`}>
+                        {p.prize}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Row 2: 3-Pillar Match Times Grid */}
+              <div className="cat-slot-matches-grid">
+                {matchPillars.map((m, mIdx) => (
+                  <div key={mIdx} className="cat-slot-match-chip">
+                    <span className="cat-slot-match-map">M{m.matchNumber || mIdx + 1}: {m.map}</span>
+                    <span className="cat-slot-match-time">{m.time}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Row 3: 3 Action Buttons (Drop Chart | Teams | Info) */}
+              <div className="cat-slot-actions-row">
+                <button
+                  type="button"
+                  className="cat-slot-action-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setTeamsModalSlot(slot);
+                    setTeamsModalTab('drops');
+                  }}
+                >
+                  <MapPin size={14} color="#38bdf8" />
+                  <span>Drop Chart</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="cat-slot-action-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setTeamsModalSlot(slot);
+                    setTeamsModalTab('teams');
+                  }}
+                >
+                  <Users size={14} color="#34d399" />
+                  <span>Teams ({bookedSlots})</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="cat-slot-action-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveTournament(slot);
+                    setSubPage('details');
+                  }}
+                >
+                  <Info size={14} color="#c084fc" />
+                  <span>Info</span>
+                </button>
+              </div>
+
+              {/* Row 4: Bottom Banner / Registration CTA (Cyberpunk Purple Gradient) */}
+              <div
+                className="cat-slot-bottom-banner"
+                onClick={() => {
+                  if (isPaid && normalizedWaLink) {
+                    window.open(normalizedWaLink, '_blank');
+                  } else if (!isPaid && !isPending && !isSoldOut) {
+                    openPaymentModal(slot);
+                  }
+                }}
+              >
+                <div className="cat-slot-pay-pill">
+                  {isPaid ? (
+                    <>✓ BOOKED</>
+                  ) : isPending ? (
+                    <>⏳ PENDING</>
+                  ) : isSoldOut ? (
+                    <>SLOTS FULL</>
+                  ) : (
+                    <>
+                      <span style={{ fontSize: '1.05rem', lineHeight: 1 }}>🔥</span> PAY ₹{slot.entryFee != null ? slot.entryFee : 60}
+                    </>
                   )}
                 </div>
-
-                <div className="cat-slot-stats-row">
-                  <div className="cat-slot-stat">
-                    <Shield size={12} color="#38bdf8" />
-                    <span>₹<strong>{slot.entryFee != null ? slot.entryFee : 60}</strong></span>
-                  </div>
-                  <div className="cat-slot-stat">
-                    <Trophy size={12} color="#fbbf24" />
-                    <span>₹<strong>{(slot.prizePoolTotal || (slot.prizePool ? Number(String(slot.prizePool).replace(/[^0-9]/g, '')) : 5000)).toLocaleString('en-IN')}</strong></span>
-                  </div>
-                  <div className="cat-slot-stat">
-                    <Users size={12} color="#c084fc" />
-                    <span><strong>{bookedSlots} / {totalSlots}</strong> Teams</span>
-                  </div>
-                </div>
-
-                <div className="cat-slot-bottom-row">
-                  <div className="cat-slot-time">
-                    <Clock size={12} />
-                    <span>{formatSlotScheduledDate(slot)} • {slot.timing || '02:00 PM'}</span>
-                  </div>
-
-                  <button
-                    type="button"
-                    className="cat-slot-cta-btn"
-                    onClick={() => {
-                      setActiveTournament(slot);
-                      setSubPage('details');
-                    }}
-                  >
-                    View Details
-                  </button>
+                <div className="cat-slot-slots-count-pill">
+                  {bookedSlots}/{totalSlots} SLOTS
                 </div>
               </div>
             </div>

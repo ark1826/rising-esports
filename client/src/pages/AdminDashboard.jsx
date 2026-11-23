@@ -60,6 +60,7 @@ const AdminDashboard = () => {
   const [todaySlotsDate, setTodaySlotsDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [slotDropdownOpen, setSlotDropdownOpen] = useState(false);
   const slotDropdownRef = useRef(null);
+  const [showAdvancedSlotFields, setShowAdvancedSlotFields] = useState(false);
   const [depositFilter, setDepositFilter] = useState('pending'); // 'pending' | 'all'
   const [withdrawalFilter, setWithdrawalFilter] = useState('pending'); // 'pending' | 'all'
   const [txnSearchQuery, setTxnSearchQuery] = useState('');
@@ -760,6 +761,7 @@ const AdminDashboard = () => {
   };
 
   const handleOpenSlotModal = (presetOrItem = 'today') => {
+    setShowAdvancedSlotFields(false);
     if (presetOrItem && typeof presetOrItem === 'object' && presetOrItem._id) {
       setEditingItem(presetOrItem);
       const item = presetOrItem;
@@ -865,105 +867,30 @@ const AdminDashboard = () => {
   };
 
   const renderUnifiedSlotCreateButton = () => (
-    <div className="unified-slot-create-wrap" ref={slotDropdownRef}>
-      <div className="unified-slot-btn-group">
-        <button
-          type="button"
-          className="unified-slot-primary-btn"
-          onClick={() => handleOpenSlotModal('today')}
-          title="Create slot pre-filled for today's match"
-        >
-          <Plus size={16} />
-          <span>Create Today Slot</span>
-        </button>
-        <button
-          type="button"
-          className={`unified-slot-dropdown-arrow ${slotDropdownOpen ? 'open' : ''}`}
-          onClick={() => setSlotDropdownOpen(prev => !prev)}
-          title="Create other slots (Weekend War, Weekly War, Grands, Custom)"
-          aria-label="Other slot types dropdown"
-        >
-          <ChevronDown size={15} style={{ transform: slotDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
-        </button>
-      </div>
-
-      {slotDropdownOpen && (
-        <div className="unified-slot-menu">
-          <div className="unified-slot-menu-header">CREATE NEW SLOT</div>
-          <button
-            type="button"
-            className="unified-slot-menu-item"
-            onClick={() => {
-              handleOpenSlotModal('today');
-              setSlotDropdownOpen(false);
-            }}
-          >
-            <span className="usm-badge today">TODAY</span>
-            <div className="usm-info">
-              <div className="usm-title">📅 Today's Scrims (Daily Grind)</div>
-              <div className="usm-sub">Pre-filled for today ({new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}) • 3 Maps • ₹60 fee</div>
-            </div>
-          </button>
-          <button
-            type="button"
-            className="unified-slot-menu-item"
-            onClick={() => {
-              handleOpenSlotModal('weekend');
-              setSlotDropdownOpen(false);
-            }}
-          >
-            <span className="usm-badge weekend">WEEKEND</span>
-            <div className="usm-info">
-              <div className="usm-title">⚔️ Weekend War</div>
-              <div className="usm-sub">Saturday/Sunday major • 4 Maps • ₹100 fee • ₹10K pool</div>
-            </div>
-          </button>
-          <button
-            type="button"
-            className="unified-slot-menu-item"
-            onClick={() => {
-              handleOpenSlotModal('weekly');
-              setSlotDropdownOpen(false);
-            }}
-          >
-            <span className="usm-badge weekly">WEEKLY</span>
-            <div className="usm-info">
-              <div className="usm-title">🛡️ Weekly War</div>
-              <div className="usm-sub">Mid-week &amp; Friday war • 3 Maps • ₹80 fee • ₹7.5K pool</div>
-            </div>
-          </button>
-          <button
-            type="button"
-            className="unified-slot-menu-item"
-            onClick={() => {
-              handleOpenSlotModal('grands');
-              setSlotDropdownOpen(false);
-            }}
-          >
-            <span className="usm-badge grands">GRANDS</span>
-            <div className="usm-info">
-              <div className="usm-title">🏆 Grands Finals</div>
-              <div className="usm-sub">Championship tier • 4 Maps • ₹150 fee • ₹25K pool</div>
-            </div>
-          </button>
-          <div className="unified-slot-menu-divider" />
-          <button
-            type="button"
-            className="unified-slot-menu-item"
-            onClick={() => {
-              handleOpenSlotModal('custom');
-              setSlotDropdownOpen(false);
-            }}
-          >
-            <span className="usm-badge custom">CUSTOM</span>
-            <div className="usm-info">
-              <div className="usm-title">⚙️ Custom / Other Slot</div>
-              <div className="usm-sub">Create with custom category, maps, rules &amp; schedule</div>
-            </div>
-          </button>
-        </div>
-      )}
-    </div>
+    <button
+      type="button"
+      className="action-btn slot-create-primary-btn"
+      onClick={() => handleOpenSlotModal('today')}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '0.45rem',
+        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+        border: 'none',
+        color: '#ffffff',
+        fontWeight: '800',
+        fontSize: '0.85rem',
+        padding: '0.48rem 1.1rem',
+        borderRadius: '8px',
+        boxShadow: '0 4px 12px rgba(16, 185, 129, 0.35)',
+        cursor: 'pointer',
+        transition: 'transform 0.15s, box-shadow 0.15s',
+      }}
+      title="Create Today Slot"
+    >
+      <Plus size={16} />
+      <span>Create Slot</span>
+    </button>
   );
 
   const handleOpenModal = (item = null) => {
@@ -3560,27 +3487,26 @@ const AdminDashboard = () => {
                     <Calendar size={52} style={{ opacity: 0.25, display: 'block', margin: '0 auto 1rem' }} />
                     <h3 style={{ color: '#fff', marginBottom: '0.5rem' }}>No Slots for This Date</h3>
                     <p>Nothing scheduled for <strong style={{ color: '#a78bfa' }}>{todaySlotsDate}</strong>.</p>
-                    <div style={{ display: 'flex', gap: '0.65rem', justifyContent: 'center', marginTop: '1.25rem', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', gap: '0.65rem', justifyContent: 'center', marginTop: '1.25rem' }}>
                       <button
                         className="action-btn"
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', background: 'linear-gradient(135deg, #10b981, #059669)' }}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.45rem',
+                          background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                          border: 'none',
+                          color: '#ffffff',
+                          fontWeight: '800',
+                          fontSize: '0.9rem',
+                          padding: '0.6rem 1.4rem',
+                          borderRadius: '8px',
+                          boxShadow: '0 4px 14px rgba(16, 185, 129, 0.4)',
+                          cursor: 'pointer',
+                        }}
                         onClick={() => handleOpenSlotModal('today')}
                       >
-                        <Plus size={16} /> Create Today's Scrims
-                      </button>
-                      <button
-                        className="action-btn"
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(139,92,246,0.2)', border: '1px solid rgba(139,92,246,0.5)', color: '#c084fc' }}
-                        onClick={() => handleOpenSlotModal('weekend')}
-                      >
-                        ⚔️ Weekend War
-                      </button>
-                      <button
-                        className="action-btn"
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(59,130,246,0.2)', border: '1px solid rgba(59,130,246,0.5)', color: '#60a5fa' }}
-                        onClick={() => handleOpenSlotModal('weekly')}
-                      >
-                        🛡️ Weekly War
+                        <Plus size={18} /> Create Slot
                       </button>
                     </div>
                   </div>
@@ -5076,7 +5002,10 @@ const AdminDashboard = () => {
 
                   <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                     <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                      <label>Match / Tournament Title *</label>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <label style={{ margin: 0 }}>Match / Tournament Title *</label>
+                        <span style={{ fontSize: '0.72rem', color: '#a855f7' }}>⚡ 1-Click Fill</span>
+                      </div>
                       <input
                         type="text"
                         value={formData.matchName || ''}
@@ -5084,6 +5013,42 @@ const AdminDashboard = () => {
                         placeholder="e.g. RISING 1-3 GRIND SCRIMS"
                         required
                       />
+                      <div style={{ display: 'flex', gap: '0.35rem', marginTop: '0.35rem', flexWrap: 'wrap' }}>
+                        {[
+                          { label: '01-03 PM Scrim', name: 'RMC 01-03 PM GRIND SCRIMS', time: '01:00 PM' },
+                          { label: '03-05 PM Scrim', name: 'RMC 03-05 PM GRIND SCRIMS', time: '03:00 PM' },
+                          { label: '07-09 PM Scrim', name: 'RMC 07-09 PM GRIND SCRIMS', time: '07:00 PM' },
+                          { label: '09-11 PM Scrim', name: 'RMC 09-11 PM GRIND SCRIMS', time: '09:00 PM' },
+                        ].map((preset) => (
+                          <button
+                            key={preset.label}
+                            type="button"
+                            onClick={() => {
+                              setFormData(prev => ({
+                                ...prev,
+                                matchName: preset.name,
+                                timing: preset.time,
+                                scheduleMatches: [
+                                  { label: 'MATCH 1 (ERANGEL)', time: preset.time },
+                                  { label: 'MATCH 2 (RONDO)', time: '02:00 PM' },
+                                  { label: 'MATCH 3 (MIRAMAR)', time: '03:00 PM' }
+                                ]
+                              }));
+                            }}
+                            style={{
+                              background: 'rgba(124, 58, 237, 0.15)',
+                              border: '1px solid rgba(124, 58, 237, 0.35)',
+                              color: '#c084fc',
+                              fontSize: '0.72rem',
+                              padding: '2px 8px',
+                              borderRadius: '5px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            {preset.label}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                     <div className="form-group">
                       <label>Category *</label>
@@ -5107,27 +5072,70 @@ const AdminDashboard = () => {
                         placeholder="e.g. LOBBY 01, LOBBY 02"
                         required
                       />
+                      <div style={{ display: 'flex', gap: '0.3rem', marginTop: '0.35rem' }}>
+                        {['LOBBY 1', 'LOBBY 2', 'LOBBY 3'].map(l => (
+                          <button
+                            key={l}
+                            type="button"
+                            onClick={() => setFormData({ ...formData, lobby: l })}
+                            style={{
+                              background: formData.lobby === l ? 'rgba(124, 58, 237, 0.4)' : 'rgba(255, 255, 255, 0.05)',
+                              border: `1px solid ${formData.lobby === l ? '#a855f7' : 'rgba(255, 255, 255, 0.1)'}`,
+                              color: formData.lobby === l ? '#fff' : '#94a3b8',
+                              fontSize: '0.72rem',
+                              padding: '2px 8px',
+                              borderRadius: '5px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            {l}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                     <div className="form-group">
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <label style={{ margin: 0 }}>Scheduled Date *</label>
-                        <button
-                          type="button"
-                          onClick={() => setFormData(prev => ({ ...prev, date: formatDateForSlot(new Date()) }))}
-                          style={{
-                            background: 'rgba(168, 85, 247, 0.15)',
-                            border: '1px solid rgba(168, 85, 247, 0.4)',
-                            color: '#c084fc',
-                            fontSize: '0.7rem',
-                            fontWeight: 600,
-                            padding: '1px 7px',
-                            borderRadius: '4px',
-                            cursor: 'pointer'
-                          }}
-                          title="Set date to today"
-                        >
-                          📅 Set to Today
-                        </button>
+                        <div style={{ display: 'flex', gap: '0.3rem' }}>
+                          <button
+                            type="button"
+                            onClick={() => setFormData(prev => ({ ...prev, date: formatDateForSlot(new Date()) }))}
+                            style={{
+                              background: 'rgba(168, 85, 247, 0.15)',
+                              border: '1px solid rgba(168, 85, 247, 0.4)',
+                              color: '#c084fc',
+                              fontSize: '0.7rem',
+                              fontWeight: 600,
+                              padding: '1px 7px',
+                              borderRadius: '4px',
+                              cursor: 'pointer'
+                            }}
+                            title="Set date to today"
+                          >
+                            📅 Today
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const tm = new Date();
+                              tm.setDate(tm.getDate() + 1);
+                              setFormData(prev => ({ ...prev, date: formatDateForSlot(tm) }));
+                            }}
+                            style={{
+                              background: 'rgba(255, 255, 255, 0.06)',
+                              border: '1px solid rgba(255, 255, 255, 0.15)',
+                              color: '#94a3b8',
+                              fontSize: '0.7rem',
+                              fontWeight: 600,
+                              padding: '1px 7px',
+                              borderRadius: '4px',
+                              cursor: 'pointer'
+                            }}
+                            title="Set date to tomorrow"
+                          >
+                            Tomorrow
+                          </button>
+                        </div>
                       </div>
                       <input
                         type="text"
@@ -5153,6 +5161,32 @@ const AdminDashboard = () => {
                         placeholder="e.g. 02:00 PM"
                         required
                       />
+                      <div style={{ display: 'flex', gap: '0.3rem', marginTop: '0.35rem', flexWrap: 'wrap' }}>
+                        {['01:00 PM', '03:00 PM', '07:00 PM', '09:00 PM'].map(t => (
+                          <button
+                            key={t}
+                            type="button"
+                            onClick={() => {
+                              setFormData(prev => {
+                                const sm = [...(prev.scheduleMatches || [])];
+                                if (sm.length > 0) sm[0] = { ...sm[0], time: t };
+                                return { ...prev, timing: t, scheduleMatches: sm };
+                              });
+                            }}
+                            style={{
+                              background: formData.timing === t ? 'rgba(124, 58, 237, 0.4)' : 'rgba(255, 255, 255, 0.05)',
+                              border: `1px solid ${formData.timing === t ? '#a855f7' : 'rgba(255, 255, 255, 0.1)'}`,
+                              color: formData.timing === t ? '#fff' : '#94a3b8',
+                              fontSize: '0.72rem',
+                              padding: '2px 8px',
+                              borderRadius: '5px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            {t}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                     <div className="form-group">
                       <label>Entry Fee (₹) *</label>
@@ -5163,6 +5197,26 @@ const AdminDashboard = () => {
                         onChange={e => setFormData({ ...formData, entryFee: Number(e.target.value), price: Number(e.target.value) })}
                         required
                       />
+                      <div style={{ display: 'flex', gap: '0.3rem', marginTop: '0.35rem' }}>
+                        {[0, 60, 100, 150].map(fee => (
+                          <button
+                            key={fee}
+                            type="button"
+                            onClick={() => setFormData({ ...formData, entryFee: fee, price: fee })}
+                            style={{
+                              background: (formData.entryFee ?? 60) === fee ? 'rgba(124, 58, 237, 0.4)' : 'rgba(255, 255, 255, 0.05)',
+                              border: `1px solid ${(formData.entryFee ?? 60) === fee ? '#a855f7' : 'rgba(255, 255, 255, 0.1)'}`,
+                              color: (formData.entryFee ?? 60) === fee ? '#fff' : '#94a3b8',
+                              fontSize: '0.72rem',
+                              padding: '2px 8px',
+                              borderRadius: '5px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            {fee === 0 ? 'Free' : `₹${fee}`}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                     <div className="form-group">
                       <label>Total Prize Pool (₹) *</label>
@@ -5174,8 +5228,28 @@ const AdminDashboard = () => {
                         placeholder="e.g. 5000"
                         required
                       />
+                      <div style={{ display: 'flex', gap: '0.3rem', marginTop: '0.35rem' }}>
+                        {[500, 1000, 5000, 10000].map(pz => (
+                          <button
+                            key={pz}
+                            type="button"
+                            onClick={() => setFormData({ ...formData, prizePoolTotal: pz })}
+                            style={{
+                              background: (formData.prizePoolTotal ?? 5000) === pz ? 'rgba(124, 58, 237, 0.4)' : 'rgba(255, 255, 255, 0.05)',
+                              border: `1px solid ${(formData.prizePoolTotal ?? 5000) === pz ? '#a855f7' : 'rgba(255, 255, 255, 0.1)'}`,
+                              color: (formData.prizePoolTotal ?? 5000) === pz ? '#fff' : '#94a3b8',
+                              fontSize: '0.72rem',
+                              padding: '2px 8px',
+                              borderRadius: '5px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            ₹{pz}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    <div className="form-group">
+                    <div className="form-group" style={{ gridColumn: 'span 2' }}>
                       <label>Total Slots / Max Teams *</label>
                       <input
                         type="number"
@@ -5184,107 +5258,26 @@ const AdminDashboard = () => {
                         onChange={e => setFormData({ ...formData, maxTeams: Number(e.target.value) })}
                         required
                       />
-                    </div>
-                    <div className="form-group">
-                      <label>Registration Status</label>
-                      <select
-                        value={formData.registrationStatus || 'Open'}
-                        onChange={e => setFormData({ ...formData, registrationStatus: e.target.value })}
-                        className="se-select"
-                      >
-                        <option value="Open">Registration Open</option>
-                        <option value="Upcoming">Upcoming</option>
-                        <option value="Closed">Registration Closed</option>
-                        <option value="Full">Lobby Full</option>
-                        <option value="Ongoing">Ongoing / Live</option>
-                        <option value="Completed">Completed</option>
-                        <option value="Cancelled">Cancelled</option>
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label>Tournament Visibility</label>
-                      <select
-                        value={formData.isPublished !== false ? 'published' : 'draft'}
-                        onChange={e => setFormData({ ...formData, isPublished: e.target.value === 'published' })}
-                        className="se-select"
-                      >
-                        <option value="published">Published (Visible to Players)</option>
-                        <option value="draft">Draft (Hidden from Public)</option>
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label>Map Rotation (comma separated)</label>
-                      <input
-                        type="text"
-                        value={Array.isArray(formData.maps) ? formData.maps.join(', ') : (formData.maps || '')}
-                        onChange={e => setFormData({ ...formData, maps: e.target.value })}
-                        placeholder="ERANGEL, RONDO, MIRAMAR"
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>Registration Opens At (Optional)</label>
-                      <input
-                        type="text"
-                        value={formData.registrationOpenTime || ''}
-                        onChange={e => setFormData({ ...formData, registrationOpenTime: e.target.value })}
-                        placeholder="e.g. 10:00 AM 10 Oct 2026"
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>Registration Closes At (Optional)</label>
-                      <input
-                        type="text"
-                        value={formData.registrationCloseTime || ''}
-                        onChange={e => setFormData({ ...formData, registrationCloseTime: e.target.value })}
-                        placeholder="e.g. 01:30 PM 10 Oct 2026"
-                      />
-                    </div>
-                    <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                      <label>Tournament Poster / Banner Image</label>
-                      <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                        {(formData.heroImage || formData.heroImagePreview) && (
-                          <img
-                            src={formData.heroImagePreview || formData.heroImage}
-                            alt="Preview"
-                            style={{ width: '80px', height: '50px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #a855f7' }}
-                          />
-                        )}
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={e => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              setFormData({
-                                ...formData,
-                                heroImageFile: file,
-                                heroImagePreview: URL.createObjectURL(file),
-                              });
-                            }
-                          }}
-                          style={{ flex: 1, padding: '0.4rem', background: 'rgba(255,255,255,0.05)', borderRadius: '6px' }}
-                        />
+                      <div style={{ display: 'flex', gap: '0.3rem', marginTop: '0.35rem' }}>
+                        {[19, 20, 25].map(st => (
+                          <button
+                            key={st}
+                            type="button"
+                            onClick={() => setFormData({ ...formData, maxTeams: st })}
+                            style={{
+                              background: (formData.maxTeams ?? 20) === st ? 'rgba(124, 58, 237, 0.4)' : 'rgba(255, 255, 255, 0.05)',
+                              border: `1px solid ${(formData.maxTeams ?? 20) === st ? '#a855f7' : 'rgba(255, 255, 255, 0.1)'}`,
+                              color: (formData.maxTeams ?? 20) === st ? '#fff' : '#94a3b8',
+                              fontSize: '0.72rem',
+                              padding: '2px 8px',
+                              borderRadius: '5px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            {st} Teams
+                          </button>
+                        ))}
                       </div>
-                    </div>
-                    <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                      <label>Tournament Overview / Description (shown on details page)</label>
-                      <textarea
-                        rows={3}
-                        value={formData.description || ''}
-                        onChange={e => setFormData({ ...formData, description: e.target.value })}
-                        placeholder="Daily grind scrims for all the passionate BGMI players. Compete, showcase your skills and win exciting rewards!"
-                        style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(139,92,246,0.3)', borderRadius: '8px', color: '#fff', padding: '0.65rem' }}
-                      />
-                    </div>
-                    <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                      <label>Optional Rules &amp; Instructions</label>
-                      <textarea
-                        rows={2}
-                        value={formData.rules || ''}
-                        onChange={e => setFormData({ ...formData, rules: e.target.value })}
-                        placeholder="1. Emulators/iPads strictly prohibited. 2. Match starts on time. 3. Respect lobby slots."
-                        style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(139,92,246,0.3)', borderRadius: '8px', color: '#fff', padding: '0.65rem' }}
-                      />
                     </div>
                   </div>
 
@@ -5405,60 +5398,198 @@ const AdminDashboard = () => {
                     </div>
                   </div>
 
-                  {/* Credentials */}
-                  <div className="se-credentials-box" style={{ marginTop: '1rem' }}>
-                    <div className="se-grid-2">
-                      <div className="se-field">
-                        <label style={{ color: '#a78bfa', fontWeight: '700' }}>🔑 Room ID</label>
-                        <input
-                          type="text"
-                          value={formData.roomId || ''}
-                          onChange={e => setFormData({ ...formData, roomId: e.target.value })}
-                          placeholder="e.g. 84729103"
-                          style={{ borderColor: 'rgba(167, 139, 250, 0.4)', background: 'rgba(167, 139, 250, 0.05)' }}
-                        />
+                  {/* Collapsible Advanced Settings for Admin / Client */}
+                  <div style={{ marginTop: '1.2rem', borderRadius: '10px', border: '1px solid rgba(168, 85, 247, 0.3)', background: 'rgba(18, 14, 38, 0.7)', overflow: 'hidden' }}>
+                    <button
+                      type="button"
+                      onClick={() => setShowAdvancedSlotFields(!showAdvancedSlotFields)}
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem 1rem',
+                        background: 'rgba(124, 58, 237, 0.15)',
+                        border: 'none',
+                        color: '#c084fc',
+                        fontWeight: '700',
+                        fontSize: '0.86rem',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        ⚙️ Advanced &amp; Optional Settings (Room ID, Password, Rules, Poster, WhatsApp)
+                      </span>
+                      <span>{showAdvancedSlotFields ? '▲ Hide' : '▼ Show (Optional)'}</span>
+                    </button>
+                    {showAdvancedSlotFields && (
+                      <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        {/* Credentials */}
+                        <div className="se-credentials-box" style={{ margin: 0 }}>
+                          <div className="se-grid-2">
+                            <div className="se-field">
+                              <label style={{ color: '#a78bfa', fontWeight: '700' }}>🔑 Room ID</label>
+                              <input
+                                type="text"
+                                value={formData.roomId || ''}
+                                onChange={e => setFormData({ ...formData, roomId: e.target.value })}
+                                placeholder="e.g. 84729103"
+                                style={{ borderColor: 'rgba(167, 139, 250, 0.4)', background: 'rgba(167, 139, 250, 0.05)' }}
+                              />
+                            </div>
+                            <div className="se-field">
+                              <label style={{ color: '#a78bfa', fontWeight: '700' }}>🔒 Room Password</label>
+                              <input
+                                type="text"
+                                value={formData.roomPassword || ''}
+                                onChange={e => setFormData({ ...formData, roomPassword: e.target.value })}
+                                placeholder="e.g. pass123"
+                                style={{ borderColor: 'rgba(167, 139, 250, 0.4)', background: 'rgba(167, 139, 250, 0.05)' }}
+                              />
+                            </div>
+                          </div>
+                          <div className="se-grid-2" style={{ marginTop: '0.8rem' }}>
+                            <div className="se-field">
+                              <label>ID / Password Note</label>
+                              <input
+                                type="text"
+                                value={formData.note || ''}
+                                onChange={e => setFormData({ ...formData, note: e.target.value })}
+                                placeholder="e.g. Will be provided 30 min before match"
+                              />
+                            </div>
+                            <div className="se-field">
+                              <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="#25d366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
+                                WhatsApp Group Link
+                              </label>
+                              <input
+                                type="url"
+                                value={formData.whatsappLink || ''}
+                                onChange={e => setFormData({ ...formData, whatsappLink: e.target.value })}
+                                placeholder="https://chat.whatsapp.com/..."
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Status & Visibility */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                          <div className="form-group">
+                            <label>Registration Status</label>
+                            <select
+                              value={formData.registrationStatus || 'Open'}
+                              onChange={e => setFormData({ ...formData, registrationStatus: e.target.value })}
+                              className="se-select"
+                            >
+                              <option value="Open">Registration Open</option>
+                              <option value="Upcoming">Upcoming</option>
+                              <option value="Closed">Registration Closed</option>
+                              <option value="Full">Lobby Full</option>
+                              <option value="Ongoing">Ongoing / Live</option>
+                              <option value="Completed">Completed</option>
+                              <option value="Cancelled">Cancelled</option>
+                            </select>
+                          </div>
+                          <div className="form-group">
+                            <label>Tournament Visibility</label>
+                            <select
+                              value={formData.isPublished !== false ? 'published' : 'draft'}
+                              onChange={e => setFormData({ ...formData, isPublished: e.target.value === 'published' })}
+                              className="se-select"
+                            >
+                              <option value="published">Published (Visible to Players)</option>
+                              <option value="draft">Draft (Hidden from Public)</option>
+                            </select>
+                          </div>
+                          <div className="form-group">
+                            <label>Registration Opens At (Optional)</label>
+                            <input
+                              type="text"
+                              value={formData.registrationOpenTime || ''}
+                              onChange={e => setFormData({ ...formData, registrationOpenTime: e.target.value })}
+                              placeholder="e.g. 10:00 AM 10 Oct 2026"
+                            />
+                          </div>
+                          <div className="form-group">
+                            <label>Registration Closes At (Optional)</label>
+                            <input
+                              type="text"
+                              value={formData.registrationCloseTime || ''}
+                              onChange={e => setFormData({ ...formData, registrationCloseTime: e.target.value })}
+                              placeholder="e.g. 01:30 PM 10 Oct 2026"
+                            />
+                          </div>
+                          <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                            <label>Map Rotation (comma separated)</label>
+                            <input
+                              type="text"
+                              value={Array.isArray(formData.maps) ? formData.maps.join(', ') : (formData.maps || '')}
+                              onChange={e => setFormData({ ...formData, maps: e.target.value })}
+                              placeholder="ERANGEL, RONDO, MIRAMAR"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Poster / Banner */}
+                        <div className="form-group">
+                          <label>Tournament Poster / Banner Image</label>
+                          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                            {(formData.heroImage || formData.heroImagePreview) && (
+                              <img
+                                src={formData.heroImagePreview || formData.heroImage}
+                                alt="Preview"
+                                style={{ width: '80px', height: '50px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #a855f7' }}
+                              />
+                            )}
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={e => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  setFormData({
+                                    ...formData,
+                                    heroImageFile: file,
+                                    heroImagePreview: URL.createObjectURL(file),
+                                  });
+                                }
+                              }}
+                              style={{ flex: 1, padding: '0.4rem', background: 'rgba(255,255,255,0.05)', borderRadius: '6px' }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Overview & Rules */}
+                        <div className="form-group">
+                          <label>Tournament Overview / Description</label>
+                          <textarea
+                            rows={2}
+                            value={formData.description || ''}
+                            onChange={e => setFormData({ ...formData, description: e.target.value })}
+                            placeholder="Daily grind scrims for all the passionate BGMI players. Compete, showcase your skills and win exciting rewards!"
+                            style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(139,92,246,0.3)', borderRadius: '8px', color: '#fff', padding: '0.65rem' }}
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label>Rules &amp; Instructions</label>
+                          <textarea
+                            rows={2}
+                            value={formData.rules || ''}
+                            onChange={e => setFormData({ ...formData, rules: e.target.value })}
+                            placeholder="1. Emulators/iPads strictly prohibited. 2. Match starts on time. 3. Respect lobby slots."
+                            style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(139,92,246,0.3)', borderRadius: '8px', color: '#fff', padding: '0.65rem' }}
+                          />
+                        </div>
                       </div>
-                      <div className="se-field">
-                        <label style={{ color: '#a78bfa', fontWeight: '700' }}>🔒 Room Password</label>
-                        <input
-                          type="text"
-                          value={formData.roomPassword || ''}
-                          onChange={e => setFormData({ ...formData, roomPassword: e.target.value })}
-                          placeholder="e.g. pass123"
-                          style={{ borderColor: 'rgba(167, 139, 250, 0.4)', background: 'rgba(167, 139, 250, 0.05)' }}
-                        />
-                      </div>
-                    </div>
-                    <div className="se-grid-2" style={{ marginTop: '0.8rem' }}>
-                      <div className="se-field">
-                        <label>ID / Password Note</label>
-                        <input
-                          type="text"
-                          value={formData.note || ''}
-                          onChange={e => setFormData({ ...formData, note: e.target.value })}
-                          placeholder="e.g. Will be provided 30 min before match"
-                        />
-                      </div>
-                      <div className="se-field">
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="#25d366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
-                          WhatsApp Group Link
-                        </label>
-                        <input
-                          type="url"
-                          value={formData.whatsappLink || ''}
-                          onChange={e => setFormData({ ...formData, whatsappLink: e.target.value })}
-                          placeholder="https://chat.whatsapp.com/..."
-                        />
-                      </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               ) : null}
               <div className="modal-footer">
                 <button type="button" className="tab-btn cancel-btn" onClick={() => setShowModal(false)}>Cancel</button>
                 <button type="submit" className="tab-btn active" disabled={isSubmitting}>
-                  {isSubmitting ? 'Saving...' : 'Save Changes'}
+                  {isSubmitting ? 'Saving...' : (formData._id ? 'Update Slot' : '🚀 Create Slot')}
                 </button>
               </div>
             </form>

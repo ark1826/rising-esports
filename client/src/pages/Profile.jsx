@@ -27,119 +27,18 @@ import {
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-const MAP_DROP_OPTIONS = {
-  Erangel: [
-    'Pochinki',
-    'School / Apartments',
-    'Rozhok',
-    'Georgopol (City & Crates)',
-    'Military Base (Sosnovka)',
-    'Yasnaya Polyana',
-    'Novorepnoye',
-    'Mylta / Mylta Power',
-    'Severny',
-    'Gatka',
-    'Primorsk',
-    'Lipovka',
-    'Shelter / Prison',
-    'Mansion',
-    'Quarry / Ferry Pier',
-    'Zharki',
-    'Kameshki / Stalber',
-  ],
-  Miramar: [
-    'Pecado',
-    'Hacienda del Patron',
-    'Los Leones',
-    'San Martin',
-    'El Pozo',
-    'Chumacera',
-    'Impala',
-    'Monte Nuevo',
-    'Campo Militar',
-    'Valle del Mar',
-    'Minas Generales',
-    'Puerto Paraiso',
-    'La Cobreria',
-    'Tierra Robada',
-    'Water Treatment',
-  ],
-  Rondo: [
-    'Jadena City',
-    'Neoox',
-    'Stadium',
-    'Yu Lin',
-    'Tin Long Garden',
-    'Mey Ran',
-    'Dan Sang',
-    'Bei Li',
-    'Rin Jiang',
-    'Lo Hua Xing',
-    'Hung Shan',
-    'Fang',
-  ],
-};
-
-function DropLocationField({ mapName, badgeClass, options, value, onChange }) {
-  const isPredefined = options.includes(value);
-  const [isOtherSelected, setIsOtherSelected] = useState(!isPredefined && Boolean(value));
-
-  useEffect(() => {
-    if (!options.includes(value) && Boolean(value)) {
-      setIsOtherSelected(true);
-    } else if (options.includes(value)) {
-      setIsOtherSelected(false);
-    }
-  }, [value, options]);
-
-  const selectValue = isOtherSelected ? 'Other' : (isPredefined ? value : '');
-
-  const handleSelectChange = (e) => {
-    const selected = e.target.value;
-    if (selected === 'Other') {
-      setIsOtherSelected(true);
-      if (options.includes(value)) {
-        onChange('');
-      }
-    } else {
-      setIsOtherSelected(false);
-      onChange(selected);
-    }
-  };
-
+function DropLocationField({ mapName, badgeClass, value, onChange }) {
   return (
     <div className="drop-field-item">
       <div className={`drop-map-badge ${badgeClass}`}>{mapName}</div>
       <div className="drop-field-controls">
-        <select
-          className="drop-location-select"
-          value={selectValue}
-          onChange={handleSelectChange}
-        >
-          <option value="">-- Select {mapName} Drop Location --</option>
-          {options.map((opt) => (
-            <option key={opt} value={opt}>
-              {opt}
-            </option>
-          ))}
-          <option value="Other">Other (Specify Custom Location)</option>
-        </select>
-
-        {isOtherSelected && (
-          <div className="custom-drop-input-wrap">
-            <input
-              type="text"
-              className="custom-drop-input"
-              placeholder={`Specify custom ${mapName} location (e.g. compound / split)...`}
-              value={options.includes(value) ? '' : value}
-              onChange={(e) => onChange(e.target.value)}
-              autoFocus
-            />
-            <span className="custom-drop-helper-text">
-              ✏️ Enter custom compound or split drop location
-            </span>
-          </div>
-        )}
+        <input
+          type="text"
+          className="drop-location-input"
+          placeholder={`Enter ${mapName} drop location...`}
+          value={value || ''}
+          onChange={(e) => onChange(e.target.value)}
+        />
       </div>
     </div>
   );
@@ -754,7 +653,6 @@ function Profile() {
                 <DropLocationField
                   mapName="Erangel"
                   badgeClass="map-erangel"
-                  options={MAP_DROP_OPTIONS.Erangel}
                   value={profileData.erangelDrop}
                   onChange={(val) => setProfileData((prev) => ({ ...prev, erangelDrop: val }))}
                 />
@@ -762,7 +660,6 @@ function Profile() {
                 <DropLocationField
                   mapName="Miramar"
                   badgeClass="map-miramar"
-                  options={MAP_DROP_OPTIONS.Miramar}
                   value={profileData.miramarDrop}
                   onChange={(val) => setProfileData((prev) => ({ ...prev, miramarDrop: val }))}
                 />
@@ -770,7 +667,6 @@ function Profile() {
                 <DropLocationField
                   mapName="Rondo"
                   badgeClass="map-rondo"
-                  options={MAP_DROP_OPTIONS.Rondo}
                   value={profileData.rondoDrop}
                   onChange={(val) => setProfileData((prev) => ({ ...prev, rondoDrop: val }))}
                 />

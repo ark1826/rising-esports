@@ -1,3 +1,29 @@
+/* ── Drop Location Manual Inputs ── */
+.drop-location-input {
+  width: 100% !important;
+  box-sizing: border-box;
+  background: rgba(18, 14, 38, 0.85) !important;
+  border: 1px solid rgba(168, 85, 247, 0.35) !important;
+  border-radius: 10px !important;
+  padding: 0.8rem 1rem !important;
+  color: #ffffff !important;
+  font-size: 0.92rem !important;
+  font-family: 'Inter', sans-serif !important;
+  outline: none !important;
+  transition: all 0.2s ease !important;
+}
+
+.drop-location-input:focus {
+  border-color: #c084fc !important;
+  box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.25), 0 0 12px rgba(168, 85, 247, 0.2) !important;
+  background: rgba(24, 18, 50, 0.95) !important;
+}
+
+.drop-location-input::placeholder {
+  color: rgba(167, 139, 250, 0.45) !important;
+  font-size: 0.85rem !important;
+}
+
 /* ==========================================================================
    RISING ESPORTS - HOME & APP SHELL REDESIGN
    Cyberpunk Purple / Dark Esports Aesthetics
@@ -1546,23 +1572,41 @@
 }
 .explore-grid-2x2 {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.65rem;
+  grid-template-columns: 1fr;
+  gap: 0.85rem;
 }
+
+/* On tablet and above: restore 2-column grid */
+@media (min-width: 540px) {
+  .explore-grid-2x2 {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.65rem;
+  }
+}
+
 .explore-cat-card {
   position: relative;
   background: linear-gradient(180deg, rgba(22, 16, 44, 0.95) 0%, rgba(10, 6, 22, 0.98) 100%);
   border-radius: 16px;
-  padding: 0.75rem 0.75rem 0.85rem;
+  padding: 1rem 1rem 1.15rem;
   overflow: hidden;
   cursor: pointer;
   transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
-  min-height: 162px;
-  height: 168px;
+  min-height: 210px;
+  height: 225px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+}
+
+/* On tablet and above: restore original square height */
+@media (min-width: 540px) {
+  .explore-cat-card {
+    min-height: 162px;
+    height: 168px;
+    padding: 0.75rem 0.75rem 0.85rem;
+  }
 }
 .explore-cat-card:active {
   transform: scale(0.97);
@@ -1621,12 +1665,12 @@
   left: 0;
   right: 0;
   bottom: 0;
-  opacity: 0.48;
+  opacity: 0.52;
   background-size: cover;
-  background-position: center 20%;
+  background-position: center 25%;
   pointer-events: none;
-  mask-image: linear-gradient(to top, rgba(0,0,0,1) 45%, rgba(0,0,0,0.65) 75%, rgba(0,0,0,0.2) 100%);
-  -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,1) 45%, rgba(0,0,0,0.65) 75%, rgba(0,0,0,0.2) 100%);
+  mask-image: linear-gradient(to top, rgba(0,0,0,1) 45%, rgba(0,0,0,0.7) 75%, rgba(0,0,0,0.2) 100%);
+  -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,1) 45%, rgba(0,0,0,0.7) 75%, rgba(0,0,0,0.2) 100%);
 }
 .explore-cat-bottom {
   position: relative;
@@ -1634,7 +1678,7 @@
   margin-top: auto;
 }
 .explore-cat-name {
-  font-size: 0.98rem;
+  font-size: 1.15rem;
   font-weight: 900;
   color: #ffffff;
   text-transform: uppercase;
@@ -1643,6 +1687,12 @@
   line-height: 1.15;
   margin-bottom: 2px;
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
+}
+
+@media (min-width: 540px) {
+  .explore-cat-name {
+    font-size: 0.98rem;
+  }
 }
 .explore-cat-sub {
   font-size: 0.68rem;
@@ -1939,138 +1989,231 @@
   position: relative;
 }
 
-/* Category Slot Cards (Screens 2 & 7) */
+/* Category Slot Cards - Redesigned as per user screenshot in Cyberpunk Purple Theme */
 .cat-slot-card-item {
-  background: linear-gradient(135deg, rgba(20, 14, 40, 0.95), rgba(14, 9, 28, 0.98));
-  border: 1px solid rgba(139, 92, 246, 0.25);
-  border-radius: 14px;
-  padding: 0.85rem;
-  margin-bottom: 0.85rem;
+  position: relative;
+  background: linear-gradient(135deg, rgba(20, 14, 40, 0.95) 0%, rgba(12, 8, 26, 0.98) 100%);
+  border: 1.5px solid rgba(168, 85, 247, 0.35);
+  border-radius: 18px;
+  padding: 1.15rem 1rem 1rem;
+  margin-bottom: 1rem;
   display: flex;
+  flex-direction: column;
   gap: 0.85rem;
-  align-items: center;
-  transition: transform 0.2s ease, border-color 0.2s ease;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55), inset 0 0 16px rgba(139, 92, 246, 0.04);
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  overflow: hidden;
 }
+
 .cat-slot-card-item:hover {
   transform: translateY(-2px);
-  border-color: rgba(168, 85, 247, 0.5);
+  border-color: rgba(192, 132, 252, 0.65);
+  box-shadow: 0 10px 28px rgba(124, 58, 237, 0.22);
 }
-.cat-slot-thumb {
-  width: 72px;
-  height: 72px;
-  border-radius: 10px;
-  overflow: hidden;
-  position: relative;
-  background: #1e1b4b;
-  flex-shrink: 0;
-}
-.cat-slot-thumb img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-.cat-slot-thumb-badge {
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  background: rgba(109, 40, 217, 0.85);
-  color: #ffffff;
-  font-size: 0.52rem;
-  font-weight: 800;
-  padding: 1px 4px;
-  border-radius: 3px;
-}
-.cat-slot-info {
-  flex: 1;
-  min-width: 0;
-}
-.cat-slot-top-row {
+
+/* Card Header: Title on Left, Lobby Badge on Right */
+.cat-slot-header-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 0.2rem;
+  gap: 0.75rem;
 }
+
 .cat-slot-card-title {
-  font-size: 0.88rem;
-  font-weight: 800;
-  color: #ffffff;
   font-family: 'Outfit', sans-serif;
+  font-size: 1.12rem;
+  font-weight: 900;
+  color: #ffffff;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
   margin: 0;
+  line-height: 1.25;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.cat-slot-badges {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  margin-bottom: 0.4rem;
-}
-.cat-badge-game {
-  background: rgba(124, 58, 237, 0.35);
-  border: 1px solid rgba(168, 85, 247, 0.4);
+
+.cat-slot-lobby-badge {
+  background: rgba(139, 92, 246, 0.14);
+  border: 1.5px solid rgba(168, 85, 247, 0.55);
   color: #c084fc;
-  font-size: 0.6rem;
-  font-weight: 800;
-  padding: 1px 6px;
-  border-radius: 4px;
-}
-.cat-badge-lobby {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #cbd5e1;
-  font-size: 0.6rem;
-  font-weight: 700;
-  padding: 1px 6px;
-  border-radius: 4px;
-}
-.cat-slot-stats-row {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 0.45rem;
-}
-.cat-slot-stat {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  font-size: 0.68rem;
-  color: #cbd5e1;
-  font-weight: 600;
-}
-.cat-slot-stat strong {
-  color: #ffffff;
-  font-weight: 800;
-}
-.cat-slot-bottom-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.cat-slot-time {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: 0.68rem;
-  color: #94a3b8;
-  font-weight: 600;
-}
-.cat-slot-cta-btn {
-  background: linear-gradient(135deg, #6d28d9, #8b5cf6);
-  color: #ffffff;
-  border: none;
+  font-family: 'Orbitron', 'Outfit', sans-serif;
   font-size: 0.72rem;
   font-weight: 800;
-  padding: 0.35rem 0.85rem;
-  border-radius: 16px;
+  letter-spacing: 0.8px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+/* Row 1: 5-Pillar Prize Distribution Grid */
+.cat-slot-prize-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.45rem;
+}
+
+.cat-slot-prize-chip {
+  background: rgba(10, 7, 24, 0.85);
+  border: 1px solid rgba(139, 92, 246, 0.22);
+  border-radius: 10px;
+  padding: 7px 2px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  transition: border-color 0.2s ease;
+}
+
+.cat-slot-prize-chip.highlight-first {
+  border: 1.5px solid rgba(251, 191, 36, 0.65);
+  box-shadow: 0 0 10px rgba(251, 191, 36, 0.15);
+  background: rgba(251, 191, 36, 0.05);
+}
+
+.cat-slot-prize-rank {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #94a3b8;
+  line-height: 1;
+}
+
+.cat-slot-prize-chip.highlight-first .cat-slot-prize-rank {
+  color: #fde68a;
+}
+
+.cat-slot-prize-amount {
+  font-size: 0.88rem;
+  font-weight: 900;
+  color: #ffffff;
+  line-height: 1.1;
+  font-family: 'Inter', sans-serif;
+}
+
+.cat-slot-prize-amount.gold {
+  color: #fbbf24;
+}
+
+.cat-slot-prize-amount.free {
+  color: #38bdf8;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+}
+
+/* Row 2: 3-Pillar Match Times Grid */
+.cat-slot-matches-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.55rem;
+}
+
+.cat-slot-match-chip {
+  background: rgba(10, 7, 24, 0.85);
+  border: 1px solid rgba(139, 92, 246, 0.22);
+  border-radius: 12px;
+  padding: 8px 4px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+}
+
+.cat-slot-match-map {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  line-height: 1.1;
+}
+
+.cat-slot-match-time {
+  font-size: 0.95rem;
+  font-weight: 900;
+  color: #ffffff;
+  font-family: 'Inter', sans-serif;
+  line-height: 1.15;
+}
+
+/* Row 3: 3 Action Buttons (Drop Chart, Teams, Info) */
+.cat-slot-actions-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.55rem;
+}
+
+.cat-slot-action-btn {
+  background: rgba(14, 10, 32, 0.9);
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  border-radius: 12px;
+  padding: 8px 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  color: #ffffff;
+  font-size: 0.8rem;
+  font-weight: 800;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(109, 40, 217, 0.35);
   transition: all 0.2s ease;
   white-space: nowrap;
 }
-.cat-slot-cta-btn:hover {
+
+.cat-slot-action-btn:hover {
+  background: rgba(124, 58, 237, 0.22);
+  border-color: #c084fc;
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(109, 40, 217, 0.55);
+}
+
+/* Row 4: Bottom Banner (PAY ₹60 | X/Y SLOTS) in Cyberpunk Purple Theme */
+.cat-slot-bottom-banner {
+  background: linear-gradient(135deg, #7c3aed 0%, #9333ea 50%, #a855f7 100%);
+  border-radius: 14px;
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  box-shadow: 0 4px 18px rgba(124, 58, 237, 0.35);
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.cat-slot-bottom-banner:hover {
+  transform: scale(1.01);
+  box-shadow: 0 6px 22px rgba(168, 85, 247, 0.55);
+}
+
+.cat-slot-pay-pill {
+  background: rgba(0, 0, 0, 0.28);
+  border-radius: 8px;
+  padding: 6px 14px;
+  color: #ffffff;
+  font-family: 'Outfit', 'Inter', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-transform: uppercase;
+}
+
+.cat-slot-slots-count-pill {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  padding: 6px 14px;
+  color: #ffffff;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.86rem;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
 }
 
 /* ========================================================
@@ -2460,4 +2603,456 @@
   color: #38bdf8;
   font-weight: 900;
 }
+
+/* ─────────────────────────────────────────────────────────────
+   REGISTERED TEAMS & DROP LIST MODAL V2 (Faithful to Target Video)
+   Cyberpunk Purple Theme Matching Existing Website
+   ───────────────────────────────────────────────────────────── */
+
+.ts-droplist-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(4, 2, 10, 0.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem;
+}
+
+.ts-droplist-modal-content-wrap {
+  width: 100%;
+  max-width: 580px;
+  position: relative;
+  z-index: 2;
+  animation: v2ModalPop 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes v2ModalPop {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.v2-droplist-modal-card {
+  width: 100%;
+  background: #0f0a20;
+  background: linear-gradient(180deg, #130d2a 0%, #0c0819 100%);
+  border: 1px solid rgba(168, 85, 247, 0.28);
+  border-radius: 24px;
+  padding: 1.25rem 1.15rem;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9), 0 0 30px rgba(124, 58, 237, 0.18);
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.v2-droplist-modal-card.is-page {
+  max-width: 680px;
+  margin: 2rem auto;
+}
+
+/* Header */
+.v2-reg-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.1rem;
+}
+
+.v2-reg-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.v2-reg-shield-badge {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  border-radius: 12px;
+  background: rgba(124, 58, 237, 0.16);
+  border: 1px solid rgba(168, 85, 247, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #c084fc;
+  box-shadow: 0 0 12px rgba(168, 85, 247, 0.3);
+}
+
+.v2-shield-icon {
+  stroke-width: 2.2;
+}
+
+.v2-reg-title {
+  margin: 0;
+  font-family: 'Outfit', 'Inter', sans-serif;
+  font-size: 1.18rem;
+  font-weight: 900;
+  letter-spacing: 0.8px;
+  color: #ffffff;
+  text-transform: uppercase;
+  line-height: 1.15;
+}
+
+.v2-reg-subtitle {
+  margin: 3px 0 0 0;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  color: #94a3b8;
+  text-transform: uppercase;
+}
+
+.v2-reg-refresh-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.v2-reg-refresh-btn:hover:not(:disabled) {
+  background: rgba(124, 58, 237, 0.2);
+  border-color: #a855f7;
+  color: #c084fc;
+}
+
+.v2-reg-refresh-btn .spin {
+  animation: spin 1s linear infinite;
+}
+
+.v2-reg-close-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #cbd5e1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.v2-reg-close-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: #ef4444;
+  color: #ffffff;
+  transform: scale(1.05);
+}
+
+/* Segmented Switcher Track */
+.v2-segmented-track {
+  display: flex;
+  gap: 0.35rem;
+  padding: 4px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(168, 85, 247, 0.22);
+  margin-bottom: 1.15rem;
+}
+
+.v2-seg-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1rem;
+  border-radius: 9999px;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  font-family: 'Outfit', 'Inter', sans-serif;
+  font-size: 0.84rem;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.v2-seg-btn.active {
+  background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 16px rgba(124, 58, 237, 0.45);
+}
+
+/* 2-Column Teams Grid (Matches Frame 01 Exactly) */
+.v2-teams-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+  max-height: 540px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.v2-teams-grid::-webkit-scrollbar {
+  width: 5px;
+}
+.v2-teams-grid::-webkit-scrollbar-thumb {
+  background: rgba(168, 85, 247, 0.35);
+  border-radius: 10px;
+}
+
+.v2-team-card {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.62rem 0.8rem;
+  border-radius: 14px;
+  background: rgba(24, 18, 46, 0.75);
+  border: 1px solid rgba(168, 85, 247, 0.16);
+  transition: all 0.2s ease;
+  min-width: 0;
+}
+
+.v2-team-card:hover {
+  background: rgba(32, 23, 62, 0.95);
+  border-color: rgba(168, 85, 247, 0.45);
+  transform: translateY(-1px);
+}
+
+.v2-team-avatar-box {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.v2-team-name {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #ffffff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* PDF Button */
+.v2-pdf-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  padding: 0.65rem 1.25rem;
+  border-radius: 9999px;
+  background: rgba(124, 58, 237, 0.12);
+  border: 1.5px solid rgba(168, 85, 247, 0.45);
+  color: #e9d5ff;
+  font-family: 'Outfit', 'Inter', sans-serif;
+  font-size: 0.86rem;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 0.95rem;
+}
+
+.v2-pdf-btn:hover:not(:disabled) {
+  background: rgba(124, 58, 237, 0.32);
+  border-color: #c084fc;
+  color: #ffffff;
+  box-shadow: 0 0 16px rgba(168, 85, 247, 0.35);
+}
+
+.v2-pdf-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Drop Table Card */
+.v2-table-card {
+  background: rgba(18, 14, 38, 0.85);
+  border: 1px solid rgba(168, 85, 247, 0.22);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.v2-table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-height: 520px;
+}
+
+.v2-table-scroll::-webkit-scrollbar {
+  height: 6px;
+  width: 5px;
+}
+.v2-table-scroll::-webkit-scrollbar-thumb {
+  background: rgba(168, 85, 247, 0.35);
+  border-radius: 10px;
+}
+
+.v2-droplist-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 520px;
+}
+
+.v2-droplist-table thead th {
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid rgba(168, 85, 247, 0.2);
+  padding: 0.8rem 0.65rem;
+  font-family: 'Orbitron', 'Outfit', sans-serif;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  text-align: left;
+}
+
+.v2-th-num {
+  width: 44px;
+  text-align: center !important;
+  color: #94a3b8 !important;
+}
+
+.v2-th-team {
+  min-width: 140px;
+  color: #ffffff !important;
+}
+
+.v2-th-erangel {
+  min-width: 125px;
+  color: #c084fc !important;
+}
+
+.v2-th-miramar {
+  min-width: 125px;
+  color: #facc15 !important;
+}
+
+.v2-th-rondo {
+  min-width: 125px;
+  color: #2dd4bf !important;
+}
+
+.v2-table-row {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  transition: background 0.15s ease;
+}
+
+.v2-table-row:hover {
+  background: rgba(124, 58, 237, 0.08);
+}
+
+.v2-td-num {
+  text-align: center;
+  padding: 0.7rem 0.5rem;
+}
+
+.v2-slot-num {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.88rem;
+  font-weight: 900;
+  color: #f43f5e;
+}
+
+.v2-td-team {
+  padding: 0.7rem 0.65rem;
+}
+
+.v2-team-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.v2-td-avatar {
+  flex-shrink: 0;
+}
+
+.v2-td-team-name {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #ffffff;
+  white-space: nowrap;
+}
+
+.v2-td-drop {
+  padding: 0.7rem 0.65rem;
+}
+
+.v2-drop-val {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #f1f5f9;
+}
+
+.v2-drop-empty {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.78rem;
+  font-style: italic;
+  color: #64748b;
+}
+
+.v2-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1.5rem;
+  gap: 0.65rem;
+  text-align: center;
+}
+
+.v2-empty-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.v2-empty-sub {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #94a3b8;
+}
+
+.v2-empty-td {
+  padding: 0 !important;
+}
+
+@media (max-width: 480px) {
+  .v2-droplist-modal-card {
+    padding: 1.1rem 0.9rem;
+    border-radius: 20px;
+  }
+  .v2-teams-grid {
+    gap: 0.5rem;
+  }
+  .v2-team-card {
+    padding: 0.5rem 0.6rem;
+    gap: 0.5rem;
+  }
+  .v2-team-name {
+    font-size: 0.78rem;
+  }
+  .v2-reg-title {
+    font-size: 1.05rem;
+  }
+}
+
 
