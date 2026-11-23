@@ -1430,21 +1430,7 @@ function TodaySlots() {
                     : 'Elite Tournaments'}
                 </div>
               </div>
-              <div className="cat-hero-art" aria-hidden="true">
-                <img
-                  src={soldierBgImg}
-                  alt="Soldier Banner"
-                  style={
-                    selectedCategory === 'WEEKLY WAR'
-                      ? { filter: 'hue-rotate(320deg)' }
-                      : selectedCategory === 'WEEKEND WAR'
-                      ? { filter: 'hue-rotate(45deg)' }
-                      : selectedCategory === 'GRANDS'
-                      ? { filter: 'hue-rotate(180deg)' }
-                      : {}
-                  }
-                />
-              </div>
+
             </div>
           ) : (
             <div className="ts-hero-banner">

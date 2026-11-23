@@ -1844,25 +1844,6 @@
   border-color: rgba(20, 184, 166, 0.35);
   box-shadow: 0 8px 24px rgba(20, 184, 166, 0.2);
 }
-.cat-hero-art {
-  position: absolute;
-  right: -5px;
-  top: 0;
-  bottom: 0;
-  width: 45%;
-  pointer-events: none;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-}
-.cat-hero-art img {
-  height: 100%;
-  width: 100%;
-  object-fit: cover;
-  mask-image: linear-gradient(to left, rgba(0,0,0,1) 30%, rgba(0,0,0,0));
-  -webkit-mask-image: linear-gradient(to left, rgba(0,0,0,1) 30%, rgba(0,0,0,0));
-}
 .cat-hero-badge {
   display: inline-block;
   background: #7c3aed;
