@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { RefreshCw, Trophy, ArrowLeft } from 'lucide-react'
-import soldierBgImg from '../assets/droplist_bg_soldier.jpg'
 
 const STICKER_PALETTES = [
   { bg: 'linear-gradient(135deg, #b91c1c 0%, #7f1d1d 100%)', text: '#fee2e2' },
@@ -22,7 +21,6 @@ function Rankings() {
   const [isUpdating, setIsUpdating] = useState(false)
   const [lastUpdated, setLastUpdated] = useState(null)
   const [activeTab, setActiveTab] = useState('overall')
-  const [featuredMatchName, setFeaturedMatchName] = useState('RISING 1-3 GRIND SCRIMS')
   const intervalRef = useRef(null)
   const isInitialLoad = useRef(true)
 
@@ -63,13 +61,6 @@ function Rankings() {
     fetchRankings(false)
     startPolling()
 
-    // Also fetch latest slot to display its name in hero
-    axios.get(`${apiUrl}/api/slots`).then(res => {
-      if (Array.isArray(res.data) && res.data.length > 0) {
-        setFeaturedMatchName(res.data[0].matchName || 'RISING 1-3 GRIND SCRIMS')
-      }
-    }).catch(() => {})
-
     const handleVisibilityChange = () => {
       if (document.hidden) {
         stopPolling()
@@ -109,19 +100,6 @@ function Rankings() {
           <ArrowLeft size={18} />
         </button>
         <h2 className="category-screen-title">Points Table</h2>
-      </div>
-
-      {/* Hero Banner (Screen 6) */}
-      <div className="points-table-hero">
-        <div style={{ position: 'relative', zIndex: 2 }}>
-          <h1 className="tourney-hero-title" style={{ fontSize: '1.15rem' }}>
-            {featuredMatchName}
-          </h1>
-          <span className="cat-hero-badge" style={{ marginTop: '0.35rem' }}>BGMI</span>
-        </div>
-        <div className="cat-hero-art" aria-hidden="true">
-          <img src={soldierBgImg} alt="Soldier" />
-        </div>
       </div>
 
       {/* Match Tabs: Overall | Match 1 | Match 2 | Match 3 */}
