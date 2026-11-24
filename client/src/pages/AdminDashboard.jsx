@@ -995,7 +995,7 @@ const AdminDashboard = () => {
       }
     } else {
       if (activeTab === 'rankings') {
-        setFormData({ rank: rankings.length + 1, teamName: '', teamTag: '', totalMatches: 0, finishes: 0, wwcd: 0, totalPoints: 0 });
+        setFormData({ rank: rankings.length + 1, teamName: '', teamTag: '', logo: '', totalMatches: 0, placePoints: 0, finishes: 0, wwcd: 0, totalPoints: 0 });
       } else if (activeTab === 'announcements') {
         setFormData({ title: 'Official Announcement', content: '', isActive: true, priority: 1, author: 'Rising Admin' });
       } else if (activeTab === 'matches') {
@@ -1993,7 +1993,11 @@ const AdminDashboard = () => {
                     <tr>
                       <th>Rank</th>
                       <th>Team</th>
-                      <th>Points</th>
+                      <th>Matches</th>
+                      <th>WWCD</th>
+                      <th>Place Pts</th>
+                      <th>Finishes</th>
+                      <th>Total Points</th>
                       <th>Actions</th>
                     </tr>
                   </thead>
@@ -2001,8 +2005,12 @@ const AdminDashboard = () => {
                     {rankings.map(team => (
                       <tr key={team._id}>
                         <td>#{team.rank}</td>
-                        <td>{team.teamName} [{team.teamTag}]</td>
-                        <td>{team.totalPoints}</td>
+                        <td>{team.teamName} {team.teamTag ? `[${team.teamTag}]` : ''}</td>
+                        <td>{team.totalMatches || 0}</td>
+                        <td>{team.wwcd || 0}</td>
+                        <td>{team.placePoints != null ? team.placePoints : Math.max(0, (team.totalPoints || 0) - (team.finishes || 0))}</td>
+                        <td>{team.finishes || 0}</td>
+                        <td style={{ fontWeight: 800, color: '#c084fc' }}>{team.totalPoints || 0}</td>
                         <td>
                           <div style={{ display: 'flex', gap: '0.5rem' }}>
                             <button className="action-btn edit-btn" onClick={() => handleOpenModal(team)}><Edit2 size={14} /></button>
@@ -4904,19 +4912,27 @@ const AdminDashboard = () => {
                     </div>
                     <div className="form-group">
                       <label>Total Matches</label>
-                      <input type="number" value={formData.totalMatches} onChange={e => setFormData({ ...formData, totalMatches: e.target.value })} />
-                    </div>
-                    <div className="form-group">
-                      <label>Finishes</label>
-                      <input type="number" value={formData.finishes} onChange={e => setFormData({ ...formData, finishes: e.target.value })} />
+                      <input type="number" value={formData.totalMatches || 0} onChange={e => setFormData({ ...formData, totalMatches: e.target.value })} />
                     </div>
                     <div className="form-group">
                       <label>WWCD</label>
-                      <input type="number" value={formData.wwcd} onChange={e => setFormData({ ...formData, wwcd: e.target.value })} />
+                      <input type="number" value={formData.wwcd || 0} onChange={e => setFormData({ ...formData, wwcd: e.target.value })} />
+                    </div>
+                    <div className="form-group">
+                      <label>Place Points</label>
+                      <input type="number" value={formData.placePoints || 0} onChange={e => setFormData({ ...formData, placePoints: e.target.value })} />
+                    </div>
+                    <div className="form-group">
+                      <label>Finishes (Kills)</label>
+                      <input type="number" value={formData.finishes || 0} onChange={e => setFormData({ ...formData, finishes: e.target.value })} />
                     </div>
                     <div className="form-group">
                       <label>Total Points</label>
-                      <input type="number" value={formData.totalPoints} onChange={e => setFormData({ ...formData, totalPoints: e.target.value })} />
+                      <input type="number" value={formData.totalPoints || 0} onChange={e => setFormData({ ...formData, totalPoints: e.target.value })} />
+                    </div>
+                    <div className="form-group">
+                      <label>Logo URL (Optional)</label>
+                      <input type="text" placeholder="https://..." value={formData.logo || ''} onChange={e => setFormData({ ...formData, logo: e.target.value })} />
                     </div>
                   </div>
                 </>

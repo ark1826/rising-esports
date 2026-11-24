@@ -69,3 +69,4 @@ export async function compressImage(file, maxWidth = 1600, maxHeight = 1600, qua
     reader.readAsDataURL(file);
   });
 }
+

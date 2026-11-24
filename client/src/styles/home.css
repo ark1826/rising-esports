@@ -2605,6 +2605,280 @@
 }
 
 /* ─────────────────────────────────────────────────────────────
+   TEAM RANKINGS CARDS ARCHITECTURE (Faithful to rmcesports.in/team-ranking)
+   Cyberpunk Purple Theme Matching Existing Website
+   ───────────────────────────────────────────────────────────── */
+
+.rankings-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(18, 14, 38, 0.95);
+  border: 1px solid rgba(139, 92, 246, 0.28);
+  border-radius: 10px;
+  padding: 0.55rem 0.85rem;
+  transition: all 0.2s ease;
+}
+
+.rankings-search-bar:focus-within {
+  border-color: #8b5cf6;
+  box-shadow: 0 0 12px rgba(139, 92, 246, 0.25);
+}
+
+.rankings-search-bar input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #ffffff;
+  font-size: 0.82rem;
+  font-weight: 500;
+  width: 100%;
+}
+
+.rankings-search-bar input::placeholder {
+  color: #64748b;
+}
+
+.rankings-cards-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.ranking-team-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(135deg, rgba(18, 14, 38, 0.95) 0%, rgba(12, 10, 26, 0.98) 100%);
+  border: 1px solid rgba(139, 92, 246, 0.22);
+  border-radius: 12px;
+  padding: 0.65rem 0.85rem;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+.ranking-team-card:hover {
+  border-color: rgba(168, 85, 247, 0.45);
+  box-shadow: 0 6px 20px rgba(109, 40, 217, 0.2);
+  transform: translateY(-1px);
+}
+
+.ranking-team-card.rank-top1 {
+  border-color: rgba(251, 191, 36, 0.48);
+  background: linear-gradient(135deg, rgba(28, 20, 52, 0.98) 0%, rgba(16, 12, 34, 0.98) 100%);
+  box-shadow: 0 4px 18px rgba(251, 191, 36, 0.12);
+}
+
+.ranking-team-card.rank-top2 {
+  border-color: rgba(226, 232, 240, 0.35);
+}
+
+.ranking-team-card.rank-top3 {
+  border-color: rgba(249, 115, 22, 0.35);
+}
+
+/* Left Section: Rank Circle + Avatar + Team Name & Matches */
+.ranking-team-left {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+  flex: 1 1 auto;
+  padding-right: 0.5rem;
+}
+
+/* Rank Circle Badge */
+.ranking-rank-badge {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.76rem;
+  font-weight: 900;
+  flex-shrink: 0;
+}
+
+.ranking-rank-badge.rank-gold {
+  background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
+  color: #1a1001;
+  box-shadow: 0 0 10px rgba(251, 191, 36, 0.55);
+}
+
+.ranking-rank-badge.rank-silver {
+  background: linear-gradient(135deg, #f1f5f9 0%, #94a3b8 100%);
+  color: #0f172a;
+  box-shadow: 0 0 8px rgba(226, 232, 240, 0.4);
+}
+
+.ranking-rank-badge.rank-bronze {
+  background: linear-gradient(135deg, #fb923c 0%, #c2410c 100%);
+  color: #ffffff;
+  box-shadow: 0 0 8px rgba(249, 115, 22, 0.4);
+}
+
+.ranking-rank-badge.rank-other {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1.5px solid rgba(139, 92, 246, 0.35);
+  color: #c084fc;
+}
+
+/* Team Crest / Avatar */
+.ranking-team-avatar-wrap {
+  width: 42px;
+  height: 42px;
+  border-radius: 9px;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #17112e;
+}
+
+.ranking-team-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ranking-team-avatar-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.82rem;
+  letter-spacing: 0.5px;
+}
+
+/* Team Name & Matches count */
+.ranking-team-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.ranking-team-title {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ranking-team-matches {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+/* Right Section: 4 Distinct Stat Columns */
+.ranking-team-stats {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.ranking-stat-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  padding: 0 0.35rem;
+  text-align: center;
+}
+
+.ranking-stat-label {
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: #64748b;
+  margin-bottom: 2px;
+}
+
+.ranking-stat-val {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.ranking-stat-divider {
+  width: 1px;
+  height: 24px;
+  background: rgba(139, 92, 246, 0.22);
+  flex-shrink: 0;
+}
+
+.ranking-stat-col.col-total .ranking-stat-val {
+  font-size: 0.92rem;
+  font-weight: 900;
+  color: #c084fc;
+}
+
+.ranking-team-card.rank-top1 .ranking-stat-col.col-total .ranking-stat-val {
+  color: #fbbf24;
+  font-size: 0.96rem;
+}
+
+.ranking-team-card.rank-top2 .ranking-stat-col.col-total .ranking-stat-val {
+  color: #f1f5f9;
+}
+
+.ranking-team-card.rank-top3 .ranking-stat-col.col-total .ranking-stat-val {
+  color: #fdba74;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 480px) {
+  .ranking-team-card {
+    padding: 0.55rem 0.65rem;
+  }
+  .ranking-rank-badge {
+    width: 22px;
+    height: 22px;
+    font-size: 0.68rem;
+  }
+  .ranking-team-avatar-wrap {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+  }
+  .ranking-team-avatar-fallback {
+    font-size: 0.72rem;
+  }
+  .ranking-team-title {
+    font-size: 0.8rem;
+  }
+  .ranking-team-matches {
+    font-size: 0.66rem;
+  }
+  .ranking-stat-col {
+    min-width: 38px;
+    padding: 0 0.2rem;
+  }
+  .ranking-stat-label {
+    font-size: 0.54rem;
+  }
+  .ranking-stat-val {
+    font-size: 0.76rem;
+  }
+  .ranking-stat-col.col-total .ranking-stat-val {
+    font-size: 0.86rem;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
    REGISTERED TEAMS & DROP LIST MODAL V2 (Faithful to Target Video)
    Cyberpunk Purple Theme Matching Existing Website
    ───────────────────────────────────────────────────────────── */

@@ -61,6 +61,7 @@ export const syncRankingsFromResults = async () => {
             teamName: normalizedName,
             teamTag: row.teamTag || '',
             totalMatches: 0,
+            placePoints: 0,
             finishes: 0,
             wwcd: 0,
             totalPoints: 0,
@@ -70,6 +71,7 @@ export const syncRankingsFromResults = async () => {
         const stats = teamStats.get(key);
         stats.totalMatches += 1;
         stats.finishes += Number(row.kills) || 0;
+        stats.placePoints += Number(row.placementPoints) || 0;
         if (Number(row.position) === 1) {
           stats.wwcd += 1;
         }
@@ -89,6 +91,7 @@ export const syncRankingsFromResults = async () => {
             teamName: stats.teamName,
             teamTag: stats.teamTag,
             totalMatches: stats.totalMatches,
+            placePoints: stats.placePoints,
             finishes: stats.finishes,
             wwcd: stats.wwcd,
             totalPoints: stats.totalPoints,
