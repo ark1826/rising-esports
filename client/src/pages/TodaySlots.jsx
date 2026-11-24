@@ -9,7 +9,6 @@ import {
 } from 'lucide-react';
 import PaymentModal from '../components/PaymentModal';
 import DropListView from '../components/DropListView';
-import bannerImg from '../assets/slots_banner.jpg';
 import soldierBgImg from '../assets/droplist_bg_soldier.jpg';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';

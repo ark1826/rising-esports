@@ -158,7 +158,7 @@ export default function Home() {
               setAnnouncements([res.data]);
             }
           })
-          .catch(() => {});
+          .catch(() => { });
       });
 
     // 2. Fetch live slots to display as featured
@@ -170,7 +170,7 @@ export default function Home() {
           setFeaturedSlot(active);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
 
     // 3. Fetch official community WhatsApp group link
     axios.get(`${API_URL}/api/config/official-whatsapp`)
@@ -179,7 +179,7 @@ export default function Home() {
           setOfficialWhatsAppUrl(res.data.url);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
 
     return () => {
       isMounted = false;
@@ -192,16 +192,16 @@ export default function Home() {
       axios.get(`${API_URL}/api/wallet/balance`, {
         headers: { Authorization: `Bearer ${userInfo.token}` },
       })
-      .then((res) => {
-        if (typeof res.data?.balance === 'number') {
-          setWalletBalance(res.data.balance);
-        } else {
+        .then((res) => {
+          if (typeof res.data?.balance === 'number') {
+            setWalletBalance(res.data.balance);
+          } else {
+            setWalletBalance(0.0);
+          }
+        })
+        .catch(() => {
           setWalletBalance(0.0);
-        }
-      })
-      .catch(() => {
-        setWalletBalance(0.0);
-      });
+        });
     } else {
       setWalletBalance(0.0);
     }

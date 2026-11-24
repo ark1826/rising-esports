@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
+import { compressImage } from '../utils/imageCompressor';
 import {
   Plus,
   Edit2,
@@ -97,6 +98,7 @@ const AdminDashboard = () => {
     manualUrl: '',
   });
   const [uploadingResultPhoto, setUploadingResultPhoto] = useState(false);
+  const [compressingPhotos, setCompressingPhotos] = useState(false);
   const [previewPhotoModal, setPreviewPhotoModal] = useState({ open: false, url: '', title: '', allUrls: [], activeIndex: 0 });
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -261,21 +263,44 @@ const AdminDashboard = () => {
     setShowUploadResultPhotoModal(true);
   };
 
-  const handleResultPhotoFileChange = (e) => {
+  const handleResultPhotoFileChange = async (e) => {
     const selectedFiles = Array.from(e.target.files || []);
     if (selectedFiles.length > 0) {
+      setCompressingPhotos(true);
       const defaultLobbies = ['LOBBY 01', 'LOBBY 02', 'LOBBY 03', 'LOBBY 04', 'LOBBY 05', 'LOBBY 06'];
-      const newItems = selectedFiles.map((file, idx) => ({
-        file,
-        preview: URL.createObjectURL(file),
-        lobby: defaultLobbies[idx % defaultLobbies.length],
-        title: uploadResultForm.matchName || (uploadResultForm.category === 'DAILY SCRIMS' ? 'RISING SCRIM - POINT TABLE' : 'RISING WAR - POINT TABLE'),
-      }));
+      try {
+        const compressedItems = await Promise.all(
+          selectedFiles.map(async (file, idx) => {
+            // Compress large camera screenshots down to ~150-250KB for silky smooth upload & fast mobile loading
+            const compressed = await compressImage(file, 1600, 1600, 0.82);
+            return {
+              file: compressed,
+              preview: URL.createObjectURL(compressed),
+              lobby: defaultLobbies[(uploadResultForm.items.length + idx) % defaultLobbies.length],
+              title: uploadResultForm.matchName || (uploadResultForm.category === 'DAILY SCRIMS' ? 'RISING SCRIM - POINT TABLE' : 'RISING WAR - POINT TABLE'),
+            };
+          })
+        );
 
-      setUploadResultForm(prev => ({
-        ...prev,
-        items: newItems,
-      }));
+        setUploadResultForm(prev => ({
+          ...prev,
+          items: [...prev.items, ...compressedItems],
+        }));
+      } catch (err) {
+        console.error('Photo optimization error:', err);
+        const fallbackItems = selectedFiles.map((file, idx) => ({
+          file,
+          preview: URL.createObjectURL(file),
+          lobby: defaultLobbies[(uploadResultForm.items.length + idx) % defaultLobbies.length],
+          title: uploadResultForm.matchName || (uploadResultForm.category === 'DAILY SCRIMS' ? 'RISING SCRIM - POINT TABLE' : 'RISING WAR - POINT TABLE'),
+        }));
+        setUploadResultForm(prev => ({
+          ...prev,
+          items: [...prev.items, ...fallbackItems],
+        }));
+      } finally {
+        setCompressingPhotos(false);
+      }
     }
   };
 
@@ -6148,7 +6173,19 @@ const AdminDashboard = () => {
           <div
             className="modal"
             onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: '580px', width: '100%', background: '#090a14', border: '1.5px solid rgba(139, 92, 246, 0.45)', maxHeight: '90vh', overflowY: 'auto' }}
+            style={{
+              maxWidth: '560px',
+              width: 'min(560px, 94vw)',
+              background: '#090a14',
+              border: '1.5px solid rgba(139, 92, 246, 0.45)',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              borderRadius: '16px',
+              padding: '1.1rem 1rem',
+              margin: 'auto',
+              boxSizing: 'border-box',
+              WebkitOverflowScrolling: 'touch',
+            }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(139, 92, 246, 0.25)', paddingBottom: '0.75rem', marginBottom: '1rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -6293,8 +6330,8 @@ const AdminDashboard = () => {
                 />
               </div>
 
-              {/* Date & Default Lobby (2 columns) */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              {/* Date & Default Lobby (2 columns or responsive stack) */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.74rem', color: '#e2e8f0', fontWeight: 700, marginBottom: '3px' }}>
                     Default Lobby *
@@ -6369,9 +6406,16 @@ const AdminDashboard = () => {
                     boxSizing: 'border-box',
                   }}
                 />
-                <span style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: '2px', display: 'block' }}>
-                  Tip: Hold Ctrl/Shift to pick multiple photos (e.g. Lobby 01 + Lobby 02, or Match 1 + Match 2)
-                </span>
+                {compressingPhotos ? (
+                  <span style={{ fontSize: '0.72rem', color: '#38bdf8', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <RefreshCw size={12} className="spin" />
+                    <span>⚡ Optimizing photo(s) for fast mobile upload...</span>
+                  </span>
+                ) : (
+                  <span style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: '2px', display: 'block' }}>
+                    Tip: Select multiple photos at once. Photos are automatically optimized for instant mobile upload.
+                  </span>
+                )}
               </div>
 
               {/* Multiple Uploaded Photos Cards */}

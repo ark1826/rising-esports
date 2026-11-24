@@ -45,8 +45,10 @@ router.get('/', async (req, res) => {
     }
 
     const results = await MatchResult.find(filter)
+      .select('-results')
       .populate('matchId', 'matchName date timing mode maps status')
-      .sort({ date: -1, createdAt: -1 });
+      .sort({ date: -1, createdAt: -1 })
+      .lean();
 
     res.json(results);
   } catch (error) {

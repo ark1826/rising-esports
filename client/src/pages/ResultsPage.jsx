@@ -352,19 +352,18 @@ export default function ResultsPage() {
                   key={item._id}
                   style={{
                     position: 'relative',
-                    background: '#070b18',
-                    border: '1.5px solid rgba(37, 99, 235, 0.4)',
+                    background: '#070c1b',
+                    border: '1.5px solid rgba(30, 64, 175, 0.65)',
                     borderRadius: '12px',
-                    padding: '1.1rem 1.15rem',
+                    padding: '1.15rem 1.2rem',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    gap: '12px',
-                    boxShadow: '0 4px 18px rgba(0,0,0,0.6), inset 0 0 10px rgba(37, 99, 235, 0.05)',
-                    transition: 'border-color 0.2s, transform 0.2s',
+                    gap: '14px',
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
                   }}
                 >
-                  {/* Left Column: Title & Lobby Badge (Matching Image 2) */}
+                  {/* Left Column: Title & Lobby Badge (Matching Image) */}
                   <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
                     <div
                       style={{
@@ -381,7 +380,7 @@ export default function ResultsPage() {
                       {item.matchName}
                     </div>
 
-                    {/* Lobby Badge (Matching Image 2: blue pill) */}
+                    {/* Lobby Badge (Matching Image: blue pill) */}
                     <div style={{ marginTop: '0.55rem' }}>
                       <span
                         style={{
@@ -417,30 +416,30 @@ export default function ResultsPage() {
                     </div>
                   </div>
 
-                  {/* Right Column: VIEW Button (Matching Image 2) */}
+                  {/* Right Column: VIEW Button (Matching Image) */}
                   <button
                     type="button"
                     onClick={() => setViewingPhotoModal({ open: true, item, activePhotoIndex: 0 })}
                     style={{
-                      border: '1.5px solid #2563eb',
-                      background: 'rgba(37, 99, 235, 0.18)',
+                      border: '1px solid #2563eb',
+                      background: 'rgba(23, 37, 84, 0.85)',
                       borderRadius: '8px',
-                      padding: '9px 24px',
+                      padding: '10px 24px',
                       color: '#ffffff',
                       fontFamily: "'Inter', sans-serif",
                       fontSize: '0.86rem',
-                      fontWeight: 800,
+                      fontWeight: 700,
                       letterSpacing: '0.8px',
                       cursor: 'pointer',
                       flexShrink: 0,
-                      transition: 'all 0.2s',
+                      transition: 'all 0.15s ease-in-out',
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.background = '#2563eb';
-                      e.currentTarget.style.boxShadow = '0 0 16px rgba(37, 99, 235, 0.6)';
+                      e.currentTarget.style.boxShadow = '0 0 14px rgba(37, 99, 235, 0.5)';
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'rgba(37, 99, 235, 0.18)';
+                      e.currentTarget.style.background = 'rgba(23, 37, 84, 0.85)';
                       e.currentTarget.style.boxShadow = 'none';
                     }}
                   >
